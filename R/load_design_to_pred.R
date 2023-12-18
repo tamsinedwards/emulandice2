@@ -1,0 +1,577 @@
+#' load_design_to_pred: construct design for emulator projections
+#'
+#' @description
+#' Construct requested design for emulator projections by sampling inputs.
+#'
+#' @param design_name Requested design: SSPs, uniform temperatures over original
+#' ensemble ranges, or main effects.
+#'
+#' @returns `load_design_to_pred()` returns requested designs for each list
+#' member (SSP, or input for main effects).
+#'
+#' @export
+
+load_design_to_pred <- function(design_name) {
+
+  if (design_name == "main_effects") { logfile_design <- logfile_build
+  } else logfile_design <- logfile_results
+
+  cat("\n_________________________________\n",file = logfile_design, append = TRUE)
+  cat(paste("load_design_pred:", design_name, "\n"), file = logfile_design, append = TRUE)
+
+  # One matrix for each scenario (uniform GSAT and AR6 prior)
+  # or each input (main effects)
+  design_prior <- list()
+
+  # Loop over design columns
+  # This includes dummy variables i.e. expanded factors
+  input_names <- colnames(ice_design)
+
+  # This many samples for uniform GSAT and AR6 priors
+  # (AR6 prior is fixed by number of GSAT values in CSV file: N_temp)
+  N_prior <- 2000
+
+  # This many for main effects
+  N_main <- 100
+
+  # One value for each ice model parameter
+  # Not very elegant but never mind
+  prior_min <- list()
+  prior_max <- list()
+
+  # Ice model inputs ------------------------------------------------------------------------
+
+  # RANGES FOR ICE MODEL PRIORS
+  if (i_s == "AIS" ) {
+
+    # XXX Will fail if using ISMIP6 because haven't put basal melt prior in yet
+    #stopifnot( dataset == "PROTECT" )
+
+    # Uniform prior over
+    # Draw a big sample here then subsample from this below in design
+    #if (dataset == "PROTECT") {
+
+    # Heat flux ranges in PROTECT deliverable D-4.5
+    prior_min["heat_flux_PICO"] = 0.1e-5
+    prior_max["heat_flux_PICO"] = 10e-5
+
+    prior_min["heat_flux_Plume"] = 1e-4
+    prior_max["heat_flux_Plume"] = 10e-4
+
+    prior_min["heat_flux_Burgard"] = 1e-4
+    prior_max["heat_flux_Burgard"] = 10e-4
+
+    prior_min["heat_flux_ISMIP6_nonlocal"] = 1e4
+    prior_max["heat_flux_ISMIP6_nonlocal"] = 4e4
+
+    prior_min["heat_flux_ISMIP6_nonlocal_slope"] = 1e6
+    prior_max["heat_flux_ISMIP6_nonlocal_slope"] = 4e6
+
+    prior_min["lapse_rate"] = -12
+    prior_max["lapse_rate"] = -5
+
+    prior_min["refreeze_frac"] = 0.2
+    prior_max["refreeze_frac"] = 0.8
+
+    prior_min["refreeze"] = 0
+    prior_max["refreeze"] = 15
+
+    prior_min["PDD_ice"] = 4
+    prior_max["PDD_ice"] = 12
+
+    prior_min["PDD_snow"] = 0
+    prior_max["PDD_snow"] = 6
+
+    prior_min["PDD_sd"] = 3
+    prior_max["PDD_sd"] = 5
+
+    #    } # PROTECT
+  } # AIS
+
+  # Glaciers
+  if (i_s == "GLA" ) {
+
+    # Precipitation correction factor (unitless)
+    # XXX need to check this has same meaning in both models!!!
+    prior_min["prec_corr_factor"] = 1.0
+    # OGGM has higher max than GloGEM
+    if ("OGGM" %in% model_list) { prior_max["prec_corr_factor"] = 4.0
+    } else prior_max["prec_corr_factor"] = 2.2
+
+    # GloGEM
+    prior_min["ddf_ice"] <- 4.5 # mm d-1 K-1
+    prior_max["ddf_ice"] <- 9.0
+    prior_min["ratio_ddf_ice_to_snow"] <- 0.4 # unitless
+    prior_max["ratio_ddf_ice_to_snow"] <- 0.8
+    prior_min["prec_gradient"] <- 0.5 # m^-1
+    prior_max["prec_gradient"] <- 3
+
+    # OGGM new ensemble
+    prior_min["A"] <- 0.5e-24 # s^-1 Pa^-3
+    prior_max["A"] <- 10e-24
+
+    # OGGM test ensemble - delete later
+    prior_min["T_melt"] = -3.0 # degC
+    prior_max["T_melt"] = 3.0
+    prior_min["temp_all_liq"] = 0.0 # degC
+    prior_max["temp_all_liq"] = 2.0
+    prior_min["temp_all_solid"] <- -3 # degC # if keeping these
+    prior_max["temp_all_solid"] <- -1        # I would make these lower than _liq
+    prior_min["delta_mu"] <- 0.5 # unitless
+    prior_max["delta_mu"] <- 2 # this was sampled on linear scale not log
+
+
+  }
+
+
+  # XXX CHANGE THIS TO A FACTOR?
+  if (i_s == "GIS") { # } %in% c("GrIS", "GIS") ) {
+    prior_min["resolution"] = 2
+    prior_max["resolution"] = 32 # or 16? xxx
+  }
+
+  # Are any of selected param list not set in priors?
+  # Let Greenland retreat go because not uniform
+  # xxx add AIS melt AR6 here too
+  cat("\nIce model inputs with uniform priors:\n",file = logfile_design, append = TRUE)
+  cat( paste(paste(ice_cont_list[ice_cont_list %in% names(prior_min)], collapse = " "), "\n"),
+       file = logfile_design, append = TRUE)
+
+  missing_param <- setdiff( ice_cont_list , names(prior_min) )
+  if ( length(missing_param) > 0) {
+    cat("Continuous ice params without uniform prior min (OK if Greenland retreat):\n",
+        file = logfile_design, append = TRUE)
+    cat( missing_param, file = logfile_design, append = TRUE )
+    cat( "\n", file = logfile_design, append = TRUE )
+  }
+
+  stopifnot( length( missing_param) == 0
+             || (i_s == "GIS" && length(missing_param) == 1 &&
+                   missing_param == "retreat") ) # %in% c("GrIS", "GIS")
+
+  # Check max too
+  missing_param <- setdiff( ice_cont_list , names(prior_max) )
+  if ( length(missing_param) > 0) {
+    cat("Continuous ice params without uniform prior max (OK if Greenland retreat):\n",
+        file = logfile_design, append = TRUE)
+    cat( paste(c(missing_param, "\n")), file = logfile_design, append = TRUE)
+  }
+  stopifnot( length( missing_param) == 0
+             || (i_s == "GIS" && length(missing_param) == 1 &&
+                   missing_param == "retreat") ) # %in% c("GrIS", "GIS")
+
+
+  # SET EMPIRICAL PRIOR FOR Greenland
+  if (i_s == "GIS") { # %in% c("GrIS", "GIS")
+
+    if ("retreat" %in% ice_param_list) {
+
+      cat("Prior for retreat: empirical (Slater et al.)\n", file = logfile_design, append = TRUE)
+
+      # K-distribution from Donald Slater (N = 191)
+      # Sample from kernel density estimate of this
+      # using same bandwith as original study
+
+      # This was called "data_for_tamsin.txt" in emulandice for IPCC AR6:
+      # k_dist_file <- system.file("extdata", "data_for_tamsin.txt", package = "emulandice", mustWork = TRUE )
+      k_dist_file <- paste0(inputs_ext, "GIS/retreat/GIS_retreat_prior.txt" )
+      cat(paste(k_dist_file, "\n"), file = logfile_design, append = TRUE)
+
+      k_dist <- read.table(k_dist_file)
+      retreat_prior_dens <- density(k_dist[,1], n = 10000, bw = 0.0703652)
+      retreat_prior <- sample( retreat_prior_dens$x, 10000, replace = TRUE,
+                               prob = retreat_prior_dens$y )
+
+      prior_min["retreat"] <- min(retreat_prior)
+      prior_max["retreat"] <- max(retreat_prior)
+
+      cat(sprintf("Empirical retreat prior range: [%.4f, %4.f]\n", min(retreat_prior), max(retreat_prior)), file = logfile_design, append = TRUE)
+
+      if (FALSE) {
+        retreat_prior <- retreat_prior[ retreat_prior >= -0.9705 & retreat_prior <= 0.0070 ]
+
+        # Get min and max of sample to use for main effects design
+        prior_min["retreat"] <- min(retreat_prior)
+        prior_max["retreat"] <- max(retreat_prior)
+
+        cat(sprintf("TRUNCATED RETREAT PRIOR TO 5-95%% RANGE: [%.4f, %4.f]\n",min(retreat_prior),max(retreat_prior)), file = logfile_design, append = TRUE)
+      }
+    }
+  }
+
+  cat("\nIce model input prior ranges (including non-uniform):\n",
+      file = logfile_design, append = TRUE)
+  for (pp in ice_cont_list ) {
+    cat(sprintf( "%s: [%.1e, %.1e]", pp, prior_min[[pp]], prior_max[[pp]]),"\n",file = logfile_design, append = TRUE)
+  }
+
+  # Main effects ------------------------------------------------------------------------
+  # Design for each parameter
+  # Vary one while others fixed
+
+  # MAIN EFFECTS DESIGN: note not using SSPs, as want full range of GSAT-dependence
+  # xxx Rather inefficient code...
+
+  if (design_name == "main_effects") {
+
+    nom <- list()
+    oaat <- list()
+
+    # Get fixed (nominal) and varying values for each column of design
+    for ( dd in colnames(ice_design) ) { # or input_names
+
+      # Climate column(s): mean
+      if (dd %in% temps_list_names) {
+
+        if (length(temps_list) == 1) { tt <- temps
+        } else tt <- temps[ , which( temps_list_names == dd, arr.ind = TRUE)]
+
+        nom[[ dd ]] <- mean(tt)
+        oaat[[ dd ]] <- seq( from = min(tt), to = max(tt), length = N_main )
+      }
+
+      # Continuous ice model inputs: mean unless special prior
+      if (dd %in% ice_cont_list) {
+
+        # Empirical prior
+        if (i_s == "GIS" && dd == "retreat") { # %in% c("GrIS","GIS")
+          nom[[ dd ]] <- -0.17
+        } else {
+          # Uniform prior
+          nom[[ dd ]] <- mean( c(as.numeric(prior_min[dd]), as.numeric(prior_max[dd])) )
+        }
+
+        oaat[[ dd ]] <- seq( from = as.numeric(prior_min[dd]),
+                             to = as.numeric(prior_max[dd]),
+                             length = N_main )
+
+      }
+
+      # Categorical ice model inputs (including dummy): 0
+      if (dd %in% ice_dummy_list) {
+        nom[[ dd ]] <- 0
+        oaat[[ dd ]] <- 1
+      }
+
+      # Make matrix
+      design_prior[[dd]] <- matrix(NA, nrow = length(oaat[[dd]]), ncol = length(input_names))
+      colnames(design_prior[[dd]]) <- colnames(ice_design)  # input_names
+
+      if (dd %in% ice_dummy_list) {
+
+        # Add row for all dummy variables nominal i.e. reference value
+        design_prior[[dd]] <- rbind(design_prior[[dd]], NA )
+
+      }
+
+    }
+
+
+    # Fill with values
+    for ( dd in colnames(ice_design) ) { # or input_names
+
+      # Fill each column with nominal values
+      for (cc in colnames(ice_design) ) {
+        design_prior[[dd]][ , cc] <- nom[[cc]]
+      }
+
+      # Overwrite this column with OAAT
+      # 1:length() is here because of extra nominal row for factor columns
+      design_prior[[dd]][ 1:length(oaat[[dd]]), dd] <- oaat[[dd]]
+
+    }
+
+
+
+
+  } # design_name == "main_effects"
+
+  #____________________________________________________________________________
+
+
+  # Uniform GSAT ------------------------------------------------------------------------
+
+  # Uniform in GSAT (for SSP)
+  if (design_name == "unif_temps") {
+
+    cat("\nPrior for GSAT: uniform over simulation data range\n",
+        file = logfile_design, append = TRUE)
+
+    # Create for each SSP
+    for (scen in scenario_list) {
+
+      # Set up matrix
+      #      if (length(temps_list) == 1) {
+      #        design_prior_gsat <- matrix( NA, nrow = N_prior, ncol = 1)
+      #      } else design_prior_gsat <- matrix( NA, nrow = N_prior, ncol = dim(temps)[2])
+
+      design_prior_gsat <- matrix(nrow = N_prior, ncol = length(temps_list))
+      colnames(design_prior_gsat) <- paste("GSAT_",temps_list)
+
+      # GET MIN AND MAX OF SIMULATED CLIMATES
+      for ( cc in 1:length(temps_list)) {
+
+        if (length(temps_list) == 1) {
+          min_temps = min(temps[ ice_data$scenario == scen ])
+          max_temps = max(temps[ ice_data$scenario == scen ])
+        } else {
+          min_temps = min(temps[ ice_data$scenario == scen, cc])
+          max_temps = max(temps[ ice_data$scenario == scen, cc])
+        }
+
+        # Uniform over range of original GCM forcings for that SSP
+        design_prior_gsat[,cc] <- runif( N_prior, min = min_temps,
+                                         max = max_temps)
+
+        cat(sprintf( "%s %s: [%.1f, %.1f] degC\n", scen, temps_list_names[cc], min_temps, max_temps),
+            file = logfile_design, append = TRUE)
+
+      }
+
+      # Create holder for all ice model input columns, including dummy variables
+      design_prior_param <- matrix(nrow = N_prior, ncol = length(ice_all_list))
+      colnames(design_prior_param) <- ice_all_list
+
+      # Continuous parameters: sample independently
+      for (pp in ice_cont_list) {
+
+        if (i_s == "GIS" && pp == "retreat") { # %in% c("GrIS", "GIS")
+          # Empirical
+          samp <- sample( unlist(retreat_prior), N_prior, replace = TRUE )
+        } else {
+          # Uniform
+          samp <- runif( N_prior, min = as.numeric(prior_min[pp]),
+                         max = as.numeric(prior_max[pp]) )
+        }
+
+        # Store column
+        design_prior_param[, pp] <- samp
+
+      } # cont
+
+      # Loop over factors (i.e. not dummy variables, because dept columns)
+      for (pp in ice_factor_list) {
+
+        if (is.na(pp)) next
+
+        # Number of dummy variables = number of factor levels - 1 for collinearity
+        nd <- length( ice_factor_values[[pp]] ) - 1
+
+        # Sample from [1, 0, ...] for each row (trailing are more zeroes)
+        prior_factor <- t(replicate( N_prior, sample( c(1,rep(0,nd)), nd, replace = FALSE )  ))
+
+        # Reconstruct dummy variable column names (factor:level)
+        # and check in dummy variable name list
+        colnames_dv <- paste(pp, ice_factor_values[[pp]][-1], sep = ":")
+        stopifnot( length( setdiff(colnames_dv, ice_dummy_list )) == 0 )
+
+        # Store
+        design_prior_param[ , colnames_dv ] <- prior_factor
+
+      }
+
+      # Combine climate and ice model priors
+      design_prior[[scen]] <- cbind( design_prior_gsat, design_prior_param )
+      colnames(design_prior[[scen]]) <- colnames(ice_design)
+
+    } # scenarios
+
+  } # unif_temps
+
+
+
+  # AR6 prior ------------------------------------------------------------------------
+
+
+  # COMBINE WITH CLIMATE PRIOR: AR6
+  # set up alternative or stopifnot
+  if (design_name == "AR6_2LM") {
+
+    cat("\nPrior for GSAT: AR6 two-layer model ensemble\n", file = logfile_design, append = TRUE)
+
+    # Read simple climate model CSV file specified in main.R (later as an arg xxx)
+    #cat(paste("Reading CSV file of GSAT projections:", scm_file, "\n"), file = logfile_design, append = TRUE)
+    #climate_prior_all <- read.csv(paste0(inputs_preprocess, "GSAT/", scm_file))
+
+    # Read simple climate model netcdf file specified in main.R (later as an arg xxx)
+    cat(paste("Reading netcdf file of GSAT projections:", scm_file, "\n"), file = logfile_design, append = TRUE)
+
+    # Open file and read into data frame
+    ncin <- ncdf4::nc_open( paste0(inputs_preprocess, "GSAT/", scm_file) )
+    climate_prior_all <- as.data.frame(ncdf4::ncvar_get(ncin,paste0(scm_ssp,"/surface_temperature")))
+
+    # Add years as column names
+    year <- ncdf4::ncvar_get(ncin,"year")
+    colnames(climate_prior_all) <- paste0("y", year)
+
+    # XXX FINISH
+    # Normally have columns: ensemble and expt [think not used], scenario [sorted below]
+    # Also need to do baseline? or done below?
+
+    # Design for each SSP
+    for (scen in scenario_list) {
+
+      # GET CLIMATE PRIOR
+
+      # Get all FaIR 2LM projections for this scenario
+      # climate_prior <- climate_prior_all[ climate_prior_all$scenario == scen, ] # xxx only needed when reading CSV
+      climate_prior <- climate_prior_all
+
+      # Create matrix for GSAT values
+      if (length(temps_list) == 1) {
+        design_prior_gsat <- rep(NA, dim(climate_prior)[1])
+      } else {
+        design_prior_gsat <- matrix( NA, nrow = dim(climate_prior)[1], ncol = length(temps_list) )
+        colnames(design_prior_gsat) <- paste0("y", temps_list)
+      }
+
+
+      #design_prior_gsat <- climate_prior[ , paste0("y", temps_list) ]
+
+      # Years for baseline
+      temps_period1 <- temps_baseline + 1:N_temp_yrs - 1
+
+      cat( paste("GSAT prior: baseline mean period", paste(range(temps_period1), collapse = "-"), "\n"),
+           file = logfile_design, append = TRUE )
+
+      # Calculate decadal means and subtract baseline
+      for (ss in 1:dim(climate_prior)[1]) {
+
+        # Get timeslice(s) neeed for prediction
+        if (length(temps_list) == 1) {
+
+          temps_period2 <- temps_list - N_temp_yrs:1 + 1
+
+          if (ss == 1) cat( paste("GSAT prior: forcing mean period", paste(range(temps_period2), collapse = "-"), "\n"),
+                            file = logfile_design, append = TRUE )
+          design_prior_gsat[ ss ] <- mean(unlist(climate_prior[ ss, paste0("y", temps_period2) ])) - mean(unlist(climate_prior[ ss, paste0("y", temps_period1) ]))
+
+
+
+        } else {
+
+          for ( tt in temps_list ) {
+
+            temps_period2 <- tt - N_temp_yrs:1 + 1
+
+            if (ss == 1) cat( paste("GSAT prior: forcing mean period", paste(range(temps_period2), collapse = "-"), "\n"),
+                              file = logfile_design, append = TRUE )
+
+            design_prior_gsat[ ss, paste0("y", tt) ] <- mean(unlist(climate_prior[ ss, paste0("y", temps_period2) ])) - mean(unlist(climate_prior[ ss, paste0("y", temps_period1) ]))
+
+            if (ss < 6) {
+              # xxx check if temps_list - not looked at these
+              print(climate_prior[ ss, paste0("y", temps_period2) ])
+              print(climate_prior[ ss, paste0("y", temps_period1) ])
+              print(design_prior_gsat[ ss, paste0("y", tt)])
+            }
+
+          }
+        }
+      }
+
+      #   design_prior_gsat[ss, paste0("y", temps_list) ] <- design_prior_gsat[ ss, paste0("y", temps_list) ] - climate_prior[ ss, paste0("y", temps_baseline) ]
+
+      if (length(temps_list) == 1) { N_temp <- length(design_prior_gsat)
+      } else N_temp <- dim(design_prior_gsat)[1]
+
+      cat(paste("Got", N_temp, "GSAT samples from file for prior"), file = logfile_design, append = TRUE)
+
+      # Dataset check: number of 2LM projections for each SSP
+      stopifnot( N_temp == N_2LM )
+      if (length(temps_list) > 1) stopifnot( dim(design_prior_gsat)[2] == length(temps_list) )
+
+      # COMBINE WITH ICE SHEET MODEL PARAMETER PRIOR __________
+
+      # Get N_temp samples from parameter priors
+      # IMPROVEMENT SINCE EMULANDICE: resamples melt parameter for each SSP
+
+      # Create holder for all ice model input columns, including dummy variables
+      design_prior_param <- matrix(nrow = N_temp, ncol = length(ice_all_list))
+      colnames(design_prior_param) <- ice_all_list
+
+      # Continuous parameters
+      for (pp in ice_cont_list) {
+
+        if (i_s == "GIS" && pp == "retreat") { # %in% c("GrIS", "GIS")
+          # Empirical
+          samp <- sample( unlist(retreat_prior), N_temp, replace = TRUE )
+        } else {
+          # Uniform
+          samp <- runif( N_temp, min = as.numeric(prior_min[pp]),
+                         max = as.numeric(prior_max[pp]) )
+        }
+
+        # Store column
+        design_prior_param[, pp] <- samp
+
+      }
+
+      # Loop over factors (i.e. not dummy variables, because dept columns)
+      for (pp in ice_factor_list) {
+
+        if (is.na(pp)) next
+
+        # Number of dummy variables = number of factor levels - 1 for collinearity
+        nd <- length( ice_factor_values[[pp]] ) - 1
+
+        # Sample from [1, 0, ...] for each row (trailing are more zeroes)
+        prior_factor <- t(replicate( N_temp, sample( c(1,rep(0,nd)), nd, replace = FALSE )  ))
+
+        # Reconstruct dummy variable column names (factor:level)
+        # and check in dummy variable name list
+        colnames_dv <- paste(pp, ice_factor_values[[pp]][-1], sep = ":")
+        stopifnot( length( setdiff(colnames_dv, ice_dummy_list )) == 0 )
+
+        # Store
+        design_prior_param[ , colnames_dv ] <- prior_factor
+
+      }
+
+      # Merge into one design
+      design_prior[[scen]] <- cbind( design_prior_gsat, design_prior_param )
+      colnames(design_prior[[scen]]) <- colnames(ice_design)
+
+    } # scenario_list
+
+    # Print out and keep this N_temp value for writing CSV
+    cat(paste("Loaded",N_temp,"samples for each scenario\n"), file = logfile_design, append = TRUE)
+
+  } # AR6_2LM design
+
+  # Return design  ------------------------------------------------------------------------
+
+  cat(paste("\ndesign_prior: created designs for",paste(names(design_prior), collapse = " "),"\n"), file = logfile_design, append = TRUE)
+
+  return(design_prior)
+
+} # end of function
+
+
+#_______________________________________________________________________________
+# Keep LHS code now in case want to use for sensitivity analysis design
+# for glaciers/Antarctica
+#
+# require(lhs)
+#if (design_name == "lhs") npred = 1000 # size of LHS for projections
+# PRIOR: LHS
+# Latin hypercube over roughly same ranges as data
+#if (design_name == "lhs") {
+
+# No scenarios - take all temps
+#  design_pred <- maximinLHS(npred, 2)
+# design_pred[,1] <- design_pred[,1]*6 + 0.2 # gsat
+#  if (do_param_transform) {
+#    design_pred[,2] <- design_pred[,2] + 0.001 # retreat transformed
+#  } else design_pred[,2] <- (design_pred[,2]-0.01)*(-1) # original range
+
+#  scen <- "all"
+
+#}
+
+# Plot
+#if (design_name == "lhs") {
+#  apply( ice_data[ , paste0("y", years_sim) ], 1, function(x) {
+#lines( years_sim, x, col = rgb(0.5,0,1, alpha = 0.4 ) ))
+#  lines( 1991:1995, rep(yleg, 5), col = rgb(0.5,0,1, alpha = 0.4 ) )
+#})

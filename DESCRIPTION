@@ -1,0 +1,17 @@
+Package: emulandice2
+Type: Package
+Title: Emulandice: emulation of multi-model estimates of the land ice contribution to sea level rise
+Version: 2.0.0
+Authors@R: person("Tamsin", "Edwards", email = "tamsin.edwards@kcl.ac.uk",
+  role = c("aut", "cre"))
+Maintainer: Tamsin L. Edwards <tamsin.edwards@kcl.ac.uk>
+Description: This code is used to emulate projections of the ice sheet and glacier contributions to sea level rise to 2300. 
+License: CC0
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    methods,
+    mvtnorm,
+    RobustGaSP,
+    ncdf4
+RoxygenNote: 7.2.3
