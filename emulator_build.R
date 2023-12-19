@@ -9,7 +9,7 @@
 #_______________________________________________________________________________
 # BUILD EMULATOR
 #
-# Writes RData file: paste0("outdir", "/", out_name, "_EMULATOR.RData")
+# Writes RData file: paste0("outdir", out_name, "_EMULATOR.RData")
 # to be read by FACTS for predicting land ice contributions with FaIR GSAT projections
 #_______________________________________________________________________________
 
@@ -54,12 +54,15 @@ stopifnot(i_s %in% c("GIS","AIS", "GLA"))
 set.seed(2024)
 
 # Directory for output files
-outdir <- "~/PROTECT/RESULTS/tmp"
+outdir <- "./out/"
+rdatadir <- "./data-raw/"
 
 # Directories for input datasets
 # (all in the same place, grouped by type)
-inputs_preprocess <- "~/PROTECT/emulandice2/inst/extdata/" # Processed: PROTECT data
-inputs_ext <- "~/PROTECT/emulandice2/inst/extdata/" # Pre-existing: GSAT data and AR6 files
+inputs_preprocess <- system.file("extdata", package = "emulandice2")
+inputs_ext <- inputs_preprocess
+#inputs_preprocess <- "~/PROTECT/emulandice2/inst/extdata/" # Processed: PROTECT data
+#inputs_ext <- "~/PROTECT/emulandice2/inst/extdata/" # Pre-existing: GSAT data and AR6 files
 
 #' # Analysis choices
 #' ## Dataset, ice source, region [ensemble]
@@ -127,7 +130,7 @@ if (i_s == "GLA") {
 if (i_s == "GIS") ice_name <- "Greenland"  # %in% c("GrIS", "GIS"))
 if (i_s == "AIS") ice_name <- "Antarctica"
 if (i_s == "GLA") {
-  ice_name <- paste("Glaciers:", read.csv(paste0(inputs_ext,"GLA/regionnames.txt"))[reg_num,1])
+  ice_name <- paste("Glaciers:", read.csv(paste0(inputs_ext,"/GLA/regionnames.txt"))[reg_num,1])
 }
 
 # Sample size for unif_temps design - used for convenience when adding uncertainty
@@ -279,7 +282,7 @@ stopifnot(emulator_settings %in% c("IPCC_AR6", "matern_5_2", "matern_3_2",
 # Create name for output files
 out_name <- paste0(i_s,"_",reg,"_",paste(model_list, collapse = "_"),
                    "_", emulator_settings)
-logfile_build <- paste0(outdir, "/",out_name,"_build.txt")
+logfile_build <- paste0(outdir, out_name,"_build.txt")
 
 #______________________________________________________
 # START WRITING LOG FILE
@@ -917,7 +920,7 @@ cat("\nPlot simulator projections:\n", file = logfile_build, append = TRUE)
 
 # Plot simulations (some with observations)
 if (plot_level > 0) {
-  pdf( file = paste0( outdir, "/", out_name, "_SIMS.pdf"),
+  pdf( file = paste0( outdir, out_name, "_SIMS.pdf"),
        width = 9, height = 5)
   plot_designs("sims", plot_level)
   plot_timeseries("sims", plot_level)
@@ -971,7 +974,7 @@ if (TRUE) {
 
     ## build emulators, hide rgasp output
 
-    sink(file = paste0(outdir,"/", out_name,"_rgasp.log"))
+    sink(file = paste0(outdir,out_name,"_rgasp.log"))
 
     trendX <- designX
 
@@ -1181,7 +1184,7 @@ for (scen in scenario_list) {
 
 # Plot sensitivity analysis
 if (plot_level > 0) {
-  pdf( file = paste0( outdir, "/", out_name, "_SA.pdf"),
+  pdf( file = paste0( outdir, out_name, "_SA.pdf"),
        width = 9, height = 5)
   plot_scatter("prior", "main_effects",plot_level)
   plot_scatter("prior", "unif_temps",plot_level)
@@ -1252,7 +1255,7 @@ if (do_loo_validation) {
   } # years
 
   # Plot LOO results
-  pdf( file = paste0( outdir, "/", out_name, "_LOO.pdf"),
+  pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
        width = 9, height = 5)
   plot_loo()
   dev.off()
@@ -1263,7 +1266,8 @@ if (do_loo_validation) {
 
 # SAVE EMULATOR BUILT FROM WHOLE ENSEMBLE
 # and the rest of the workspace, at least for now
-RData_file <- paste0(outdir, "/", out_name, "_EMULATOR.RData")
+#RData_file <- paste0(outdir, out_name, "_EMULATOR.RData")
+RData_file <- paste0(rdatadir, out_name, "_EMULATOR.RData")
 save.image( file = RData_file )
 
 cat(paste("\nSaved RData file:",RData_file,"\n"), file = logfile_build, append = TRUE)

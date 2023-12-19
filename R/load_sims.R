@@ -30,15 +30,14 @@ load_sims <- function(variable, source = NA) { # dataset
     # Climate forcing simulations put together by Mira
     # xxx Mira email 9th May about 230508 file: small discrepancies HadGEM2-ES Cecile
     # xxx Hatchet job 230618 merging Vio's 2300 file missing data
-    if (variable == "climate") data_file <- paste0( inputs_ext, "GSAT/CLIMATE_FORCING_230618.csv")
+    if (variable == "climate") data_file <- paste0( inputs_ext, "/GSAT/CLIMATE_FORCING_230618.csv")
 
     # Land ice simulations: results from PROTECT!
     # GLA are in mm, ice shets are cm... xxx put this in filename when fixing abs values
     if (variable == "ice") {
-      #if (source == "GIS") data_file <- paste0( inputs_preprocess, "GIS/SLE_SIMULATIONS_GIS_p7_230831.csv")
-      if (source == "GIS") data_file <- paste0( inputs_preprocess, "GIS/SLE_SIMULATIONS_GIS_p9_231210.csv")
-      if (source == "AIS") data_file <- paste0( inputs_preprocess, "AIS/SLE_SIMULATIONS_AIS_final_230725.csv")
-      if (source == "GLA") data_file <- paste0( inputs_preprocess, "GLA/SLE_SIMULATIONS_GLA_v2_231009.csv")
+      if (source == "GIS") data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_231210.csv")
+      if (source == "AIS") data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_final_230725.csv")
+      if (source == "GLA") data_file <- paste0( inputs_preprocess, "/GLA/SLE_SIMULATIONS_GLA_v2_231009.csv")
     }
 
 #  }

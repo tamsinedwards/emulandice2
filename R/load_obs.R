@@ -22,7 +22,7 @@ load_obs <- function() {
 
     # Read regional file
     reg_number <- strsplit(reg, split = "RGI")[[1]][2]
-    obs_file <- read.csv(paste0(inputs_ext,"GLA/Hugonnet/time_varying_glacier_areas/dh_", reg_number, "_rgi60_reg_cumul.csv"))
+    obs_file <- read.csv(paste0(inputs_ext,"/GLA/Hugonnet/time_varying_glacier_areas/dh_", reg_number, "_rgi60_reg_cumul.csv"))
     obs_file <- obs_file[ , c("time", "dm", "err_dm") ]
 
     # Get every 12th value because these have uncertainties - check this is right XXX
@@ -42,7 +42,7 @@ load_obs <- function() {
   } else {
 
     # %in% c("GrIS","GIS"))
-  if (i_s == "GIS") obs_file <- read.csv(paste0(inputs_ext,"GIS/IMBIE/imbie_greenland_2021_mm.csv"))
+  if (i_s == "GIS") obs_file <- read.csv(paste0(inputs_ext,"/GIS/IMBIE/imbie_greenland_2021_mm.csv"))
   if (i_s == "AIS") obs_file <- read.csv(paste0(inputs_ext,"/AIS/IMBIE/imbie_antarctica_2021_mm.csv"))
 
   # Pick columns and tidy names

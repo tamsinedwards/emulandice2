@@ -33,12 +33,12 @@ write_outputs <- function(write_mean) {
     csv_header <- paste0("ice_source,region,sample,",paste("SLE", c(cal_start, years_em), sep = "_", collapse = ","),"\n")
 
     if (write_mean) {
-      csv_full_mean[[scen]] <- paste0( outdir, "/",out_name,"_projections_MEAN_",
+      csv_full_mean[[scen]] <- paste0( outdir, out_name,"_projections_MEAN_",
                                        scen, ".csv")
       cat( csv_header, file = csv_full_mean[[scen]] )
     }
 
-    csv_full_final[[scen]] <- paste0( outdir, "/",out_name,"_projections_FULL_",
+    csv_full_final[[scen]] <- paste0( outdir, out_name,"_projections_FULL_",
                                       scen, ".csv")
     cat( csv_header, file = csv_full_final[[scen]] )
 
@@ -84,7 +84,7 @@ write_outputs <- function(write_mean) {
     # Backwards hack FACTS type name
     print(facts_ssp)
     baseyear <- paste0(cal_start,"LL")
-    ncname <- paste0(outdir, "/", "emulandice.",facts_ssp,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
+    ncname <- paste0(outdir, "emulandice.",facts_ssp,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
 
     # Define dimensions
     timedim <- ncdf4::ncdim_def("years","years",as.integer(years_em))

@@ -175,8 +175,9 @@ load_design_to_pred <- function(design_name) {
       # using same bandwith as original study
 
       # This was called "data_for_tamsin.txt" in emulandice for IPCC AR6:
-      # k_dist_file <- system.file("extdata", "data_for_tamsin.txt", package = "emulandice", mustWork = TRUE )
-      k_dist_file <- paste0(inputs_ext, "GIS/retreat/GIS_retreat_prior.txt" )
+      #k_dist_file <- system.file("extdata", "data_for_tamsin.txt", package = "emulandice2", mustWork = TRUE )
+      #k_dist_file <- paste0(inputs_ext, "GIS/retreat/GIS_retreat_prior.txt" )
+      k_dist_file <- system.file("extdata", "/GIS/retreat/GIS_retreat_prior.txt", package = "emulandice2", mustWork = TRUE )
       cat(paste(k_dist_file, "\n"), file = logfile_design, append = TRUE)
 
       k_dist <- read.table(k_dist_file)
@@ -399,7 +400,7 @@ load_design_to_pred <- function(design_name) {
     cat(paste("Reading netcdf file of GSAT projections:", climate_data_file, "\n"), file = logfile_design, append = TRUE)
 
     # Open file and read into data frame
-    ncin <- ncdf4::nc_open( paste0(inputs_preprocess, "GSAT/", climate_data_file) )
+    ncin <- ncdf4::nc_open( paste0(inputs_preprocess, "/GSAT/", climate_data_file) )
     climate_prior_all <- as.data.frame(ncdf4::ncvar_get(ncin,paste0(facts_ssp,"/surface_temperature")))
 
     # Add years as column names

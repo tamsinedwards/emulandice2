@@ -19,8 +19,6 @@
 #
 #_______________________________________________________________________________
 
-# Here is where the emulators live
-emu_dir <- "../RESULTS/tmp/"
 
 #' # Get FACTS args
 # Get FACTS args ------------------------------------------------------------
@@ -45,7 +43,6 @@ if (length(args) == 0) {
  facts_ssp <- args[5] # ssp
 }
 
-
 print(paste("Ice source:", i_s))
 stopifnot(i_s %in% c("GIS", "AIS", "GLA"))
 
@@ -63,6 +60,7 @@ print(paste("Climate file:", climate_data_file))
 scen <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper case
 print(paste("Scenario:", scen))
 
+emu_dir <- "./data-raw/"
 print(paste("Emulator build file directory:", emu_dir))
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -80,10 +78,10 @@ print(paste("Write mean projections CSV:", write_mean))
 # Setup ------------------------------------------------------------
 
 # EMULATOR BUILD FILE: constructed from the above settings
-# Directory has to match outdir when built
+# Directory has to match rdatadir in the build file it is loading
 emu_file <- paste0(emu_dir, paste(i_s, reg, emu_name, sep = "_"), "_EMULATOR.RData")
 
-cat(sprintf("Looking for emulator build file: %s\n", emu_file))
+cat(sprintf("Looking for emulator build file in data/: %s\n", emu_file))
 stopifnot(file.exists(emu_file))
 
 # LOAD EMULATOR AND OTHER STUFF
@@ -114,7 +112,7 @@ N_2LM <- 50L # 2237L for AR6 files
 cat("Running...\n")
 
 # Log file from emulator_build.R is same name but _build.txt
-logfile_results <- paste0(outdir, "/",out_name,"_results.txt")
+logfile_results <- paste0(outdir, out_name,"_results.txt")
 cat(sprintf("\nemulandice2: %s %s\n\n", i_s, reg), file = logfile_results)
 
 cat(sprintf("\nLoaded emulator file: %s\n", emu_file), file = logfile_results, append = TRUE)
@@ -380,7 +378,7 @@ if (plot_level > 0) {
 
   cat("\nPlot uncalibrated projections:\n",file = logfile_results, append = TRUE)
 
-  pdf( file = paste0( outdir, "/", out_name, "_UNCALIBRATED.pdf"),
+  pdf( file = paste0( outdir, out_name, "_UNCALIBRATED.pdf"),
        width = 9, height = 5)
   plot_designs("prior", plot_level)
   plot_timeseries("prior", plot_level)
@@ -389,7 +387,7 @@ if (plot_level > 0) {
   dev.off()
 
   cat("\nPlot calibrated projections:\n", file = logfile_results, append = TRUE)
-  pdf( file = paste0( outdir, "/", out_name, "_CALIBRATED.pdf"),
+  pdf( file = paste0( outdir, out_name, "_CALIBRATED.pdf"),
        width = 9, height = 5)
   plot_designs("posterior", plot_level)
   # Note no posterior time series plots
@@ -402,7 +400,7 @@ if (plot_level > 0) {
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Save workspace
-save.image( paste0(outdir, "/", out_name, "_RESULTS.RData") )
+save.image( paste0(outdir, out_name, "_RESULTS.RData") )
 
 cat("...done.\n")
 
