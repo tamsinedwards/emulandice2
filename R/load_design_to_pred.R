@@ -95,8 +95,8 @@ load_design_to_pred <- function(design_name) {
   if (i_s == "GLA" ) {
 
     # Precipitation correction factor (unitless)
-    # XXX need to check this has same meaning in both models!!!
     prior_min["prec_corr_factor"] = 1.0
+
     # OGGM has higher max than GloGEM
     if ("OGGM" %in% model_list) { prior_max["prec_corr_factor"] = 4.0
     } else prior_max["prec_corr_factor"] = 2.2
@@ -126,16 +126,15 @@ load_design_to_pred <- function(design_name) {
 
   }
 
-
-  # XXX CHANGE THIS TO A FACTOR?
+  # XXX Change to factor if resolution is made a factor in build
   if (i_s == "GIS") { # } %in% c("GrIS", "GIS") ) {
-    prior_min["resolution"] = 2
-    prior_max["resolution"] = 32 # or 16? xxx
+    prior_min["resolution"] = 1
+    prior_max["resolution"] = 40
   }
 
   # Are any of selected param list not set in priors?
   # Let Greenland retreat go because not uniform
-  # xxx add AIS melt AR6 here too
+  # xxx add AIS melt AR6 here too [did I mean empirical prior?]
   cat("\nIce model inputs with uniform priors:\n",file = logfile_design, append = TRUE)
   cat( paste(paste(ice_cont_list[ice_cont_list %in% names(prior_min)], collapse = " "), "\n"),
        file = logfile_design, append = TRUE)
@@ -392,11 +391,11 @@ load_design_to_pred <- function(design_name) {
 
     cat("\nPrior for GSAT: AR6 two-layer model ensemble\n", file = logfile_design, append = TRUE)
 
-    # Read simple climate model CSV file specified in main.R (later as an arg xxx)
-    #cat(paste("Reading CSV file of GSAT projections:", climate_data_file, "\n"), file = logfile_design, append = TRUE)
-    #climate_prior_all <- read.csv(paste0(inputs_preprocess, "GSAT/", climate_data_file))
+    # Read simple climate model CSV file specified in main.R
+    # cat(paste("Reading CSV file of GSAT projections:", climate_data_file, "\n"), file = logfile_design, append = TRUE)
+    # climate_prior_all <- read.csv(paste0(inputs_preprocess, "GSAT/", climate_data_file))
 
-    # Read simple climate model netcdf file specified in main.R (later as an arg xxx)
+    # Read simple climate model netcdf file specified as an arg
     cat(paste("Reading netcdf file of GSAT projections:", climate_data_file, "\n"), file = logfile_design, append = TRUE)
 
     # Open file and read into data frame
@@ -407,17 +406,13 @@ load_design_to_pred <- function(design_name) {
     year <- ncdf4::ncvar_get(ncin,"year")
     colnames(climate_prior_all) <- paste0("y", year)
 
-    # XXX FINISH
-    # Normally have columns: ensemble and expt [think not used], scenario [sorted below]
-    # Also need to do baseline? or done below?
-
     # Design for each SSP
     for (scen in scenario_list) {
 
       # GET CLIMATE PRIOR
 
       # Get all FaIR 2LM projections for this scenario
-      # climate_prior <- climate_prior_all[ climate_prior_all$scenario == scen, ] # xxx only needed when reading CSV
+      # climate_prior <- climate_prior_all[ climate_prior_all$scenario == scen, ] # only needed when reading CSV
       climate_prior <- climate_prior_all
 
       # Create matrix for GSAT values
@@ -428,9 +423,6 @@ load_design_to_pred <- function(design_name) {
         colnames(design_prior_gsat) <- paste0("y", temps_list)
       }
 
-
-      #design_prior_gsat <- climate_prior[ , paste0("y", temps_list) ]
-
       # Years for baseline
       temps_period1 <- temps_baseline + 1:N_temp_yrs - 1
 
@@ -440,7 +432,7 @@ load_design_to_pred <- function(design_name) {
       # Calculate decadal means and subtract baseline
       for (ss in 1:dim(climate_prior)[1]) {
 
-        # Get timeslice(s) neeed for prediction
+        # Get timeslice(s) needed for prediction
         if (length(temps_list) == 1) {
 
           temps_period2 <- temps_list - N_temp_yrs:1 + 1
@@ -448,8 +440,6 @@ load_design_to_pred <- function(design_name) {
           if (ss == 1) cat( paste("GSAT prior: forcing mean period", paste(range(temps_period2), collapse = "-"), "\n"),
                             file = logfile_design, append = TRUE )
           design_prior_gsat[ ss ] <- mean(unlist(climate_prior[ ss, paste0("y", temps_period2) ])) - mean(unlist(climate_prior[ ss, paste0("y", temps_period1) ]))
-
-
 
         } else {
 
@@ -462,18 +452,9 @@ load_design_to_pred <- function(design_name) {
 
             design_prior_gsat[ ss, paste0("y", tt) ] <- mean(unlist(climate_prior[ ss, paste0("y", temps_period2) ])) - mean(unlist(climate_prior[ ss, paste0("y", temps_period1) ]))
 
-            if (ss < 6) {
-              # xxx check if temps_list - not looked at these
-              print(climate_prior[ ss, paste0("y", temps_period2) ])
-              print(climate_prior[ ss, paste0("y", temps_period1) ])
-              print(design_prior_gsat[ ss, paste0("y", tt)])
-            }
-
           }
         }
       }
-
-      #   design_prior_gsat[ss, paste0("y", temps_list) ] <- design_prior_gsat[ ss, paste0("y", temps_list) ] - climate_prior[ ss, paste0("y", temps_baseline) ]
 
       if (length(temps_list) == 1) { N_temp <- length(design_prior_gsat)
       } else N_temp <- dim(design_prior_gsat)[1]
