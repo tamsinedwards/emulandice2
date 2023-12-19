@@ -1,5 +1,5 @@
 # emulandice2
-Emulator of multi-model land ice projections: emulandice v2
+Emulator of multi-model land ice projections: emulandice v2 for FACTS
 
 # Setup
 
