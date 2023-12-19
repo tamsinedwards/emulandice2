@@ -4,12 +4,19 @@
 #'
 #' @param data_type Data type: "sims" for simulations; "prior" or "posterior" for
 #' emulator projections before or after calibration.
+#' @param design_name Some plots are for main effects or projections only; some only for sims
+#' Takes values none (sims); main_effects; unif_temps or AR6_2LM (projections)
 #' @param plot_level Plot level: 0 for none, 1 for main, 2 for exhaustive
 
 #' @export
 
 # Not writing to logfile because called from both build and main
-plot_scatter <- function(data_type, plot_level = 0) {
+plot_scatter <- function(data_type, design_name, plot_level = 0) {
+
+  # Prediction designs
+  # Main_effects and unif_temps are used by emulator_build.R for emulator validation,
+  # while AR6_2LM is used by main.R to predict
+  stopifnot(design_name %in% c("none","main_effects", "unif_temps", "AR6_2LM"))
 
   par(mfrow = c(1,2), pin = c(2.7,2.7), cex.main = 0.6, cex.axis = 0.7, cex.lab = 0.7)
 
@@ -28,8 +35,8 @@ plot_scatter <- function(data_type, plot_level = 0) {
 
         # PLOT CALIBRATION SCATTER: FUTURE VS PAST - mean [ option: +/- 3 s.d. error bars ]
         plot(1:3, 1:3, type = "n",
-             main = paste( ice_name, yy, "vs",cal_end,":", scen_name[[scen]],
-                           "mean"), # xxx fix name when sims only; ditch 5-95% intervals
+             main = paste0( ice_name, " ", yy, " vs ", cal_end,": ", scen_name[[scen]],
+                            " mean"), # xxx fix name when sims only; ditch 5-95% intervals
              xlim = ylim_obs, ylim = ylim_scat, xaxs = "i", yaxs = "i",
              cex.main = 0.7,
              xlab = paste("Sea level contribution from",cal_start,"-",cal_end,"(cm)"),
@@ -61,7 +68,7 @@ plot_scatter <- function(data_type, plot_level = 0) {
                  pch = 16, col = AR6_rgb_light[[scen]])
 
           # Add error bars: +/- 2 s.d.? NO BECAUSE SWITCHED TO FULL COVAR? XXX CHECK
-          #if (FALSE) {
+
           # Horizontal
           arrows( myem[[scen]]$mean[ , paste0("y",cal_end) ] - 2 * myem[[scen]]$sd[ , paste0("y",cal_end) ],
                   myem[[scen]]$mean[ , paste0("y", yy) ],
@@ -77,11 +84,10 @@ plot_scatter <- function(data_type, plot_level = 0) {
                   myem[[scen]]$mean[ , paste0("y", yy) ] + 2 * myem[[scen]]$sd[ , paste0("y", yy) ],
                   code = 3, length = 0.08, angle = 90, lwd = 0.1,
                   col = AR6_rgb_light[[scen]])
-          #}
 
           yleg <- 0.90*ylim_scat[2]
-          points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, col = AR6_rgb_light[[scen]])
-          text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulator +/- 2 s.d.")
+          points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, col = AR6_rgb_light[[scen]], cex = 0.7)
+          text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated mean +/- 2 s.d.", cex = 0.7)
 
         } # prior only
 
@@ -102,8 +108,8 @@ plot_scatter <- function(data_type, plot_level = 0) {
                    function(x) points( x[ paste0("y",cal_end) ], x[ paste0("y",yy) ],
                                        pch = 16, cex = 0.5, col = "black" ) )
             points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg,
-                    pch = 16, cex = 0.5, col = "black" )
-            text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Simulator")
+                    pch = 16, cex = 0.7, col = "black" )
+            text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Simulated", cex = 0.7)
 
           }
 
@@ -127,8 +133,8 @@ plot_scatter <- function(data_type, plot_level = 0) {
         #                               cex = 0.8, col = "black" ) ) # AR6_rgb[[scen]] ) )
         #  }
 
-          # Legend dot
-          # xxx use ylim_obs[1]
+        # Legend dot
+        # xxx use ylim_obs[1]
         #  points( -2, yleg, pch = 16, cex = 0.8, col = "black" ) # AR6_rgb[[scen]] )
         #  text(x = -2, y = yleg, pos = 4, "Simulator")
         #}
@@ -144,7 +150,7 @@ plot_scatter <- function(data_type, plot_level = 0) {
       if (data_type == "posterior") {
 
         plot(1:3, 1:3, type = "n",
-             main = paste( ice_name, yy, "vs",cal_end,":", scen_name[[scen]], "sample"),
+             main = paste0( ice_name, " ", yy, " vs ", cal_end,": ", scen_name[[scen]], " final"),
              xlim = ylim_obs, ylim = ylim_scat, xaxs = "i", yaxs = "i",
              xlab = paste("Sea level contribution from",cal_start,"-",cal_end,"(cm)"),
              ylab = paste("Sea level contribution from",cal_start,"-",yy,"(cm)"))
@@ -172,25 +178,26 @@ plot_scatter <- function(data_type, plot_level = 0) {
                projections[[scen]][ , paste0("y",yy) ], pch = 16, cex = 0.5,
                col = AR6_rgb_light[[scen]], bg = AR6_rgb_light[[scen]])
 
-        yleg <- ylim_scat[1] + 0.92*(ylim_scat[2] - ylim_scat[1])
-        points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, cex = 0.5,
+        yleg <- ylim_scat[1] + 0.87*(ylim_scat[2] - ylim_scat[1])
+        points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, cex = 0.7,
                 col = AR6_rgb_light[[scen]], bg = AR6_rgb_light[[scen]] )
-        text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulator")
+        text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated", cex = 0.7)
 
         # Plot calibrated (NROY) again but darker
-        if (data_type == "posterior") {
+        # Only do this for real projections, to avoid calibrating unif_temps for visualisation only
+        if (design_name == "AR6_2LM") {
           points(projections[[scen]][ proj_nroy[[scen]], paste0("y",cal_end) ],
                  projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
                  pch = 16, cex = 0.5, bg = AR6_rgb_light[[scen]],
                  col = AR6_rgb_med[[scen]])
+          yleg <- ylim_scat[1] + 0.82*(ylim_scat[2] - ylim_scat[1])
+          points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, cex = 0.7,
+                  col = AR6_rgb_med[[scen]], bg = AR6_rgb_med[[scen]] )
+          text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated: NROY", cex = 0.7)
         }
 
-      } # posterior
-
-      if (data_type == "posterior") {
-
         # SIMULATIONS
-        yleg <- ylim_scat[1] + 0.85*(ylim_scat[2] - ylim_scat[1])
+        yleg <- ylim_scat[1] + 0.92*(ylim_scat[2] - ylim_scat[1])
 
         # Note AR6_2LM should not necessarily overlap simulations due to sampling of GSAT
         if (design_name %in% c("AR6_2LM","unif_temps")) {
@@ -206,13 +213,13 @@ plot_scatter <- function(data_type, plot_level = 0) {
                    function(x) points( x[ paste0("y",cal_end) ], x[ paste0("y",yy) ],
                                        pch = 16, cex = 0.5, col = "black" ) )
             points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg,
-                    pch = 16, cex = 0.5, col = "black" )
-            text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Simulator")
+                    pch = 16, cex = 0.7, col = "black" )
+            text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Simulated", cex = 0.7)
 
           }
 
         } # design name
-      } # prior/posterior
+      } # prior/posterior xxx just posterior now?
     }  # year list yy_plot
 
   } # scenario_list
@@ -220,7 +227,7 @@ plot_scatter <- function(data_type, plot_level = 0) {
   if (plot_level >= 2) {
 
     # EMULATOR
-    if (data_type %in% c("prior","posterior")) {
+    if (data_type == "prior") { #%in% c("prior","posterior")) {
 
       # NOTE THIS SHOULD REALLY BE CAL_END - CAL_START
       # BUT WORKS BECAUSE CAL_START IS ALWAYS ZERO FOR NOW
@@ -239,7 +246,6 @@ plot_scatter <- function(data_type, plot_level = 0) {
           for (gg in temps_list_names) {
 
             # SLE vs GSAT: mean ------------------------------------------------------------
-            #print("Mean projections vs climate")
 
             plot( design_pred[[scen]][,gg], myem[[scen]]$mean[,paste0("y",yy)],
                   pch = 16, col = AR6_rgb_light[[scen]], # grey(0.8, alpha = 0.4 ),
@@ -281,7 +287,6 @@ plot_scatter <- function(data_type, plot_level = 0) {
 
             # SLE vs GSAT: full ------------------------------------------------------------
             # Full projections
-            # print("Full projections vs climate")
 
             plot( design_pred[[scen]][,gg], projections[[scen]][,paste0("y",yy)],
                   pch = 16, col = AR6_rgb_light[[scen]], # grey(0.8, alpha = 0.4),
@@ -309,20 +314,17 @@ plot_scatter <- function(data_type, plot_level = 0) {
             # xxx Note this excludes any RCPs!!
             if (length(temps_list) == 1) {
               points( temps[ice_data$scenario == scen], ice_data[ ice_data$scenario == scen, paste0("y", yy) ],
-                      pch = 16, col = AR6_rgb[[scen]], cex = 0.8)
+                      pch = 16, col = AR6_rgb[[scen]], cex = 0.7)
             } else points( temps[ice_data$scenario == scen, gg], ice_data[ ice_data$scenario == scen, paste0("y", yy) ],
-                           pch = 16, col = AR6_rgb[[scen]], cex = 0.8)
+                           pch = 16, col = AR6_rgb[[scen]], cex = 0.7)
 
           } # GSAT loop
 
           # SLE vs ice inputs: mean ------------------------------------------------------------
 
           # SEA LEVEL VS ICE MODEL PARAMETER
-          # Plot mean and full projections vs retreat
-          # xxx as ever, assumes one ice_param - FIXED?
+          # Plot mean and full projections vs each parameter in turn
           for (pp in ice_all_list) {
-
-            # print(paste("Mean projections vs",pp))
 
             plot( design_pred[[scen]][,pp], myem[[scen]]$mean[,paste0("y",yy)],
                   pch = 16, col = AR6_rgb_light[[scen]],
@@ -356,7 +358,7 @@ plot_scatter <- function(data_type, plot_level = 0) {
             # xxx Note this excludes RCPs!
             # xxx was ice_param
             points( unlist(ice_design[,pp])[ice_data$scenario == scen], ice_data[ ice_data$scenario == scen, paste0("y", yy) ],
-                    pch = 16, col = AR6_rgb[[scen]], cex = 0.8)
+                    pch = 16, col = AR6_rgb[[scen]], cex = 0.7)
 
           } # param list
 
@@ -365,7 +367,6 @@ plot_scatter <- function(data_type, plot_level = 0) {
           for (pp in ice_all_list) {
 
             # SAME AGAIN BUT FINAL PROJECTIONS
-            # print(paste("Final projections vs",pp))
 
             plot( design_pred[[scen]][,pp], projections[[scen]][,paste0("y",yy)],
                   pch = 16, cex = 0.8, col = AR6_rgb_light[[scen]], # grey(0.8, alpha = 0.4),
@@ -399,13 +400,15 @@ plot_scatter <- function(data_type, plot_level = 0) {
         } # SSP
       } # Year
 
-    } # Prior/posterior
+    } # Prior only
 
   } # plot_level >= 2
 
-  # EMULATOR MAIN EFFECTS
-  if (data_type == "prior") {
+  # * MAIN EFFECTS ------------------------------------------------------------
 
+  # EMULATOR MAIN EFFECTS
+  # Called from emulator_build.R
+  if (design_name == "main_effects") {
 
     for (yy in yy_plot) {
 
@@ -415,18 +418,15 @@ plot_scatter <- function(data_type, plot_level = 0) {
 
       # SEA LEVEL VS TEMP
       # Mean projections
-      #xxx could loop through temps_list_names now
 
       for (gg in temps_list_names) {
 
-        #        gsat_year <- paste0("GSAT_", gg)
-        #print("Main effects: mean projections vs climate")
+        # gsat_year <- paste0("GSAT_", gg)
 
         col_darker <- rgb( 1, 0, 0, alpha = 0.4, maxColorValue = 1)
         col_paler <- rgb( 1, 0, 0, alpha = 0.2, maxColorValue = 1)
 
         # * Main effects: GSAT ------------------------------------------------------------
-
         plot( design_sa[[gg]][,gg], myem[[gg]]$mean[,paste0("y",yy)],
               type = "l", lwd = 1.2,
               main = paste( "Main effect: sea level at",yy,"vs", gg ),
@@ -465,8 +465,6 @@ plot_scatter <- function(data_type, plot_level = 0) {
       col_list <- hcl.colors(length(ice_cont_list), palette = "Dark 3")
 
       for (pp in ice_cont_list) {
-
-        # print(paste("Main effects: mean projections vs",pp))
 
         col_rgb <- col2rgb( col_list[ which(ice_all_list == pp, arr.ind = TRUE)] )
         col_darker <- rgb(col_rgb[1L], col_rgb[2L], col_rgb[3L], alpha = 0.4 * 255, maxColorValue = 255)
@@ -568,12 +566,12 @@ plot_scatter <- function(data_type, plot_level = 0) {
                    rep(myem[[lab]]$mean[ 1, paste0("y", yy) ], 2), col = col_darker)
 
           }
-        }
-      }
+        } # factor levels
+      } # ice_factor_list
 
     } # Year loop
 
-  } # Prior/posterior
+  } # if SA
 
 
 }

@@ -13,26 +13,40 @@
 # to be read by FACTS
 #_______________________________________________________________________________
 
-# CHOOSE ICE SOURCE AND END YEAR
-
-#' # Choose source and end year
-# Source and end year ----------------------------------------------------------
-
 # Get arguments from RScript
 args <- commandArgs(TRUE)
 
-# Ice source
-i_s <- args[1]
+# Defaults if no args set (used for testing and Markdown)
+if (length(args) == 0) {
+  warning("No arguments set - using defaults")
+  i_s <- "GLA"
+  reg <- "RGI03"
+  emu_name <- "GloGEM_OGGM_pow_exp_20"
+  climate_data_file <- "emulandice.ssp585.temperature.fair.temperature_climate.nc"
+  facts_ssp <- "ssp585"
+} else {
+
+  #' # Choose source and end year
+  # Source and end year ----------------------------------------------------------
+
+
+  # Ice source
+  i_s <- args[1]
+
+  # Region number (only used by glaciers for now)
+  reg_num <- as.numeric(args[2])
+  # if (i_s == "GLA") reg_num <- 3  # OGGM test PPE: regions 3,8,10,18
+
+  # End year
+  final_year <- as.numeric(args[3]) # if past 2100, applies model/ensemble selections later
+  # Values checked later
+
+}
+
 stopifnot(i_s %in% c("GIS","AIS", "GLA"))
-# GIS need_hist_match = FALSE by default
 
-# Region number (only used by glaciers for now)
-reg_num <- as.numeric(args[2])
-# if (i_s == "GLA") reg_num <- 3  # OGGM test PPE: regions 3,8,10,18
+# GIS need_hist_match = FALSE by default [still true? xxx]
 
-# End year
-final_year <- as.numeric(args[3]) # if past 2100, applies model/ensemble selections later
-# Values checked later
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # END OPTIONS
@@ -124,11 +138,18 @@ if (i_s == "GLA") {
   ice_name <- paste("Glaciers:", read.csv(paste0(inputs_ext,"GLA/regionnames.txt"))[reg_num,1])
 }
 
+# Sample size for unif_temps design - used for convenience when adding uncertainty
+# (Main effects sample is set in load_design_to_pred.R, and
+# AR6 prior sample is equal to number of GSAT projections)
+N_prior <- 2000
+
 # Do LOO validation?
 do_loo_validation <- FALSE
 N_k <- NA # for every N_k-th simulation; NA for full LOO
 
-print(paste("Hello! Building emulator for",ice_name,"region",reg,"..."))
+print("Hello! Welcome to emulandice2: build")
+
+print(paste("Building an emulator for",ice_name,"region",reg,"..."))
 if (do_loo_validation) {
   print(paste("LOO with N_k =",N_k,"(could be very slow)"))
 }
@@ -271,18 +292,11 @@ nyrs = 5 # can be 2 when 2100
 # Check reasonably divisible
 stopifnot(nyrs %in% c(1, 2, 5, 10)) # Maybe not 2, for FACTS?
 
-# Design (priors on uncertain inputs)
-# AR6_2LM: 2 layer model GSAT projections for SSPs; unif_temps uses GSAT ranges from sims
-# xxx move to main.R I think
-design_name <- "AR6_2LM"
-stopifnot(design_name %in% c("AR6_2LM", "unif_temps")) # prediction designs; main_effects used for SA in this script
-cat(paste("\nDesign for projections:", design_name, "\n"), file = logfile_build, append = TRUE)
-
 # "lhs" is deprecated - see end of code
 # but might add updated 2LM prior later
 # xxx Future: add SA and make consistent with temp_prior - done?
 
-# Emissions scenarios for projections
+# Full list of possible emissions scenarios to look for
 # (dropped for unif_temps design if not simulated)
 scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP585")
 
@@ -345,15 +359,15 @@ stopifnot(cal_end <= 2020)
 # Default start 1992 if nyrs for 2100; but 1995 for 2300
 # Earliest Elmer/Ice is 1995; earliest GISM HOM is 2015
 # %in% c("GrIS", "GIS"))
-if (i_s == "GIS") cal_start = 1995 # 2000 for 2300 CISM nyrs = 10
+if (i_s == "GIS") cal_start = 2000 # 2000 for FACTS or nyrs = 10; sort for calib from 1992
 
 # Antarctica: to hit 2100 with 5 yr timeslices
-if (i_s == "AIS") cal_start = 1995
+if (i_s == "AIS") cal_start = 2000 # xxx for FACTS; sort for calib from 1992
 
 # Glaciers: 2000 for most runs, but 2005 for OGGM PPE
 if (i_s == "GLA") {
   cal_start = 2000
-  if ( "OGGM" %in% model_list && ensemble_subset == "PPE") cal_start = 2005
+  if ( "OGGM" %in% model_list && ensemble_subset == "PPE") cal_start = 2005 # xxx replace when new dataset
 }
 
 # Earliest date possible for ice sheets (IMBIE) = 1992
@@ -774,12 +788,6 @@ for ( pp in ice_param_list ) {
 cols_to_check <- ice_data[ , ice_param_list ]
 if (length(cols_to_check[ is.na(cols_to_check) ]) > 0) stop("NAs found in ice_data columns to use as inputs in emulation: please drop/fix")
 
-# Get scenarios of projections for design that uses these
-if (design_name == "unif_temps") {
-  # doing a fussy way to make sure names match
-  scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"]) ]
-}
-
 # Select continuous model inputs and impute missing values
 ice_param <- get_inputs(ice_cont_list)
 
@@ -881,6 +889,10 @@ for (cc in 1:dim(ice_design_scaled)[2]) {
              max(ice_design_scaled[,cc]), "\n"), file = logfile_build, append = TRUE)
 }
 
+# Make sure scenario list only includes those of simulations
+scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"]) ]
+#cat(paste("Scenario list:",paste(scenario_list, collapse = ","), "\n"), logfile_build, append = TRUE)
+
 #' ## Observations
 # Get obs -------------------------------------------------------------------
 
@@ -915,7 +927,7 @@ if (plot_level > 0) {
        width = 9, height = 5)
   plot_designs("sims", plot_level)
   plot_timeseries("sims", plot_level)
-  plot_scatter("sims", plot_level)
+  plot_scatter("sims", "none", plot_level)
   plot_distributions("sims", plot_level)
   dev.off()
 }
@@ -1126,8 +1138,7 @@ if ( ! exists("emu_mv") ) {
 # Design: ME -----------------------------------------------------------------------
 
 #' ## Main effects
-# Main effects (i.e. one-at-a-time)
-# xxx FACTS: only run this when design_name = uniform_temps
+# Main effects (i.e. one-at-a-time design for sensitivity analysis)
 design_sa <- load_design_to_pred("main_effects")
 
 #' # Predict
@@ -1148,6 +1159,43 @@ for (input in names( design_sa )) {
   design_sa_scaled <- as.data.frame( design_sa[[input]] )
   design_sa_scaled[ , input_cont_list ] <- design_sa_scaled_cont
   myem[[input]] <- emulator_predict( design_sa_scaled )
+}
+
+# Plot: SA ----------------------------------------------------------------------
+
+# Design "unif_temps" makes projections using uniform priors for GSAT with same ranges as sims
+# a better comparison than using FaIR projected distributions for each SSP
+
+design_pred <- load_design_to_pred("unif_temps")
+
+for (scen in scenario_list) {
+
+  cat(paste("Scenario with uniform priors:",scen,"\n"), file = logfile_build, append = TRUE)
+
+  design_pred_scaled_cont <- scale(design_pred[[scen]][ , input_cont_list],
+                                   center = inputs_centre,
+                                   scale = inputs_scale )
+  design_pred_scaled <- as.data.frame( design_pred[[scen]]  )
+  design_pred_scaled[ , input_cont_list] <- design_pred_scaled_cont
+  myem[[scen]] <- emulator_predict( design_pred_scaled )
+}
+
+# Add uncertainty ----------------------------------------------------------------------
+projections <- list()
+
+# Want to see unif_temps final projections (samples with uncertainty) for validation
+for (scen in scenario_list) {
+  projections[[scen]] <- emulator_uncertainty(myem[[scen]])
+}
+
+# Plot sensitivity analysis
+if (plot_level > 0) {
+  pdf( file = paste0( outdir, "/", out_name, "_SA.pdf"),
+       width = 9, height = 5)
+  plot_scatter("prior", "main_effects",plot_level)
+  plot_scatter("prior", "unif_temps",plot_level)
+  plot_scatter("posterior", "unif_temps",plot_level) # overkill?
+  dev.off()
 }
 
 

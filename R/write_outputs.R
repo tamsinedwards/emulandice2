@@ -8,6 +8,9 @@
 #'
 #' @export
 
+# CSV output files: nrows = GSAT samples (2237 for AR6) x years_em timeslices
+# Netcdf output files: same dimensions but also 1 'location'
+
 # XXX Writing zero in cal_start year column - add this to projections instead!
 
 write_outputs <- function(write_mean) {
@@ -79,10 +82,9 @@ write_outputs <- function(write_mean) {
     csv_mat <- 10.0* t( csv_full[ , paste0("SLE_",years_em) ] ) # cm to mm
 
     # Backwards hack FACTS type name
-    scm_scen <- paste0("ssp", substring(scen,4))
-    print(scm_scen)
+    print(facts_ssp)
     baseyear <- paste0(cal_start,"LL")
-    ncname <- paste0(outdir, "/", "emulandice.",scm_scen,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
+    ncname <- paste0(outdir, "/", "emulandice.",facts_ssp,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
 
     # Define dimensions
     timedim <- ncdf4::ncdim_def("years","years",as.integer(years_em))
@@ -100,9 +102,9 @@ write_outputs <- function(write_mean) {
     ncdf4::ncvar_put(ncout,slc_def,csv_data)
     ncdf4::ncatt_put(ncout,0,"description",paste("Global SLR contribution from",ice_name,"using the emulandice2 module"))
     ncdf4::ncatt_put(ncout,0,"history",paste("Created", date()))
-    ncdf4::ncatt_put(ncout,0,"source",paste0("FACTS: emulandice.",scm_scen,".emu",i_s,".emulandice.",reg))
+    ncdf4::ncatt_put(ncout,0,"source",paste0("FACTS: emulandice.",facts_ssp,".emu",i_s,".emulandice.",reg))
     ncdf4::ncatt_put(ncout,0,"baseyear", baseyear)
-    ncdf4::ncatt_put(ncout,0,"scenario",scm_scen)
+    ncdf4::ncatt_put(ncout,0,"scenario",facts_ssp)
     ncdf4::nc_close(ncout)
   }
 

@@ -4,100 +4,114 @@
 #'    html_notebook:
 #'      toc: true
 #'      number_sections: true
-#'
 #' ---
 #' MULTIVARIATE EMULATION OF LAND ICE CONTRIBUTIONS TO SEA LEVEL
-# Based on multivariate emulator code by Jonathan Rougier
+# Tamsin Edwards
+# based on emulandice (Edwards et al., 2021)
+# and multivariate code by Jonathan Rougier
 #
-# Datasets:
-# - IPCC AR6: 2015-2100 (less tested - maybe deleting too)
-# - PROTECT: various dates (1950-2005) to 2300
+# Emulators are built by emulator_build.R using multi-model simulations of
+# Greenland, Antarctica, and glacier regions (19) from EU H2020 PROTECT project.
+# These simulations start between 1950 and 2005 and end between 2100-2300.
 #
-# CSV output files: nrows = GSAT samples (2237 for AR6) x years_em timeslices
+# Emulator projections here (main.R) usually begin in 1995, 2000 or 2005 ('cal_start')
+# and end between 2100 and 2300 ('final_year').
+#
 #_______________________________________________________________________________
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# SETTINGS: FACTS COMMAND LINE
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Here is where the emulators live
+emu_dir <- "../RESULTS/tmp/"
 
-# Get arguments from RScript
+#' # Get FACTS args
+# Get FACTS args ------------------------------------------------------------
+
+print("Hello! Welcome to emulandice2: predict")
+
+# Get arguments from RScript command in emulandice_steer.sh
 args <- commandArgs(TRUE)
+if (length(args) == 0) {
+  # Defaults if no args set (used for testing and Markdown)
+  warning("No arguments set - using defaults")
+  i_s <- "GLA"
+  reg <- "RGI03"
+  emu_name <- "GloGEM_OGGM_pow_exp_20"
+  climate_data_file <- "emulandice.ssp585.temperature.fair.temperature_climate.nc"
+  facts_ssp <- "ssp585"
+} else {
+ i_s <- args[1] # ice_source
+ reg <- args[2] # region
+ emu_name <- args[3] # emulator name
+ climate_data_file <- args[4] # climate netcdf
+ facts_ssp <- args[5] # ssp
+}
 
-# ice_source
-print(paste("Ice source:", args[1]))
-i_s <- args[1]
+
+print(paste("Ice source:", i_s))
 stopifnot(i_s %in% c("GIS", "AIS", "GLA"))
 
-# Region of ice_source
-print(paste("Region:", args[2]))
-reg <- args[2] # region
+# Region of ice source
+print(paste("Region:", reg))
 stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 
 # Emulator: this is made from model_list and emulator_settings
-emu_name <- args[3]
+print(paste("Emulator build:", emu_name))
 
+# Netcdf name
+print(paste("Climate file:", climate_data_file))
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# SETTINGS: TO ADD TO FACTS
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# SSP (could extract from filename)
+scen <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper case
+print(paste("Scenario:", scen))
 
-# CLIMATE FORCING: same as emulandice v1 AR6, but with projections to 2300
-# Used in load_design_to_pred.R
-
-# CSV
-# scm_file <- "CLIMATE_FORCING_IPCC_AR6_230706.csv"
-
-# netcdf
-ssp <- "585"
-scm_ssp <- paste0("ssp",ssp) # FACTS uses lower case
-scenario <- paste0("SSP",ssp) # emulandice expects upper case
-scm_file <- paste0("emulandice.",scm_ssp,".temperature.fair.temperature_climate.nc")
-
-
-# Time period for predictions, e.g. 10 for decadal, and baseline year
-# Not obvious
+print(paste("Emulator build file directory:", emu_dir))
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# SETTINGS: MAYBE ADD TO FACTS
+# OTHER SETTINGS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Write mean emulator projections as well as full projections with noise
 # (used as arg for write_outputs(), and in plot_bayesian.R for some reason)
 write_mean <- FALSE
+print(paste("Write mean projections CSV:", write_mean))
 
 
-#' # Start analysis
-# Start analysis ------------------------------------------------------------
+
+#' # Setup
+# Setup ------------------------------------------------------------
 
 # EMULATOR BUILD FILE: constructed from the above settings
 # Directory has to match outdir when built
-emu_file <- paste0("../RESULTS/tmp/", paste(i_s, reg, emu_name, sep = "_"), "_EMULATOR.RData")
+emu_file <- paste0(emu_dir, paste(i_s, reg, emu_name, sep = "_"), "_EMULATOR.RData")
 
 cat(sprintf("Looking for emulator build file: %s\n", emu_file))
 stopifnot(file.exists(emu_file))
-cat("Loading build file\n")
-
 
 # LOAD EMULATOR AND OTHER STUFF
+cat("Loading emulator build file\n")
 load( file = emu_file)
 
-# xxx NEED TO CHECK SCENARIO_LIST DESIGN STUFF
-stopifnot(scenario %in% scenario_list)
-print(paste("Predicting for scenario:", scenario))
-scenario_list <- scenario
+
+#___________________________________________
+# RESET SOME SETTINGS FOR FACTS
+
+# Various code uses scenario loops
+# so design_pred, myem, projections and projections_quant are set up as lists
+# with label [[scen]]
+# FACTS uses only one scenario at a time but will keep these loops for now:
+# partly for plot scripts also used by emulator_build.R (multiple scenarios),
+# partly in case I can use for plotting multiple scenarios later
+scenario_list <- scen
+
+# Plots: 0 = none, 1 = main, 2 = all
+plot_level <- 0
 
 # Number of 2LM projections of GSAT expected per SSP
 # (and therefore total number of samples for book-keeping by GSAT value)
 # Checks when reading in netcdf - could get rid of this
-N_2LM <- 50L # Was 2237L
+N_2LM <- 50L # 2237L for AR6 files
+
 
 cat("Running...\n")
-
-
-# START OUTPUT FILES
-
-#' # Open output text file
-# Open output files ------------------------------------------------------------
 
 # Log file from emulator_build.R is same name but _build.txt
 logfile_results <- paste0(outdir, "/",out_name,"_results.txt")
@@ -105,47 +119,32 @@ cat(sprintf("\nemulandice2: %s %s\n\n", i_s, reg), file = logfile_results)
 
 cat(sprintf("\nLoaded emulator file: %s\n", emu_file), file = logfile_results, append = TRUE)
 
+#' # Create design
+# Create design -----------------------------------------------------------------------
+# FACTS: read in GSAT projections
 
-# +++++++++++++++
-# TO DO
-# - set random seed?
-# - tidy logfile names
-# - move ME plots into emulator_build.R
-#
-# FACTS
-# - Input time period and start date for predictions e.g. 10 for decadal, 2000 for first year
-# --- this takes thought because built into emulator: is 5 yearly enough?
-# - Read GSAT netcdf, not CSV
-# - Output FACTS sea level netcdfs: one per region (i.e. do spatial correlations later)
-# - Remove IPCC legacy code
-
-#' # Designs
-# Design -----------------------------------------------------------------------
-# FACTS: will need to read in any GSAT projections
-
-
-#' ## SSPs
 # Future projections
-# xxx i.e. scm_file is used in this function -> change to arg
-design_pred <- load_design_to_pred( design_name )
+# Design = "AR6_2LM" uses 2-layer model (FaIR) GSAT projections for SSPs
+# i.e. climate_data_file is used in this function
+# This overwrites uniform design_pred from RData build file (as intended, for reusing plot scripts)
+design_pred <- load_design_to_pred( "AR6_2LM" )
 
 # Store number of samples per scenario
 # Used for outputs
 N_temp <- length( design_pred[[1]][ , 1] )
 
-#' # Predict
+#' # Predict: emulator mean projections
 # Predict ----------------------------------------------------------------------
 # emulator_predict() calls emu_mv with type = "var"
-# FACTS: use emulator object saved to RData workspace file
+# FACTS: uses emulator object saved to RData workspace file
 
-# myem <- list() # this is in RData file with ME projections
+# myem <- list() # This is initalised in RData file with ME and uniform projections
 
 # Rescale priors using same scaling factors as for simulator inputs
 # Not the most elegant
 
-cat("\nPredict for design:\n", file = logfile_results, append = TRUE)
+cat("\nPredict:\n", file = logfile_results, append = TRUE)
 
-#' ## SSPs: uniform GSAT or 2LM
 for (scen in scenario_list) {
 
   cat(paste("Scenario:",scen,"\n"), file = logfile_results, append = TRUE)
@@ -159,7 +158,7 @@ for (scen in scenario_list) {
 
 }
 
-#' ### Cap glacier mean projections
+#' ## Cap glacier mean projections
 # GLACIER CAP: MEAN PROJECTIONS
 for (scen in scenario_list) {
   if (i_s == "GLA" &&
@@ -174,25 +173,17 @@ for (scen in scenario_list) {
   }
 }
 
-#' ## Add emulator uncertainty
+#' # Predict: emulator final projections (with uncertainty)
 # Add emulator uncertainty to projections
-projections <- list()
 
+# Projections list is initialised in build (unif_temps predictions)
+# this overwrites the scenarios
 for (scen in scenario_list) {
 
-  # Initialise
-  projections[[scen]] <- matrix( nrow = N_temp, ncol = N_ts)
-  colnames(projections[[scen]]) <- paste0("y", years_em)
+  # Generate final projections by sampling mean + uncertainty
+  projections[[scen]] <- emulator_uncertainty(myem[[scen]])
 
-  # For each GSAT projection
-  for (ss in 1:N_temp){
-
-    # FACTS: if mvtnorm package is a pain, can use another
-    # VARIANCE MATRIX: run type = "var" for predict. Can get quite wiggly!
-    # xxx replace with multivariate t?
-    projections[[ scen ]][ss, ] <- mvtnorm::rmvnorm(n = 1, mean = myem[[scen]]$mean[ss, ], sigma = myem[[scen]]$var[ss, , ])
-
-  }
+  #' ## Cap glacier final projections
 
   # GLACIER CAP: FINAL PROJECTIONS
   if (i_s == "GLA" &&
@@ -211,7 +202,7 @@ for (scen in scenario_list) {
 
 }
 
-#' ### Quantiles
+#' ## Calculate prior (uncalibrated) quantiles
 
 projections_quant <- list()
 
@@ -227,12 +218,7 @@ for (scen in scenario_list) {
 
 }
 
-
-# PRINT UNCALIBRATED PROJECTIONS TO CSV FILES
-write_outputs(write_mean)
-
-
-#' ### Write summary results to text file
+#' ## Output results
 
 # PRINT SUMMARY
 cat("\n_________________________________________\n", file = logfile_results, append = TRUE)
@@ -268,14 +254,13 @@ for (yy in c(2100, 2300)) {
   }
 }
 
+# PRINT UNCALIBRATED PROJECTIONS TO CSV AND NETCDF FILES
+write_outputs(write_mean)
 
-
-#' # Calibrate
+#' # Calibration
 # Calibrate --------------------------------------------------------------------
 
-#' ## Model-obs differences
-
-# History matching
+#' ## Calculate model-obs differences
 
 # xxx Make this multivariate! and rename because confusing
 obs_change <- obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"]
@@ -310,7 +295,7 @@ myem_nroy <- list()
 proj_nroy <- list()
 
 for (scen in scenario_list) {
-  #cat(paste0("\n", scen,"\n"), file = logfile_results, append = TRUE)
+  cat(paste0("\n", scen,"\n"), file = logfile_results, append = TRUE)
   cat("Calibrating mean projections:\n", file = logfile_results, append = TRUE)
   myem_nroy[[scen]] <- do_calibration(dist_mean[[scen]], "history_matching")
   cat("Calibrating full projections:\n", file = logfile_results, append = TRUE)
@@ -318,7 +303,7 @@ for (scen in scenario_list) {
 }
 
 
-#' ### Quantiles
+#' ### Calculate posterior (calibrated) quantiles
 projections_nroy_quant <- list()
 
 for (scen in scenario_list) {
@@ -334,19 +319,11 @@ for (scen in scenario_list) {
 
 }
 
-# PRINT CALIBRATED PROJECTIONS TO CSV FILES
-# xxx add calibrated option to this function!
-# write_outputs(write_mean)
+#' ### Output results
 
-
-#' ### Write results
-#'
-#' # PRINT SUMMARY TO SCREEN
 cat("_______________________________________\n", file = logfile_results, append = TRUE)
 cat("PROJECTIONS: calibrated (history matching)\n", file = logfile_results, append = TRUE)
 
-
-# PRINT SUMMARY TO SCREEN
 for (yy in c(2100, 2300)) {
 
   if (yy %in% years_em) {
@@ -372,12 +349,11 @@ for (yy in c(2100, 2300)) {
   }
 }
 
+#' ## Bayesian calibration
 
-#' # PRINT SUMMARY TO SCREEN
 cat("_______________________________________\n", file = logfile_results, append = TRUE)
 cat("PROJECTIONS: calibrated (Bayesian)\n", file = logfile_results, append = TRUE)
 
-#' ## Bayesian calibration
 cat("\nBayesian calibration\n", file = logfile_results, append = TRUE)
 
 # Save normalised weights
@@ -388,59 +364,57 @@ for (scen in scenario_list) {
   proj_weights[[scen]] <- do_calibration(dist_proj[[scen]], "Bayesian")
 }
 
+# PRINT CALIBRATED PROJECTIONS TO CSV FILES
+# xxx add calibrated option to this function!
+# write_outputs(write_mean)
 
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # END OF FACTS ANALYSIS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# PLOTS FOR PUBLICATION BUT NOT NEEDED IN FACTS
-do_plots <- TRUE
 
-# xxx Use obs_change and obs_change_err in plot_figures; implaus_thresh = 3 - done?
+if (plot_level > 0) {
 
-if (do_plots) {
-  # w <- seq(1,1000)
-  # v <- sort(runif(1000))
-  # AR6_rgb_med[["SSP585"]] <- rgb(132, 11, 34, maxColorValue = 255, alpha = 153) # SSP5-85
+  #' ### Plot results if requested
 
-  #' ### Plot results
   cat("\nPlot uncalibrated projections:\n",file = logfile_results, append = TRUE)
 
-  if (plot_level > 0) {
-    pdf( file = paste0( outdir, "/", out_name, "_UNCALIBRATED.pdf"),
-         width = 9, height = 5)
-    plot_designs("prior", plot_level)
-    plot_timeseries("prior", plot_level)
-    plot_scatter("prior", plot_level)
-    plot_distributions("prior", plot_level)
-    dev.off()
-  }
+  pdf( file = paste0( outdir, "/", out_name, "_UNCALIBRATED.pdf"),
+       width = 9, height = 5)
+  plot_designs("prior", plot_level)
+  plot_timeseries("prior", plot_level)
+  plot_scatter("prior", "AR6_2LM", plot_level)
+  plot_distributions("prior", plot_level)
+  dev.off()
 
   cat("\nPlot calibrated projections:\n", file = logfile_results, append = TRUE)
-
-  if (plot_level > 0) {
-    pdf( file = paste0( outdir, "/", out_name, "_CALIBRATED.pdf"),
-         width = 9, height = 5)
-    plot_designs("posterior", plot_level)
-    plot_timeseries("posterior", plot_level)
-    plot_scatter("posterior", plot_level)
-    plot_distributions("posterior", plot_level)
-    plot_bayesian()
-    dev.off()
-  }
-
+  pdf( file = paste0( outdir, "/", out_name, "_CALIBRATED.pdf"),
+       width = 9, height = 5)
+  plot_designs("posterior", plot_level)
+  # Note no posterior time series plots
+  plot_scatter("posterior", "AR6_2LM", plot_level)
+  plot_distributions("posterior", plot_level)
+  plot_bayesian()
+  dev.off()
 }
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Save workspace with emulator and results together
+# Save workspace
 save.image( paste0(outdir, "/", out_name, "_RESULTS.RData") )
 
 cat("...done.\n")
 
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+# Misc notes
+# xxx Use obs_change and obs_change_err in plot_figures; implaus_thresh = 3 - done?
+
+# w <- seq(1,1000)
+# v <- sort(runif(1000))
+# AR6_rgb_med[["SSP585"]] <- rgb(132, 11, 34, maxColorValue = 255, alpha = 153) # SSP5-85
 
 
 

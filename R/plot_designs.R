@@ -21,6 +21,8 @@ plot_designs <- function(data_type, plot_level = 0) {
 
   par(cex.main = 0.7, cex.axis = 0.7, cex.lab = 0.7, mar = c(5, 4, 4, 2) + 0.1)
 
+  # SIMS ------------------------------------------------------------
+
   # SIMULATIONS
   if (data_type == "sims") {
 
@@ -265,6 +267,8 @@ plot_designs <- function(data_type, plot_level = 0) {
     } # plot level
 
   } # sims
+
+  # EMULATOR ------------------------------------------------------------
 
   # EMULATOR PROJECTIONS
   if (plot_level >= 2) {

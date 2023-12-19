@@ -66,13 +66,13 @@ The emulandice_steer.sh file contains the command:
 
 where the final three arguments are taken from the command line. These form the component parts of the RData file as described above.
 
-The current commands (from some basic optimisation checks using preliminary data in autumn 2023) are:
+The current commands (from some basic optimisation checks using preliminary data in autumn 2023) for SSP5-8.5 are:
 
 ```
-./emulandice_steer.sh GLA RGI03 GloGEM_OGGM_pow_exp_20
-./emulandice_steer.sh AIS ALL Kori_PISM_pow_exp_10
-./emulandice_steer.sh GIS ALL CISM_IMAUICE_pow_exp_20
-./emulandice_steer.sh GIS ALL CISM_pow_exp_20
+./emulandice_steer.sh GLA RGI03 GloGEM_OGGM_pow_exp_20 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
+./emulandice_steer.sh AIS ALL Kori_PISM_pow_exp_10 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
+./emulandice_steer.sh GIS ALL CISM_IMAUICE_pow_exp_20 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
+./emulandice_steer.sh GIS ALL CISM_pow_exp_20 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
 ```
 
 

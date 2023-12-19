@@ -12,17 +12,17 @@
 plot_distributions <- function(data_type, plot_level = 0) {
 
   # Some rough axis limits
-#  ylim_dist <- c(-60,90)
-#  if (i_s == "GLA") {
-#    ylim_dist <- c(-5,15)
-#    if (reg %in% c("RGI12", "RGI18")) ylim_dist <- c(-0.005,0.03)
-#  }
+  #  ylim_dist <- c(-60,90)
+  #  if (i_s == "GLA") {
+  #    ylim_dist <- c(-5,15)
+  #    if (reg %in% c("RGI12", "RGI18")) ylim_dist <- c(-0.005,0.03)
+  #  }
 
   xlim_dist <- ylim_max # c(-30,80)  # -2, 7
- # if (i_s == "GLA") {
-#    xlim_dist <- c(-2,10)
-#    if (reg %in% c("RGI12", "RGI18")) xlim_dist <- c(-0.005,0.03)
-#  }
+  # if (i_s == "GLA") {
+  #    xlim_dist <- c(-2,10)
+  #    if (reg %in% c("RGI12", "RGI18")) xlim_dist <- c(-0.005,0.03)
+  #  }
 
 
   # Distributions ------------------------------------------------------------
@@ -61,34 +61,38 @@ plot_distributions <- function(data_type, plot_level = 0) {
     } #years
   } # all plots
 
-  for (yy in yy_plot ) {
+  if (plot_level >= 2) {
 
-    for (scen in scenario_list) {
+    for (yy in yy_plot ) {
 
-      if (data_type == "posterior") {
+      for (scen in scenario_list) {
 
-        # Full projections
-        hist(projections[[scen]][ ,paste0("y",yy) ],
-             main = paste( "Uncalibrated final projections:", scen_name[[scen]] ),
-             freq = FALSE, xlim = xlim_dist, #c(-30,80),
-             breaks = seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
-                           to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])),
-                           by = 1),
-             col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
-        lines(density(projections[[scen]][,paste0("y",yy)]))
+        if (data_type == "posterior") {
 
-        # Note: proj_nroy for final projections
-        hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
-             main = paste( "History matched final projections:", scen_name[[scen]] ),
-             freq = FALSE, xlim = xlim_dist, # c(-30,80),
-             seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
-                  to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])), by = 1),
-             col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
-        lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]))
+          # Full projections
+          hist(projections[[scen]][ ,paste0("y",yy) ],
+               main = paste( "Uncalibrated final projections:", scen_name[[scen]] ),
+               freq = FALSE, xlim = xlim_dist, #c(-30,80),
+               breaks = seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
+                             to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])),
+                             by = 1),
+               col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+          lines(density(projections[[scen]][,paste0("y",yy)]))
 
-      } # posterior
-    } # end scenario loop
+          # Note: proj_nroy for final projections
+          hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
+               main = paste( "History matched final projections:", scen_name[[scen]] ),
+               freq = FALSE, xlim = xlim_dist, # c(-30,80),
+               seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
+                    to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])), by = 1),
+               col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+          lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]))
 
-  } # years
+        } # posterior
+      } # end scenario loop
+
+    } # years
+
+  } # plot level
 
 } # END FUNCTION
