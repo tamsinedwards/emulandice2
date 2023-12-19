@@ -8,8 +8,8 @@ Load R and cmake on your system.
 Install package dependencies:
 
 ```
-install.packages('RcppEigen') - I think? For mvtnorm
 install.packages('mvtnorm') - multivariate normal for emulator uncertainties
+install.packages('RcppEigen') - needed for RobustGaSP, I think
 install.packages("nloptr") - needed for RobustGaSP
 install.packages('RobustGaSP') - emulator package
 install.packages('ncdf4') - for reading and writing netcdfs
@@ -69,7 +69,7 @@ Output files are written to outdir, which is currently hard-coded as "~/PROTECT/
 Plotting is turned ON by default. Changing plot_level from 2 to 1 will reduce the number of plots, and to 0 will prevent either pdf file being made.
 
 
-# PREDICT: RUN EMULATOR IN FACTS 
+# 2. PREDICT: RUN EMULATOR IN FACTS 
 
 **Runs top-level script: main.R**
 
