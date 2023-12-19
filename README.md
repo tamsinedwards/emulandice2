@@ -42,14 +42,17 @@ Current commands:
 
 ### Greenland: 2300 or 2100
 
-`Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GIS 0 2300`
-`Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GIS 0 2100`
+```
+Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GIS 0 2300
+Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GIS 0 2100
+```
 
 Each command generates an *_EMULATOR.RData file, called something like:
 GLA_RGI03_GloGEM_OGGM_pow_exp_20_EMULATOR.RData
 
 This name concatenates the ice source and region (GLA_RGI03), the list of models the GP emulator was trained on (GloGEM_OGGM), and the GP emulator covariance (here power exponential, alpha = 2.0). The file contains the emulator object as well as many other variables used for prediction (below).
 
+If no arguments are used, the code should default to running something quick for testing (currently: glaciers, region 3).
 
 
 # PREDICT: RUN EMULATOR IN FACTS 
@@ -58,13 +61,14 @@ This name concatenates the ice source and region (GLA_RGI03), the list of models
 
 Once the GP emulators are fixed, they can be used in FACTS to quickly predict land ice contributions to sea level for a set of GSAT projections:
 
-`./emulandice_steer.sh ice_source region models_covariance`
+`./emulandice_steer.sh ice_source region models_covariance climate_data_file scenario`
 
 The emulandice_steer.sh file contains the command:
 
-`Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name`
+`Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name $climate_data_file $scenario`
 
-where the final three arguments are taken from the command line. These form the component parts of the RData file as described above.
+where the arguments are taken from the command line. The first three form the 
+component parts of the RData file, as described above, and the last two give the climate data file and scenario.
 
 The current commands (from some basic optimisation checks using preliminary data in autumn 2023) for SSP5-8.5 are:
 
@@ -75,5 +79,6 @@ The current commands (from some basic optimisation checks using preliminary data
 ./emulandice_steer.sh GIS ALL CISM_pow_exp_20 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
 ```
 
+If no arguments are used, the code should default to running something quick for testing (currently: glaciers, region 3).
 
 
