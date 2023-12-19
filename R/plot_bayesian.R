@@ -7,8 +7,7 @@
 
 plot_bayesian <- function() {
 
-
-  # Loop over plot years - duplicates above xxx
+  # Loop over plot years
   for (yy in yy_plot) {
 
     ymax <- 0
@@ -43,8 +42,10 @@ plot_bayesian <- function() {
 
       prior_dens_future <- density( projections[[scen]][, paste0("y",yy)] )
       post_dens_future <- density( projections[[scen]][, paste0("y",yy)], weights = proj_weights[[scen]] )
+
       plot( post_dens_future, main = paste("Final projections at", yy, "for", scen_name[[scen]]),
-            xlim = xlim_dist, col = AR6_rgb[[scen]], lwd = 1.5)
+            xlim = xlim_dist, col = AR6_rgb[[scen]], lwd = 1.5,
+            xlab = paste("Sea level contribution at",yy,"(cm SLE)") )
       lines( prior_dens_future, col = "darkgrey" )
       text( xlim_dist[1] + 0.68*(xlim_dist[2] - xlim_dist[1]),
             0.93*max(post_dens_future$y), pos = 4, "Prior", col = "darkgrey")
@@ -55,29 +56,6 @@ plot_bayesian <- function() {
 
 
     } # scenarios
-
-
-    # COMBINED PLOT OF FINAL POSTERIOR SSPS
-
-    plot( 1:3, 1:3, type = "n", main = paste("Final projections at", yy ),
-          xlim = xlim_dist, ylim = c(0, ymax),
-          xlab = paste("Sea level contribution at ",yy,"(cm SLE)"),
-          ylab = "Density")
-
-    yleg <- ymax
-
-    for (scen in scenario_list) {
-
-      post_dens_future <- density( projections[[scen]][, paste0("y",yy)], weights = proj_weights[[scen]] )
-
-      lines( post_dens_future, col = AR6_rgb[[scen]], lwd = 1.5 )
-
-      yleg <- yleg - 0.1*ymax
-
-      text( xlim_dist[1] + 0.6*(xlim_dist[2] - xlim_dist[1]),
-            yleg, pos = 4, scen_name[[scen]], col = AR6_rgb[[scen]])
-
-    }
 
   } # years
 

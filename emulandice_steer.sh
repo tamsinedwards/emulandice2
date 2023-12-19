@@ -1,27 +1,36 @@
 #!/bin/bash
-# Run emulandice2
+# Run emulandice2 module
 
-ice_source=$1
-region=$2
-emu_name=$3 # model_list_emulator_settings: e.g. "CISM_pow_exp_20", "CISM_IMAUICE_GISM_pow_exp_20"
+ice_source=$1 # Ice source: GIS, AIS or GLA
+region=$2 # Ice source region: ALL for GIS/AIS and RGI01-RGI19 for GLA
+emu_name=$3 # models_emulator_settings: e.g. "CISM_pow_exp_20", "CISM_IMAUICE_GISM_pow_exp_20"
+climate_data_file=$4 # e.g. emulandice.ssp585.temperature.fair.temperature_climate.nc
+scenario=$5 # e.g. ssp585 [could extract from filename instead?]
 
-# Options used in PROTECT Fall 2023 meeting results:
+Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name $climate_data_file $scenario
+
+# Arguments to add ____________
+# Read from emulator RData file:
+# baseyear # 2000
+# pyear_start # 2005
+# pyear_end # 2100 or 2300
+# pyear_step # 5
+# random seed # 2024
+
+# Other:
+# pipeline_id # prepend to output files
+# nsamps # could add if want to deviate from number of FaIR samples or hard check on this
+
+# Options for emu_name used in PROTECT Fall 2023 meeting results:
 # AIS ALL Kori_PISM_pow_exp_10
 # GIS ALL CISM_IMAUICE_pow_exp_20
 # GIS ALL CISM_pow_exp_20
 # GLA RGI03 GloGEM_OGGM_pow_exp_20
 
-Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name
-
-
-
 # expt = decades --> in design
 # dataset = "main",
 # N_FACTS =  2237L,
-# ice_sources = c("GrIS", "AIS", "Glaciers"),
 
-# Build emulandice R package - to create tarball emulandice_2.0.0.tar.gz
-# R --vanilla CMD build emulandice
 
 # FACTS emulandice v1:
 # emulandice_dataset=$1

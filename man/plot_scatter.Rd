@@ -4,11 +4,14 @@
 \alias{plot_scatter}
 \title{plot_scatter: plot scatter (X-Y) figures.}
 \usage{
-plot_scatter(data_type, plot_level = 0)
+plot_scatter(data_type, design_name, plot_level = 0)
 }
 \arguments{
 \item{data_type}{Data type: "sims" for simulations; "prior" or "posterior" for
 emulator projections before or after calibration.}
+
+\item{design_name}{Some plots are for main effects or projections only; some only for sims
+Takes values none (sims); main_effects; unif_temps or AR6_2LM (projections)}
 
 \item{plot_level}{Plot level: 0 for none, 1 for main, 2 for exhaustive}
 }

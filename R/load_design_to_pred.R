@@ -13,7 +13,12 @@
 
 load_design_to_pred <- function(design_name) {
 
-  if (design_name == "main_effects") { logfile_design <- logfile_build
+  # Prediction designs
+  # Main_effects and unif_temps are used by emulator_build.R for emulator validation,
+  # while AR6_2LM is used by main.R to predict
+  stopifnot(design_name %in% c("main_effects", "unif_temps", "AR6_2LM"))
+
+  if (design_name %in% c("main_effects", "unif_temps")) { logfile_design <- logfile_build
   } else logfile_design <- logfile_results
 
   cat("\n_________________________________\n",file = logfile_design, append = TRUE)
@@ -27,11 +32,9 @@ load_design_to_pred <- function(design_name) {
   # This includes dummy variables i.e. expanded factors
   input_names <- colnames(ice_design)
 
-  # This many samples for uniform GSAT and AR6 priors
-  # (AR6 prior is fixed by number of GSAT values in CSV file: N_temp)
-  N_prior <- 2000
-
-  # This many for main effects
+  # Number of bins per axis for continuous parameters in main effects designs
+  # For unif_temps this is set by N_prior in emulator_build.R
+  # For AR6_2LM this is set by number of FaIR samples
   N_main <- 100
 
   # One value for each ice model parameter
@@ -390,15 +393,15 @@ load_design_to_pred <- function(design_name) {
     cat("\nPrior for GSAT: AR6 two-layer model ensemble\n", file = logfile_design, append = TRUE)
 
     # Read simple climate model CSV file specified in main.R (later as an arg xxx)
-    #cat(paste("Reading CSV file of GSAT projections:", scm_file, "\n"), file = logfile_design, append = TRUE)
-    #climate_prior_all <- read.csv(paste0(inputs_preprocess, "GSAT/", scm_file))
+    #cat(paste("Reading CSV file of GSAT projections:", climate_data_file, "\n"), file = logfile_design, append = TRUE)
+    #climate_prior_all <- read.csv(paste0(inputs_preprocess, "GSAT/", climate_data_file))
 
     # Read simple climate model netcdf file specified in main.R (later as an arg xxx)
-    cat(paste("Reading netcdf file of GSAT projections:", scm_file, "\n"), file = logfile_design, append = TRUE)
+    cat(paste("Reading netcdf file of GSAT projections:", climate_data_file, "\n"), file = logfile_design, append = TRUE)
 
     # Open file and read into data frame
-    ncin <- ncdf4::nc_open( paste0(inputs_preprocess, "GSAT/", scm_file) )
-    climate_prior_all <- as.data.frame(ncdf4::ncvar_get(ncin,paste0(scm_ssp,"/surface_temperature")))
+    ncin <- ncdf4::nc_open( paste0(inputs_preprocess, "GSAT/", climate_data_file) )
+    climate_prior_all <- as.data.frame(ncdf4::ncvar_get(ncin,paste0(facts_ssp,"/surface_temperature")))
 
     # Add years as column names
     year <- ncdf4::ncvar_get(ncin,"year")
