@@ -9,33 +9,35 @@
 #_______________________________________________________________________________
 # BUILD EMULATOR
 #
-# Writes RData file: paste0("results/", out_name, "_EMULATOR.RData")
-# to be read by FACTS
+# Writes RData file: paste0("outdir", "/", out_name, "_EMULATOR.RData")
+# to be read by FACTS for predicting land ice contributions with FaIR GSAT projections
 #_______________________________________________________________________________
+
+#' # Setup
+# Setup ------------------------------------------------------------------------
 
 # Get arguments from RScript
 args <- commandArgs(TRUE)
 
 # Defaults if no args set (used for testing and Markdown)
 if (length(args) == 0) {
+
   warning("No arguments set - using defaults")
   i_s <- "GLA"
-  reg <- "RGI03"
-  emu_name <- "GloGEM_OGGM_pow_exp_20"
-  climate_data_file <- "emulandice.ssp585.temperature.fair.temperature_climate.nc"
-  facts_ssp <- "ssp585"
+  reg_num <- 3
+  final_year <- 2300
+
 } else {
 
   #' # Choose source and end year
   # Source and end year ----------------------------------------------------------
 
-
   # Ice source
   i_s <- args[1]
 
   # Region number (only used by glaciers for now)
+  # xxx OGGM test PPE: regions 3,8,10,18 (will be replaced)
   reg_num <- as.numeric(args[2])
-  # if (i_s == "GLA") reg_num <- 3  # OGGM test PPE: regions 3,8,10,18
 
   # End year
   final_year <- as.numeric(args[3]) # if past 2100, applies model/ensemble selections later
@@ -47,14 +49,6 @@ stopifnot(i_s %in% c("GIS","AIS", "GLA"))
 
 # GIS need_hist_match = FALSE by default [still true? xxx]
 
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# END OPTIONS
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-#' # Setup
-# Setup ------------------------------------------------------------------------
 
 # Fix random seed
 set.seed(2024)
@@ -71,23 +65,21 @@ inputs_ext <- "~/PROTECT/emulandice2/inst/extdata/" # Pre-existing: GSAT data an
 #' ## Dataset, ice source, region [ensemble]
 
 # Choices ------------------------------------------------------------------------
-# i_s is name in CSV filename and first column
-# # xxx FACTS: Change some choices to args in main() function, e.g. i_s
+# i_s is name in simulations CSV filename and first column
 
 # IPCC MIPs or PROTECT: no need to keep AR6
-#dataset <- "PROTECT"
-#stopifnot(dataset %in% c("IPCC_AR6", "PROTECT"))
+# dataset <- "PROTECT"
+# stopifnot(dataset %in% c("IPCC_AR6", "PROTECT"))
 
 # xxx Future: test/extend AR6 for glaciers, Antarctica, regions
-#if (dataset == "IPCC_AR6") {
+# if (dataset == "IPCC_AR6") {
 #  i_s <- "GrIS" # GrIS, AIS
 #  reg <- "ALL"
-#}
+# }
 
 ensemble_subset <- NA
 
 #if (dataset == "PROTECT") {
-
 
 # Region set here
 # CHOOSE ICE SHEET BASIN (when implemented)
@@ -153,7 +145,7 @@ print(paste("Building an emulator for",ice_name,"region",reg,"..."))
 if (do_loo_validation) {
   print(paste("LOO with N_k =",N_k,"(could be very slow)"))
 }
-#' ## Time period
+#' ## Projection times and possible scenarios
 
 # SIMULATION YEARS in dataset i.e. columns in CSV
 
@@ -177,6 +169,21 @@ if (i_s == "GLA") { # xxx urgh
 }
 years_sim <- first_year:final_year
 #}
+
+# Timeslice frequency to predict (see below: first date is cal_start + nyr)
+nyrs = 5 # can be 2 when 2100
+
+# Check reasonably divisible
+stopifnot(nyrs %in% c(1, 2, 5, 10)) # Maybe not 2, for FACTS?
+
+# "lhs" is deprecated - see end of code
+# but might add updated 2LM prior later
+# xxx Future: add SA and make consistent with temp_prior - done?
+
+# Full list of possible emissions scenarios to look for
+# (dropped for unif_temps design if not simulated)
+scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP585")
+
 
 #' ## Ice model(s)
 
@@ -254,6 +261,7 @@ stopifnot( length( setdiff(model_list, model_list_full )) == 0 )
 
 #}
 
+#' ## Set emulator covariance function
 # Choose emulator covariance function here so can put in output name for now
 
 # Currently can choose AR6 settings (mostly linear), matern_5_2,
@@ -266,6 +274,7 @@ stopifnot(emulator_settings %in% c("IPCC_AR6", "matern_5_2", "matern_3_2",
                                    "pow_exp_01", "pow_exp_10",
                                    "pow_exp_19", "pow_exp_20"))
 
+#' ## Open output file
 
 # Create name for output files
 out_name <- paste0(i_s,"_",reg,"_",paste(model_list, collapse = "_"),
@@ -282,23 +291,6 @@ cat(paste("\nDate range of simulations to be used:",
           years_sim[1],"-", years_sim[length(years_sim)], "\n"),
     file = logfile_build, append = TRUE)
 cat(paste("\nEmulator covariance:",emulator_settings,"\n"), file = logfile_build, append = TRUE)
-
-
-#' ## Projection
-
-# Timeslice frequency to predict (see below: first date is cal_start + nyr)
-nyrs = 5 # can be 2 when 2100
-
-# Check reasonably divisible
-stopifnot(nyrs %in% c(1, 2, 5, 10)) # Maybe not 2, for FACTS?
-
-# "lhs" is deprecated - see end of code
-# but might add updated 2LM prior later
-# xxx Future: add SA and make consistent with temp_prior - done?
-
-# Full list of possible emissions scenarios to look for
-# (dropped for unif_temps design if not simulated)
-scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP585")
 
 
 #' ## Glacier maximum contributions
@@ -330,7 +322,7 @@ for (rr in names(max_glaciers)) {
   max_glaciers[[rr]] <- max_glaciers[[rr]]/10.0
 }
 
-#' ## Calibration
+#' ## Baseline and calibration choices
 
 # AR6: 2015 is always start of simulations (no historical)
 #
@@ -346,7 +338,7 @@ if (i_s == "GIS") cal_end <- 2015 # 2015 # 2014 for 2100; but 2015 for ElmerIce 
 if (i_s == "AIS") cal_end <- 2015
 if (i_s == "GLA") cal_end <- 2020 # because OGGM fails if too early xxx
 
-# End of IMBIE GIS and Hugonnet; xxx change for AIS?
+# End of IMBIE GIS and Hugonnet; also encroaches onto SSPs; xxx change for AIS?
 stopifnot(cal_end <= 2020)
 
 # Start of calibration period
@@ -392,12 +384,14 @@ cat(paste("with respect to year", cal_start, "\n"), file = logfile_build, append
 N_ts <- length(years_em)
 cat(paste("Timeslices:", N_ts, "\n"), file = logfile_build, append = TRUE)
 
+#' ## Leave-one-out (LOO) validation choices
 
 do_loo_years <- c(2100, 2300) # c(2100, 2200, 2300) # Later add 2015/2020/50
 # (Checks these years are emulated later)
+
 if (do_loo_validation) print(paste("LOO years:", paste(do_loo_years, collapse = ",")))
 
-#' ## Emulation
+#' ## Emulation input choices
 
 # Emulator settings ------------------------------------------------------------
 #_______________
@@ -545,7 +539,7 @@ if (include_factors) {
   cat(paste("Factors:", paste(ice_factor_list, collapse = " "), "\n"), file = logfile_build, append = TRUE)
 }
 
-# Emulator covariance function details
+#' ## Emulator details
 
 # IPCC AR6 emulator, emulandice v1
 if ( emulator_settings == "IPCC_AR6") {
@@ -608,7 +602,7 @@ if (emulator_settings == "pow_exp_20") {
 stopifnot(kernel %in% c("pow_exp", "matern_5_2", "matern_3_2"))
 
 
-#' ## Plots
+#' ## Plot choices
 # Plot settings ------------------------------------------------------------
 
 # Plot all or just subset of figures
@@ -708,9 +702,9 @@ if (i_s == "GLA") {
 
 
 
-#' # Load and process climate and ice data
+#' # Load and process data
 
-#' ## Simulations
+#' ## Load climate and ice simulations
 # Get sims ---------------------------------------------------------------------
 
 # GET CLIMATE AND LAND ICE SIMULATIONS
@@ -861,7 +855,7 @@ if (include_factors) {
 }
 
 
-#' ## Scale inputs
+#' ## Scale inputs for emulator
 # Scale inputs ---------------------------------------------------------------
 # xxx Can I move this into get_inputs()?
 
@@ -893,13 +887,13 @@ for (cc in 1:dim(ice_design_scaled)[2]) {
 scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"]) ]
 #cat(paste("Scenario list:",paste(scenario_list, collapse = ","), "\n"), logfile_build, append = TRUE)
 
-#' ## Observations
+#' ## Load observations
 # Get obs -------------------------------------------------------------------
 
 #if ( ! exists("obs_data") )
 obs_data <- load_obs()
 
-#' # Model discrepancy
+#' # Set model discrepancy
 # Model error -----------------------------------------------------------------------
 
 # Model discrepancy
@@ -1134,20 +1128,15 @@ if ( ! exists("emu_mv") ) {
 #} # don't build emu_mv from function make_emu()
 
 
-#' # Designs
+#' # Predict for SA designs
 # Design: ME -----------------------------------------------------------------------
 
 #' ## Main effects
 # Main effects (i.e. one-at-a-time design for sensitivity analysis)
 design_sa <- load_design_to_pred("main_effects")
 
-#' # Predict
-# Predict: ME ----------------------------------------------------------------------
-
+# Predict
 myem <- list()
-
-#' ## Main effects
-# Sensitivity analysis
 for (input in names( design_sa )) {
 
   cat(paste("Main effects:",input,"\n"), file = logfile_build, append = TRUE)
@@ -1160,6 +1149,8 @@ for (input in names( design_sa )) {
   design_sa_scaled[ , input_cont_list ] <- design_sa_scaled_cont
   myem[[input]] <- emulator_predict( design_sa_scaled )
 }
+
+#' ## Uniform temperature prior
 
 # Plot: SA ----------------------------------------------------------------------
 
@@ -1200,7 +1191,6 @@ if (plot_level > 0) {
 
 
 #' # Validate
-#' ## Validation
 
 # Validate ---------------------------------------------------------------------
 # Builds LOO multivariate emulators and keeps results for requested timeslices
@@ -1269,8 +1259,10 @@ if (do_loo_validation) {
 
 } # do_loo_validation
 
+#' # Save emulator build file
+
 # SAVE EMULATOR BUILT FROM WHOLE ENSEMBLE
-# and the rest of the workspace for now
+# and the rest of the workspace, at least for now
 RData_file <- paste0(outdir, "/", out_name, "_EMULATOR.RData")
 save.image( file = RData_file )
 
