@@ -1184,11 +1184,7 @@ for (scen in scenario_list) {
 
 # Plot sensitivity analysis
 if (plot_level > 0) {
-<<<<<<< HEAD
   pdf( file = paste0( outdir, out_name, "_SA.pdf"),
-=======
-  pdf( file = paste0( outdir, "/", out_name, "_SA.pdf"),
->>>>>>> 4d600a1363a0d3731c606fe8a51b03eb6bef1230
        width = 9, height = 5)
   plot_scatter("prior", "main_effects",plot_level)
   plot_scatter("prior", "unif_temps",plot_level)
@@ -1270,12 +1266,7 @@ if (do_loo_validation) {
 
 # SAVE EMULATOR BUILT FROM WHOLE ENSEMBLE
 # and the rest of the workspace, at least for now
-<<<<<<< HEAD
-#RData_file <- paste0(outdir, out_name, "_EMULATOR.RData")
 RData_file <- paste0(rdatadir, out_name, "_EMULATOR.RData")
-=======
-RData_file <- paste0(outdir, "/", out_name, "_EMULATOR.RData")
->>>>>>> 4d600a1363a0d3731c606fe8a51b03eb6bef1230
 save.image( file = RData_file )
 
 cat(paste("\nSaved RData file:",RData_file,"\n"), file = logfile_build, append = TRUE)
