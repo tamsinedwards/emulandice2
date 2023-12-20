@@ -111,6 +111,8 @@ N_2LM <- 50L # 2237L for AR6 files
 cat("Running...\n")
 
 # Log file from emulator_build.R is same name but _build.txt
+if ( ! file.exists(outdir) ) dir.create(file.path(outdir))
+
 logfile_results <- paste0(outdir, out_name,"_results.txt")
 cat(sprintf("\nemulandice2: %s %s\n\n", i_s, reg), file = logfile_results)
 
