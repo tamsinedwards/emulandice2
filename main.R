@@ -19,6 +19,11 @@
 #
 #_______________________________________________________________________________
 
+<<<<<<< HEAD
+=======
+# Here is where the emulators live
+emu_dir <- "../RESULTS/tmp/"
+>>>>>>> 4d600a1363a0d3731c606fe8a51b03eb6bef1230
 
 #' # Get FACTS args
 # Get FACTS args ------------------------------------------------------------
@@ -43,6 +48,10 @@ if (length(args) == 0) {
  facts_ssp <- args[5] # ssp
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4d600a1363a0d3731c606fe8a51b03eb6bef1230
 print(paste("Ice source:", i_s))
 stopifnot(i_s %in% c("GIS", "AIS", "GLA"))
 
@@ -60,7 +69,10 @@ print(paste("Climate file:", climate_data_file))
 scen <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper case
 print(paste("Scenario:", scen))
 
+<<<<<<< HEAD
 emu_dir <- "./data-raw/"
+=======
+>>>>>>> 4d600a1363a0d3731c606fe8a51b03eb6bef1230
 print(paste("Emulator build file directory:", emu_dir))
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -78,7 +90,11 @@ print(paste("Write mean projections CSV:", write_mean))
 # Setup ------------------------------------------------------------
 
 # EMULATOR BUILD FILE: constructed from the above settings
+<<<<<<< HEAD
 # Directory has to match rdatadir in the build file it is loading
+=======
+# Directory has to match outdir when built
+>>>>>>> 4d600a1363a0d3731c606fe8a51b03eb6bef1230
 emu_file <- paste0(emu_dir, paste(i_s, reg, emu_name, sep = "_"), "_EMULATOR.RData")
 
 cat(sprintf("Looking for emulator build file in data/: %s\n", emu_file))
