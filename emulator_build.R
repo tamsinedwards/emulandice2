@@ -54,8 +54,9 @@ stopifnot(i_s %in% c("GIS","AIS", "GLA"))
 set.seed(2024)
 
 # Directory for output files
-outdir <- "./out/"
-rdatadir <- "./data-raw/"
+rdatadir <- "./data-raw/" # RData file containing emulator
+outdir <- "./out/" # Everything else
+if ( ! file.exists(outdir) ) dir.create(file.path(outdir))
 
 # Directories for input datasets
 # (all in the same place, grouped by type)
