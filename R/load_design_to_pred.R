@@ -392,7 +392,7 @@ load_design_to_pred <- function(design_name) {
     cat(paste("Reading netcdf file of GSAT projections:", climate_data_file, "\n"), file = logfile_design, append = TRUE)
 
     # Open file and read into data frame
-    ncin <- ncdf4::nc_open( paste0(inputs_preprocess, "/GSAT/", climate_data_file) )
+    ncin <- ncdf4::nc_open( climate_data_file )
     climate_prior_all <- as.data.frame(ncdf4::ncvar_get(ncin,paste0(facts_ssp,"/surface_temperature")))
 
     # Add years as column names

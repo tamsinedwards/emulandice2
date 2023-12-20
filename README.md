@@ -79,18 +79,18 @@ Once the GP emulator build files are created, they can be used in FACTS to quick
 
 The emulandice_steer.sh file contains the command:
 
-`Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name $climate_data_file $scenario`
+`Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name $emu_file $climate_data_file $scenario`
 
 where the arguments are taken from the command line. The first three form the 
 component parts of the RData file, as described above, and the last two give the climate data file and scenario.
 
-The current commands (from some basic optimisation checks using preliminary data in autumn 2023) for SSP5-8.5 are:
+The current builds (from some basic optimisation checks using preliminary data in autumn 2023) are:
 
 ```
-./emulandice_steer.sh GLA RGI03 GloGEM_OGGM_pow_exp_20 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
-./emulandice_steer.sh AIS ALL Kori_PISM_pow_exp_10 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
-./emulandice_steer.sh GIS ALL CISM_IMAUICE_pow_exp_20 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
-./emulandice_steer.sh GIS ALL CISM_pow_exp_20 emulandice.ssp585.temperature.fair.temperature_climate.nc ssp585
+./emulandice_steer.sh GLA RGI03 GloGEM_OGGM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name
+./emulandice_steer.sh AIS ALL Kori_PISM_pow_exp_10 path_to_emu_file path_to_climate_file ssp_name
+./emulandice_steer.sh GIS ALL CISM_IMAUICE_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name
+./emulandice_steer.sh GIS ALL CISM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name
 ```
 
 If no arguments are used, the code should default to running something quick for testing (currently: glaciers, region 3).
