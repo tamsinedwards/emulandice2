@@ -28,7 +28,7 @@ print("Hello! Welcome to emulandice2: predict")
 args <- commandArgs(TRUE)
 if (length(args) == 0) {
   # Defaults if no args set (used for testing and Markdown)
-  warning("No arguments set - using defaults")
+  print("NOTE: No arguments set - using defaults")
   i_s <- "GLA"
   reg <- "RGI03"
   emu_name <- "GloGEM_OGGM_pow_exp_20"
@@ -105,7 +105,7 @@ plot_level <- 0
 # Number of 2LM projections of GSAT expected per SSP
 # (and therefore total number of samples for book-keeping by GSAT value)
 # Checks when reading in netcdf - could get rid of this
-N_2LM <- 50L # 2237L for AR6 files
+#N_2LM <- 50L # 2237L for AR6 files
 
 
 cat("Running...\n")

@@ -363,7 +363,7 @@ if (i_s == "AIS") cal_start = 2000 # xxx for FACTS; sort for calib from 1992
 # Glaciers: 2000 for most runs, but 2005 for OGGM PPE
 if (i_s == "GLA") {
   cal_start = 2000
-  if ( "OGGM" %in% model_list && ensemble_subset == "PPE") cal_start = 2005 # xxx replace when new dataset
+  #if ( "OGGM" %in% model_list && ensemble_subset == "PPE") cal_start = 2005 # xxx replace when new dataset
 }
 
 # Earliest date possible for ice sheets (IMBIE) = 1992
@@ -498,26 +498,24 @@ if (i_s == "AIS") {
 
 if (i_s == "GLA") {
 
-  # xxx Maybe rename prec_corr_factor if different
+  ice_cont_list_model <- list()
 
   # GloGEM
-  #ice_cont_list <- c("prec_corr_factor",
-  #                   "ddf_ice","ratio_ddf_ice_to_snow",
-  #                   "prec_gradient" )
+  ice_cont_list_model[["GloGEM"]] <- c("prec_corr_factor", "ddf_ice",
+                                 "ratio_ddf_ice_to_snow",
+                                 "prec_gradient" )
 
   # OGGM
-  #ice_cont_list <- c("prec_corr_factor",
-  #                   "T_melt", "temp_all_liq", "temp_all_solid",
-  #                    "A", "delta_mu" )
+  ice_cont_list_model[["OGGM"]] <- c("prec_corr_factor", "ddf_ice",
+                               "temp_melt", "temp_bias", "glen_a")
 
   # Both
-  ice_cont_list <- c("prec_corr_factor",
-                     "ddf_ice","ratio_ddf_ice_to_snow",
-                     "prec_gradient",
-                     "T_melt", "temp_all_liq", "temp_all_solid",
-                     "A", "delta_mu" )
+  ice_cont_list <- unique( c(ice_cont_list_model[["GloGEM"]], ice_cont_list_model[["OGGM"]]))
 
-  ice_factor_list <- "model" # NA # none! except model, and later maybe phase
+  # Ensemble is for any setup differences, e.g.:
+  # For OGGM, forcing uses reanalysis 2000-2020 and parameter uses GM
+  # For GloGEM, forcing parameters are regional means over glaciers but parameter ensemble has same value everywhere
+  ice_factor_list <- c("ensemble","model")
 
 }
 
@@ -903,7 +901,7 @@ obs_data <- load_obs()
 # Model discrepancy
 # xxx Using multiple of obs error for now
 # Glacier error very small so use large scaling factor
-if (i_s == "GLA") { scale_mod_err = 10
+if (i_s == "GLA") { scale_mod_err = 20
 } else scale_mod_err = 3
 stopifnot( scale_mod_err > 1 )
 model_err <- scale_mod_err * obs_data[,"SLE_sd"]

@@ -94,15 +94,16 @@ select_sims <- function() {
   # GLACIER SELECTIONS
 
   # XXX Aim to make this obsolete later by combining ensembles
+  if (FALSE) {
+    if ( i_s == "GLA" ) {
+      if (ensemble_subset == "PPE") {
+        ice_data <- ice_data[ ! is.na(ice_data$prec_corr_factor), ]
+        cat(paste("After selecting PPE(s):", dim(ice_data)[1],"\n"), file = logfile_build, append = TRUE)
 
-  if ( i_s == "GLA" ) {
-    if (ensemble_subset == "PPE") {
-      ice_data <- ice_data[ ! is.na(ice_data$prec_corr_factor), ]
-      cat(paste("After selecting PPE(s):", dim(ice_data)[1],"\n"), file = logfile_build, append = TRUE)
-
-    } else {
-      ice_data <- ice_data[ is.na(ice_data$prec_corr_factor), ]
-      cat(paste("After selecting forcing ensemble(s):", dim(ice_data)[1],"\n"),file = logfile_build, append = TRUE)
+      } else {
+        ice_data <- ice_data[ is.na(ice_data$prec_corr_factor), ]
+        cat(paste("After selecting forcing ensemble(s):", dim(ice_data)[1],"\n"),file = logfile_build, append = TRUE)
+      }
     }
   }
 

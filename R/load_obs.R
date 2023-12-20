@@ -33,7 +33,7 @@ load_obs <- function() {
     obs_file[ ,1] <- 2000:2020
 
     # Convert Gt/yr to cm mass loss
-    obs_file[ , 2:3] <- obs_file[ , 2:3] / (10 * 360)
+    obs_file[ , 2:3] <- obs_file[ , 2:3] / (10 * 362.5)
     # Convert to sea level rise
     obs_file[ , 2] <- -1* obs_file[ , 2]
 

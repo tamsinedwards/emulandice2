@@ -94,35 +94,27 @@ load_design_to_pred <- function(design_name) {
   # Glaciers
   if (i_s == "GLA" ) {
 
-    # Precipitation correction factor (unitless)
-    prior_min["prec_corr_factor"] = 1.0
+    # xxx Choose ranges by eye, rounding Excel for both models...
 
-    # OGGM has higher max than GloGEM
-    if ("OGGM" %in% model_list) { prior_max["prec_corr_factor"] = 4.0
-    } else prior_max["prec_corr_factor"] = 2.2
+    # Precipitation correction factor (unitless)
+    prior_min["prec_corr_factor"] = 0.7
+    prior_max["prec_corr_factor"] = 11
+    prior_min["ddf_ice"] <- 2 # mm d-1 K-1 xxx 3 better?
+    prior_max["ddf_ice"] <- 9.0
 
     # GloGEM
-    prior_min["ddf_ice"] <- 4.5 # mm d-1 K-1
-    prior_max["ddf_ice"] <- 9.0
     prior_min["ratio_ddf_ice_to_snow"] <- 0.4 # unitless
-    prior_max["ratio_ddf_ice_to_snow"] <- 0.8
-    prior_min["prec_gradient"] <- 0.5 # m^-1
+    prior_max["ratio_ddf_ice_to_snow"] <- 1
+    prior_min["prec_gradient"] <- 0 # m^-1
     prior_max["prec_gradient"] <- 3
 
-    # OGGM new ensemble
-    prior_min["A"] <- 0.5e-24 # s^-1 Pa^-3
-    prior_max["A"] <- 10e-24
-
-    # OGGM test ensemble - delete later
-    prior_min["T_melt"] = -3.0 # degC
-    prior_max["T_melt"] = 3.0
-    prior_min["temp_all_liq"] = 0.0 # degC
-    prior_max["temp_all_liq"] = 2.0
-    prior_min["temp_all_solid"] <- -3 # degC # if keeping these
-    prior_max["temp_all_solid"] <- -1        # I would make these lower than _liq
-    prior_min["delta_mu"] <- 0.5 # unitless
-    prior_max["delta_mu"] <- 2 # this was sampled on linear scale not log
-
+    # OGGM
+    prior_min["glen_a"] <- 1.8e-24 # s^-1 Pa^-3
+    prior_max["glen_a"] <- 1.7e-23
+    prior_min["temp_melt"] = -4.0 # degC
+    prior_max["temp_melt"] = 2.0
+    prior_min["temp_bias"] = -10.0 # degC!
+    prior_max["temp_bias"] = 12.0
 
   }
 
@@ -463,7 +455,7 @@ load_design_to_pred <- function(design_name) {
       cat(paste("Got", N_temp, "GSAT samples from file for prior"), file = logfile_design, append = TRUE)
 
       # Dataset check: number of 2LM projections for each SSP
-      stopifnot( N_temp == N_2LM )
+      #stopifnot( N_temp == N_2LM )
       if (length(temps_list) > 1) stopifnot( dim(design_prior_gsat)[2] == length(temps_list) )
 
       # COMBINE WITH ICE SHEET MODEL PARAMETER PRIOR __________

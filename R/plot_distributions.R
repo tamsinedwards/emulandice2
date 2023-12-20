@@ -48,14 +48,17 @@ plot_distributions <- function(data_type, plot_level = 0) {
 
 
           # Note: myem_nroy for calibration of mean
-          hist(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ],
-               main = paste("History matched mean projections:", scen_name[[scen]]),
-               freq = FALSE, xlim = xlim_dist,
-               breaks = seq( from = floor(min(myem[[scen]]$mean[ , paste0("y",yy) ])),
-                             to = ceiling(max(myem[[scen]]$mean[ , paste0("y",yy) ])), by = 1),
-               col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
-          lines( density(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy)]) )
-
+          if (length(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ]) > 0) {
+            hist(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ],
+                 main = paste("History matched mean projections:", scen_name[[scen]]),
+                 freq = FALSE, xlim = xlim_dist,
+                 breaks = seq( from = floor(min(myem[[scen]]$mean[ , paste0("y",yy) ])),
+                               to = ceiling(max(myem[[scen]]$mean[ , paste0("y",yy) ])), by = 1),
+                 col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+            if (length(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ]) > 2) {
+              lines( density(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy)]) )
+            }
+          }
         }
       } # scenario loop
     } #years
@@ -80,14 +83,17 @@ plot_distributions <- function(data_type, plot_level = 0) {
           lines(density(projections[[scen]][,paste0("y",yy)]))
 
           # Note: proj_nroy for final projections
-          hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
-               main = paste( "History matched final projections:", scen_name[[scen]] ),
-               freq = FALSE, xlim = xlim_dist, # c(-30,80),
-               seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
-                    to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])), by = 1),
-               col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
-          lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]))
-
+          if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 0) {
+            hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
+                 main = paste( "History matched final projections:", scen_name[[scen]] ),
+                 freq = FALSE, xlim = xlim_dist, # c(-30,80),
+                 seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
+                      to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])), by = 1),
+                 col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+            if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 2) {
+              lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]))
+            }
+          }
         } # posterior
       } # end scenario loop
 
