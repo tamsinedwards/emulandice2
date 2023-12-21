@@ -47,20 +47,16 @@ write_outputs <- function(write_mean) {
   if (write_mean) {
 
     cat("Mean projections\n", file = logfile_results, append = TRUE)
+
     # No emulator uncertainty
     for (scen in scenario_list) {
-        for (tt in 1:N_temp) {
-          #cat( sprintf("%s,%s,%i,%i,%.4f\n",# %.4f,%.4f, %i
-          #             i_s, reg, yy, # Ice source, region, year
-          #             tt,
-          #             myem[[scen]]$mean[, paste0("y",yy) ][tt] ),
-           #    file = csv_full_mean[[scen]], append = TRUE )
+      for (tt in 1:N_temp) {
 
-          cat( sprintf("%s,%s,%i,%.1f, %s\n",
-                       i_s, reg, tt, 0.0,
-                       paste(myem[[scen]]$mean[ tt, paste0("y",years_em) ], collapse = ",")),
-               file = csv_full_mean[[scen]], append = TRUE )
-        }
+        cat( sprintf("%s,%s,%i,%.1f, %s\n",
+                     i_s, reg, tt, 0.0,
+                     paste(myem[[scen]]$mean[ tt, paste0("y",years_em) ], collapse = ",")),
+             file = csv_full_mean[[scen]], append = TRUE )
+      }
 
     }
   }
@@ -69,41 +65,52 @@ write_outputs <- function(write_mean) {
 
   # With emulator uncertainty
   for (scen in scenario_list) {
-      for (tt in 1:N_temp) {
-        cat( sprintf("%s,%s,%i,%.1f, %s\n",
-                     i_s, reg, tt, 0.0,
-                     paste(projections[[scen]][ tt, paste0("y",years_em) ], collapse = ",")),
-             file = csv_full_final[[scen]], append = TRUE )
-      }
-   # }
 
-    # xxx CHANGE TO FILLING AN ARRAY ONCE!
-    csv_full <- read.csv(csv_full_final[[scen]])
-    csv_mat <- 10.0* t( csv_full[ , paste0("SLE_",years_em) ] ) # cm to mm
+    for (tt in 1:N_temp) {
+      cat( sprintf("%s,%s,%i,%.1f, %s\n",
+                   i_s, reg, tt, 0.0,
+                   paste(projections[[scen]][ tt, paste0("y",years_em) ], collapse = ",")),
+           file = csv_full_final[[scen]], append = TRUE )
+    }
 
-    # Backwards hack FACTS type name
-    print(facts_ssp)
+    # FACTS NETCDF: transpose and convert cm to mm
+    csv_mat <- 10.0* t( projections[[scen]] )
+
+    # xxx Currently fixed baseline, but this will change
     baseyear <- paste0(cal_start,"LL")
 
     # Define dimensions
-    timedim <- ncdf4::ncdim_def("years","years",as.integer(years_em))
-    sampledim <- ncdf4::ncdim_def("samples","samples",0:(N_temp-1))
-    locdim <- ncdf4::ncdim_def("locations","locations",as.integer(-1))
+    timedim <- ncdf4::ncdim_def("years","",longname="",as.integer(years_em))
+    sampledim <- ncdf4::ncdim_def("samples","",longname="",0:(N_temp-1))
+    locdim <- ncdf4::ncdim_def("locations","",longname="",as.integer(-1))
+
+    # Define variables
     slc_def <- ncdf4::ncvar_def("sea_level_change","mm",list(sampledim, timedim, locdim),prec="short")
+    lat_def <- ncdf4::ncvar_def("lat","",list(locdim),prec="float",missval=NA)
+    lon_def <- ncdf4::ncvar_def("lon","",list(locdim),prec="float",missval=NA)
 
     # Create file
-    ncout <- ncdf4::nc_create( ncname, list(slc_def), force_v4 = TRUE )
+    ncout <- ncdf4::nc_create( ncname, list(slc_def, lat_def, lon_def), force_v4 = TRUE )
     print(paste("Writing",ncname))
 
     # Fill with an array; 1 location
     csv_data <- array(NA, dim = c(length(years_em), N_temp, 1))
     csv_data[ , ,1] <- as.matrix( csv_mat )
     ncdf4::ncvar_put(ncout,slc_def,csv_data)
+
+    # Add for consistency with FACTS formats
+    ncdf4::ncvar_put(ncout,lat_def, NA)
+    ncdf4::ncvar_put(ncout,lon_def, NA)
+
+    # Attributes
     ncdf4::ncatt_put(ncout,0,"description",paste("Global SLR contribution from",ice_name,"using the emulandice2 module"))
     ncdf4::ncatt_put(ncout,0,"history",paste("Created", date()))
     ncdf4::ncatt_put(ncout,0,"source",paste0("FACTS: emulandice.",facts_ssp,".emu",i_s,".emulandice.",reg))
     ncdf4::ncatt_put(ncout,0,"baseyear", baseyear)
     ncdf4::ncatt_put(ncout,0,"scenario",facts_ssp)
+    ncdf4::ncatt_put(ncout,0,"region",paste(i_s, reg, sep = "."))
+
+    # Close
     ncdf4::nc_close(ncout)
   }
 

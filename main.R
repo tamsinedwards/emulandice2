@@ -39,7 +39,7 @@ if (length(args) == 0) {
 
   # CLIMATE DATA FILE: constructed from filename and package data directory
   climate_data_file <- system.file("extdata", "GSAT", package = "emulandice2",
-                                   "emulandice.ssp585.temperature.fair.temperature_climate.nc")
+                                   "bamber19.ssp585.temperature.fair.temperature_climate.nc")
   facts_ssp <- "ssp585"
 
   # EMULATOR BUILD FILE: constructed from the above settings
