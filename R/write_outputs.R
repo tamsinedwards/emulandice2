@@ -84,7 +84,6 @@ write_outputs <- function(write_mean) {
     # Backwards hack FACTS type name
     print(facts_ssp)
     baseyear <- paste0(cal_start,"LL")
-    ncname <- paste0(outdir_facts, "emulandice.",facts_ssp,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
 
     # Define dimensions
     timedim <- ncdf4::ncdim_def("years","years",as.integer(years_em))

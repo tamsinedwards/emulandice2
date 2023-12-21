@@ -79,18 +79,20 @@ Once the GP emulator build files are created, they can be used in FACTS to quick
 
 The emulandice_steer.sh file contains the command:
 
-`Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name $emu_file $climate_data_file $scenario`
+`Rscript --vanilla -e "library(emulandice2)" -e "source('main.R')" $ice_source $region $emu_name $emu_file $climate_data_file $scenario $outdir $seed $pipeline_id`
 
 where the arguments are taken from the command line. The first three form the 
-component parts of the RData file, as described above, and the last two give the climate data file and scenario.
+component parts of the emulator build file, as described above. The rest give the full names and paths of the emulator build and climate data files, the scenario, path to output directory, random seed, and pipeline_id to prepend to the netcdf filename. 
+
+The steering bash script and module will do some basic checks on these arguments, and attempt to write the output directory if it does not exist.
 
 The current builds (from some basic optimisation checks using preliminary data in autumn 2023) are:
 
 ```
-./emulandice_steer.sh GLA RGI03 GloGEM_OGGM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name
-./emulandice_steer.sh AIS ALL Kori_PISM_pow_exp_10 path_to_emu_file path_to_climate_file ssp_name
-./emulandice_steer.sh GIS ALL CISM_IMAUICE_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name
-./emulandice_steer.sh GIS ALL CISM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name
+./emulandice_steer.sh GLA RGI03 GloGEM_OGGM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
+./emulandice_steer.sh AIS ALL Kori_PISM_pow_exp_10 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
+./emulandice_steer.sh GIS ALL CISM_IMAUICE_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
+./emulandice_steer.sh GIS ALL CISM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
 ```
 
 If no arguments are used, the code should default to running something quick for testing (currently: glaciers, region 3).

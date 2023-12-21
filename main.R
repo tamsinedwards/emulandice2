@@ -48,6 +48,9 @@ if (length(args) == 0) {
 
   outdir_facts <- "./out/"
 
+  seed <- 2024 # Same random seed as emulator_build.R
+  pipeline_id <- format(Sys.time(), "%y%m%d_%H%M%S") # YYMMDD_HHMMSS
+
 } else {
 
   i_s <- args[1] # ice_source
@@ -57,6 +60,8 @@ if (length(args) == 0) {
   climate_data_file <- args[5] # climate netcdf with path
   facts_ssp <- args[6] # ssp
   outdir_facts <- args[7] # output directory
+  seed <- args[8] # random seed
+  pipeline_id <- args[9]
 
 }
 
@@ -84,12 +89,17 @@ cat(sprintf("Scenario: %s\n", scen))
 # OTHER SETTINGS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+cat(sprintf("Outputs will be placed in directory: %s\n", outdir_facts))
+
 # Write mean emulator projections as well as full projections with noise
 # (used as arg for write_outputs(), and in plot_bayesian.R for some reason)
 write_mean <- FALSE
 cat(sprintf("Write mean projections CSV: %s\n", write_mean))
 
-cat(sprintf("Outputs will be placed in directory: %s\n", outdir_facts))
+# Netcdf filename
+# Old name: _emulandice.",facts_ssp,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
+ncname <- paste0(outdir_facts, pipeline_id,"_",reg,"_globalsl.nc")
+cat(sprintf("Projections netcdf filename will be: %s\n", ncname))
 
 #' # Setup
 # Setup ------------------------------------------------------------
@@ -124,6 +134,8 @@ load( file = emu_file)
 # partly for plot scripts also used by emulator_build.R (multiple scenarios),
 # partly in case I can use for plotting multiple scenarios later
 scenario_list <- scen
+
+set.seed(seed)
 
 # Plots: 0 = none, 1 = main, 2 = all
 plot_level <- 0
