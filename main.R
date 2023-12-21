@@ -35,7 +35,6 @@ if (length(args) == 0) {
   cat("NOTE: No arguments set - using defaults\n")
   i_s <- "GLA"
   reg <- "RGI03"
-  emu_name <- "GloGEM_OGGM_pow_exp_20"
 
   # CLIMATE DATA FILE: constructed from filename and package data directory
   climate_data_file <- system.file("extdata", "GSAT", package = "emulandice2",
@@ -55,13 +54,12 @@ if (length(args) == 0) {
 
   i_s <- args[1] # ice_source
   reg <- args[2] # region
-  emu_name <- args[3] # emulator name
-  emu_file <- args[4] # emulator build file with path
-  climate_data_file <- args[5] # climate netcdf with path
-  facts_ssp <- args[6] # ssp
-  outdir_facts <- args[7] # output directory
-  seed <- args[8] # random seed
-  pipeline_id <- args[9]
+  emu_file <- args[3] # emulator build file with path
+  climate_data_file <- args[4] # climate netcdf with path
+  facts_ssp <- args[5] # ssp
+  outdir_facts <- args[6] # output directory
+  seed <- args[7] # random seed
+  pipeline_id <- args[8]
 
 }
 
@@ -72,9 +70,7 @@ stopifnot(i_s %in% c("GIS", "AIS", "GLA"))
 cat(sprintf("Region: %s\n", reg))
 stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 
-# Emulator: emu_name is made from model_list and emulator_settings
-cat(sprintf("Emulator build: %s\n", emu_name))
-
+# Emulator build file name includes ice model_list and emulator_settings
 cat(sprintf("Emulator build file: %s\n", emu_file))
 
 # Netcdf name
@@ -109,14 +105,17 @@ cat(sprintf("Projections netcdf filename will be: %s\n", ncname))
 
 # Check scenario is in climate data file name
 if ( ! grepl(facts_ssp, basename(climate_data_file)) ) {
-  stop("Requested climate file does not contain scenario" )
+  stop("Requested scenario is not found in climate file name" )
 }
 
 # Check emulator build arguments are consistent
-emu_file_test_name <- paste(i_s, reg, emu_name, "EMULATOR.RData", sep = "_")
-if ( basename(emu_file) != emu_file_test_name) {
-  stop("Requested emulator build file is inconsistent with other command line arguments [i_s, reg, emu_name]")
+if ( ! grepl(i_s, basename(emu_file)) ) {
+  stop("Requested ice source is not found in emulator build file name" )
 }
+if ( ! grepl(reg, basename(emu_file)) ) {
+  stop("Requested ice source region is not found in emulator build file name" )
+}
+
 
 # LOAD EMULATOR AND OTHER STUFF
 cat("\nLoading emulator build file\n")
