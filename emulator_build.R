@@ -116,7 +116,7 @@ if (i_s == "GIS") {
 }
 if (i_s == "GLA") {
 
-  ensemble_subset <- "PPE" # xxx Choose as can't use both yet
+  ensemble_subset <- "PPE" # xxx Now ignored because ensembles are combined - keeping here for now
   stopifnot(ensemble_subset %in% c("forcing", "PPE"))
 
   if (ensemble_subset == "forcing" && final_year > 2100) {

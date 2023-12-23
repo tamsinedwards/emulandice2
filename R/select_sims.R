@@ -101,7 +101,8 @@ select_sims <- function() {
   #__________________________________________________
   # GLACIER SELECTIONS
 
-  # XXX Aim to make this obsolete later by combining ensembles
+  # This is no longer needed because we have combined forcing and PPE ensembles
+  # keep in case useful later
   if (FALSE) {
     if ( i_s == "GLA" ) {
       if (ensemble_subset == "PPE") {
