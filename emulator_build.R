@@ -23,9 +23,9 @@ args <- commandArgs(TRUE)
 if (length(args) == 0) {
 
   warning("No arguments set - using defaults")
-  i_s <- "GLA"
-  reg_num <- 3
-  final_year <- 2300
+  i_s <- "AIS" #"GLA"
+  reg_num <- 1 # 3
+  final_year <- 2100 # 2300
 
 } else {
 
@@ -60,7 +60,7 @@ if ( ! file.exists(outdir) ) dir.create(file.path(outdir))
 
 # Directories for input datasets
 # (all in the same place, grouped by type)
-inputs_preprocess <- system.file("extdata", package = "emulandice2")
+inputs_preprocess <- paste0(system.file("extdata", package = "emulandice2"), "/")
 inputs_ext <- inputs_preprocess
 #inputs_preprocess <- "~/PROTECT/emulandice2/inst/extdata/" # Processed: PROTECT data
 #inputs_ext <- "~/PROTECT/emulandice2/inst/extdata/" # Pre-existing: GSAT data and AR6 files
@@ -107,6 +107,7 @@ stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 # Currently two Greenland and glacier ensembles to choose from
 if (i_s == "AIS") {
   stopifnot(final_year %in% c(2100, 2150, 2200, 2300))
+  ensemble_subset <- "RCM_forced"
 }
 if (i_s == "GIS") {
   stopifnot(final_year %in% c(2100, 2200, 2300))
@@ -485,13 +486,35 @@ if (i_s == "AIS") {
   #                   "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
   #                   "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
 
-  # Both
+  # Both: GCM-forced
   ice_cont_list <- c("lapse_rate",  "refreeze_frac",
                      "PDD_ice", "PDD_snow", "PDD_sd", "refreeze",
                      "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
                      "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
 
-  ice_factor_list <- c("Phase", "init_atmos", "init_ocean", "melt_param", "model")
+  # GCM forced
+  ice_cont_list <- c(
+    "resolution", "PDD_sd",
+    "refreeze_frac",  # PDD (GCM only)
+    "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
+    "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
+  #"overturning_PICO") # PICO only
+  # "lapse_rate", "refreeze" "PDD_ice", "PDD_snow", "sliding_exponent", # need to impute RCM
+  # "heat_flux_ISMIP6_local", # xxx not used?
+  #"tillwater_decay_rate", "eff_fraction_overburden_pressure")
+
+  ice_factor_list <- c("Phase", "init_atmos", "init_ocean", "melt_param", "model",
+                       "forcing_type") #"sliding_law" )
+
+  # Kori only
+  if (ensemble_subset == "RCM_forced") {
+    ice_cont_list <- c("heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
+                       "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
+    ice_factor_list <- c("melt_param")
+  }
+
+
+  # "init_method",
 
   # Add factor: model
 }
@@ -502,12 +525,12 @@ if (i_s == "GLA") {
 
   # GloGEM
   ice_cont_list_model[["GloGEM"]] <- c("prec_corr_factor", "ddf_ice",
-                                 "ratio_ddf_ice_to_snow",
-                                 "prec_gradient" )
+                                       "ratio_ddf_ice_to_snow",
+                                       "prec_gradient" )
 
   # OGGM
   ice_cont_list_model[["OGGM"]] <- c("prec_corr_factor", "ddf_ice",
-                               "temp_melt", "temp_bias", "glen_a")
+                                     "temp_melt", "temp_bias", "glen_a")
 
   # Both
   ice_cont_list <- unique( c(ice_cont_list_model[["GloGEM"]], ice_cont_list_model[["OGGM"]]))
@@ -711,8 +734,8 @@ if (i_s == "GLA") {
 
 # GET CLIMATE AND LAND ICE SIMULATIONS
 # Returns CSV file data
-climate_data <- load_sims(variable = "climate") # dataset
-ice_data <- load_sims(variable = "ice", source = i_s) # dataset
+climate_data <- emulandice2::load_sims(variable = "climate") # dataset
+ice_data <- emulandice2::load_sims(variable = "ice", source = i_s) # dataset
 
 # Index of first column with name format yXXXX
 ice_file_yr_start_col <- suppressWarnings( myind <- min(which( nchar(names(ice_data)) == 5
@@ -743,13 +766,13 @@ cat(paste(paste(ice_param_list_full, collapse = " "), "\n"), file = logfile_buil
 stopifnot(ice_param_list %in% ice_param_list_full)
 
 # Select ice source, region, model(s) and any other exclusions
-ice_data <- select_sims()
+ice_data <- emulandice2::select_sims()
 
 # Calculate SLE change w.r.t. cal_start year, and tidy units
-ice_data <- calculate_sle_anom()
+ice_data <- emulandice2::calculate_sle_anom()
 
 # Get corresponding forcings (match by GCM + scenario; check length)
-temps <- match_sims()
+temps <- emulandice2::match_sims()
 
 # Find rows that do not have (first timeslice if multiple) forcing
 if ( length(temps_list) == 1 ) { sim_index <- !is.na(temps)
@@ -785,10 +808,11 @@ cols_to_check <- ice_data[ , ice_param_list ]
 if (length(cols_to_check[ is.na(cols_to_check) ]) > 0) stop("NAs found in ice_data columns to use as inputs in emulation: please drop/fix")
 
 # Select continuous model inputs and impute missing values
-ice_param <- get_inputs(ice_cont_list)
+ice_param <- emulandice2::get_inputs(ice_cont_list)
 
 # COMBINE CLIMATE FORCING AND ICE MODEL INPUTS INTO DESIGN MATRIX
 ice_design <- as.matrix( data.frame(temps, ice_param) )
+
 
 # Add climate col name(s0)
 # xxx Can use this elsewhere! e.g. plot_design.R instead of reconstructing
@@ -893,7 +917,7 @@ scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"])
 # Get obs -------------------------------------------------------------------
 
 #if ( ! exists("obs_data") )
-obs_data <- load_obs()
+obs_data <- emulandice2::load_obs()
 
 #' # Set model discrepancy
 # Model error -----------------------------------------------------------------------
@@ -921,10 +945,10 @@ cat("\nPlot simulator projections:\n", file = logfile_build, append = TRUE)
 if (plot_level > 0) {
   pdf( file = paste0( outdir, out_name, "_SIMS.pdf"),
        width = 9, height = 5)
-  plot_designs("sims", plot_level)
-  plot_timeseries("sims", plot_level)
-  plot_scatter("sims", "none", plot_level)
-  plot_distributions("sims", plot_level)
+  emulandice2::plot_designs("sims", plot_level)
+  emulandice2::plot_timeseries("sims", plot_level)
+  emulandice2::plot_scatter("sims", "none", plot_level)
+  emulandice2::plot_distributions("sims", plot_level)
   dev.off()
 }
 
@@ -1135,7 +1159,7 @@ if ( ! exists("emu_mv") ) {
 
 #' ## Main effects
 # Main effects (i.e. one-at-a-time design for sensitivity analysis)
-design_sa <- load_design_to_pred("main_effects")
+design_sa <- emulandice2::load_design_to_pred("main_effects")
 
 # Predict
 myem <- list()
@@ -1149,7 +1173,7 @@ for (input in names( design_sa )) {
 
   design_sa_scaled <- as.data.frame( design_sa[[input]] )
   design_sa_scaled[ , input_cont_list ] <- design_sa_scaled_cont
-  myem[[input]] <- emulator_predict( design_sa_scaled )
+  myem[[input]] <- emulandice2::emulator_predict( design_sa_scaled )
 }
 
 #' ## Uniform temperature prior
@@ -1159,7 +1183,7 @@ for (input in names( design_sa )) {
 # Design "unif_temps" makes projections using uniform priors for GSAT with same ranges as sims
 # a better comparison than using FaIR projected distributions for each SSP
 
-design_pred <- load_design_to_pred("unif_temps")
+design_pred <- emulandice2::load_design_to_pred("unif_temps")
 
 for (scen in scenario_list) {
 
@@ -1170,7 +1194,7 @@ for (scen in scenario_list) {
                                    scale = inputs_scale )
   design_pred_scaled <- as.data.frame( design_pred[[scen]]  )
   design_pred_scaled[ , input_cont_list] <- design_pred_scaled_cont
-  myem[[scen]] <- emulator_predict( design_pred_scaled )
+  myem[[scen]] <- emulandice2::emulator_predict( design_pred_scaled )
 }
 
 # Add uncertainty ----------------------------------------------------------------------
@@ -1178,16 +1202,16 @@ projections <- list()
 
 # Want to see unif_temps final projections (samples with uncertainty) for validation
 for (scen in scenario_list) {
-  projections[[scen]] <- emulator_uncertainty(myem[[scen]])
+  projections[[scen]] <- emulandice2::emulator_uncertainty(myem[[scen]])
 }
 
 # Plot sensitivity analysis
 if (plot_level > 0) {
   pdf( file = paste0( outdir, out_name, "_SA.pdf"),
        width = 9, height = 5)
-  plot_scatter("prior", "main_effects",plot_level)
-  plot_scatter("prior", "unif_temps",plot_level)
-  plot_scatter("posterior", "unif_temps",plot_level) # overkill?
+  emulandice2::plot_scatter("prior", "main_effects",plot_level)
+  emulandice2::plot_scatter("prior", "unif_temps",plot_level)
+  emulandice2::plot_scatter("posterior", "unif_temps",plot_level) # overkill?
   dev.off()
 }
 
@@ -1204,7 +1228,7 @@ if (do_loo_validation) {
   # Test every N_k-th run
   # this is the slow bit....
   # xxx Improve: stratified by output value instead of every N_k
-  loo_valid_all <- do_loo( do_loo_years, N_k = N_k)
+  loo_valid_all <- emulandice2::do_loo( do_loo_years, N_k = N_k)
 
   # To store results
   loo_mean <- list()
@@ -1256,7 +1280,7 @@ if (do_loo_validation) {
   # Plot LOO results
   pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
        width = 9, height = 5)
-  plot_loo()
+  emulandice2::plot_loo()
   dev.off()
 
 } # do_loo_validation

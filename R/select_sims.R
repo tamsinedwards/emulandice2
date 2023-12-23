@@ -88,6 +88,14 @@ select_sims <- function() {
       cat( paste("After selecting every 4th simulation:", dim(ice_data)[1], "\n"),
            file = logfile_build, append = TRUE)
     }
+
+    # Faster if drop big GCM-forced ensembles...
+    if (ensemble_subset == "RCM_forced") {
+      ice_data <- ice_data[ ice_data$forcing_type == "RCM", ]
+      cat( paste("After selecting only RCM-forced:", dim(ice_data)[1], "\n"),
+           file = logfile_build, append = TRUE)
+    }
+
   }
 
   #__________________________________________________
