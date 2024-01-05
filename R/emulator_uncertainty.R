@@ -13,7 +13,7 @@ emulator_uncertainty <- function(myem_scen) {
   # Number of projections per SSP
   # This will be equal to N_prior for unif_temps design (set by user in emulator_build.R)
   # and N_temp for AR6_2LM (deduced from FaIR netcdf file in main.R)
-  N_samp <- dim(myem[["SSP585"]]$mean)[1]
+  N_samp <- dim(myem_scen$mean)[1]
 
   # Initialise
   proj_uncert <- matrix( nrow = N_samp, ncol = N_ts)

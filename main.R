@@ -78,8 +78,7 @@ cat(sprintf("Climate file: %s\n", climate_data_file))
 stopifnot(file.exists(climate_data_file))
 
 # SSP (could extract from filename)
-scen <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper case
-cat(sprintf("Scenario: %s\n", scen))
+cat(sprintf("Scenario: %s\n", facts_ssp))
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # OTHER SETTINGS
@@ -132,12 +131,12 @@ load( file = emu_file)
 # FACTS uses only one scenario at a time but will keep these loops for now:
 # partly for plot scripts also used by emulator_build.R (multiple scenarios),
 # partly in case I can use for plotting multiple scenarios later
-scenario_list <- scen
+scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper case
 
 set.seed(seed)
 
 # Plots: 0 = none, 1 = main, 2 = all
-plot_level <- 0
+plot_level <- 2
 
 # Number of 2LM projections of GSAT expected per SSP
 # (and therefore total number of samples for book-keeping by GSAT value)

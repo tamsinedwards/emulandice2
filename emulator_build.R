@@ -23,9 +23,9 @@ args <- commandArgs(TRUE)
 if (length(args) == 0) {
 
   warning("No arguments set - using defaults")
-  i_s <- "AIS" #"GLA"
+  i_s <- "GLA"
   reg_num <- 1 # 3
-  final_year <- 2100 # 2300
+  final_year <- 2300 # 2300
 
 } else {
 
@@ -132,7 +132,7 @@ if (i_s == "GLA") {
 if (i_s == "GIS") ice_name <- "Greenland"  # %in% c("GrIS", "GIS"))
 if (i_s == "AIS") ice_name <- "Antarctica"
 if (i_s == "GLA") {
-  ice_name <- paste("Glaciers:", read.csv(paste0(inputs_ext,"/GLA/regionnames.txt"))[reg_num,1])
+  ice_name <- paste("Glaciers:", read.csv(paste0(inputs_ext,"/GLA/regionnames.txt"), header = FALSE)[reg_num,1])
 }
 
 # Sample size for unif_temps design - used for convenience when adding uncertainty
@@ -274,7 +274,15 @@ stopifnot( length( setdiff(model_list, model_list_full )) == 0 )
 # XXX Specify by ice sheet region later
 if ( i_s == "GIS") emulator_settings <- "pow_exp_20"
 if ( i_s == "AIS") emulator_settings <- "pow_exp_10"
-if ( i_s == "GLA") emulator_settings <- "pow_exp_20" # for all regions for now
+if ( i_s == "GLA") {
+
+  # Default: squared exponential (Gaussian: smooth)
+  emulator_settings <- "pow_exp_20"
+
+  # 3rd Jan 2024: Make some large regions more linear if still over-fitting
+  if (reg_num %in% c(1, 4, 5, 7, 19)) emulator_settings <- "pow_exp_01"
+
+}
 stopifnot(emulator_settings %in% c("IPCC_AR6", "matern_5_2", "matern_3_2",
                                    "pow_exp_01", "pow_exp_10",
                                    "pow_exp_19", "pow_exp_20"))
@@ -538,7 +546,7 @@ if (i_s == "GLA") {
   # Ensemble is for any setup differences, e.g.:
   # For OGGM, forcing uses reanalysis 2000-2020 and parameter uses GM
   # For GloGEM, forcing parameters are regional means over glaciers but parameter ensemble has same value everywhere
-  ice_factor_list <- c("ensemble","model")
+  ice_factor_list <- "model" # c("ensemble","model")
 
 }
 

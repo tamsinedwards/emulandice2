@@ -37,123 +37,9 @@ load_design_to_pred <- function(design_name) {
   # For AR6_2LM this is set by number of FaIR samples
   N_main <- 100
 
-  # One value for each ice model parameter
-  # Not very elegant but never mind
-  prior_min <- list()
-  prior_max <- list()
-
-  # Ice model inputs ------------------------------------------------------------------------
-
-  # RANGES FOR ICE MODEL PRIORS
-  if (i_s == "AIS" ) {
-
-    # XXX Will fail if using ISMIP6 because haven't put basal melt prior in yet
-    #stopifnot( dataset == "PROTECT" )
-
-    # Uniform prior over
-    # Draw a big sample here then subsample from this below in design
-    #if (dataset == "PROTECT") {
-
-    # Heat flux ranges in PROTECT deliverable D-4.5
-    prior_min["heat_flux_PICO"] = 0.1e-5
-    prior_max["heat_flux_PICO"] = 10e-5
-
-    prior_min["heat_flux_Plume"] = 1e-4
-    prior_max["heat_flux_Plume"] = 10e-4
-
-    prior_min["heat_flux_Burgard"] = 1e-4
-    prior_max["heat_flux_Burgard"] = 10e-4
-
-    prior_min["heat_flux_ISMIP6_nonlocal"] = 1e4
-    prior_max["heat_flux_ISMIP6_nonlocal"] = 4e4
-
-    prior_min["heat_flux_ISMIP6_nonlocal_slope"] = 1e6
-    prior_max["heat_flux_ISMIP6_nonlocal_slope"] = 4e6
-
-    prior_min["lapse_rate"] = -12
-    prior_max["lapse_rate"] = -5
-
-    prior_min["refreeze_frac"] = 0.2
-    prior_max["refreeze_frac"] = 0.8
-
-    prior_min["refreeze"] = 0
-    prior_max["refreeze"] = 15
-
-    prior_min["PDD_ice"] = 4
-    prior_max["PDD_ice"] = 12
-
-    prior_min["PDD_snow"] = 0
-    prior_max["PDD_snow"] = 6
-
-    prior_min["PDD_sd"] = 3
-    prior_max["PDD_sd"] = 5
-
-    #    } # PROTECT
-  } # AIS
-
-  # Glaciers
-  if (i_s == "GLA" ) {
-
-    # xxx Choose ranges by eye, rounding Excel for both models...
-
-    # Precipitation correction factor (unitless)
-    prior_min["prec_corr_factor"] = 0.7
-    prior_max["prec_corr_factor"] = 11
-    prior_min["ddf_ice"] <- 2 # mm d-1 K-1 xxx 3 better?
-    prior_max["ddf_ice"] <- 9.0
-
-    # GloGEM
-    prior_min["ratio_ddf_ice_to_snow"] <- 0.4 # unitless
-    prior_max["ratio_ddf_ice_to_snow"] <- 1
-    prior_min["prec_gradient"] <- 0 # m^-1
-    prior_max["prec_gradient"] <- 3
-
-    # OGGM
-    prior_min["glen_a"] <- 1.8e-24 # s^-1 Pa^-3
-    prior_max["glen_a"] <- 1.7e-23
-    prior_min["temp_melt"] = -4.0 # degC
-    prior_max["temp_melt"] = 2.0
-    prior_min["temp_bias"] = -10.0 # degC!
-    prior_max["temp_bias"] = 12.0
-
-  }
-
-  # XXX Change to factor if resolution is made a factor in build
-  if (i_s == "GIS") { # } %in% c("GrIS", "GIS") ) {
-    prior_min["resolution"] = 1
-    prior_max["resolution"] = 40
-  }
-
-  # Are any of selected param list not set in priors?
-  # Let Greenland retreat go because not uniform
-  # xxx add AIS melt AR6 here too [did I mean empirical prior?]
-  cat("\nIce model inputs with uniform priors:\n",file = logfile_design, append = TRUE)
-  cat( paste(paste(ice_cont_list[ice_cont_list %in% names(prior_min)], collapse = " "), "\n"),
-       file = logfile_design, append = TRUE)
-
-  missing_param <- setdiff( ice_cont_list , names(prior_min) )
-  if ( length(missing_param) > 0) {
-    cat("Continuous ice params without uniform prior min (OK if Greenland retreat):\n",
-        file = logfile_design, append = TRUE)
-    cat( missing_param, file = logfile_design, append = TRUE )
-    cat( "\n", file = logfile_design, append = TRUE )
-  }
-
-  stopifnot( length( missing_param) == 0
-             || (i_s == "GIS" && length(missing_param) == 1 &&
-                   missing_param == "retreat") ) # %in% c("GrIS", "GIS")
-
-  # Check max too
-  missing_param <- setdiff( ice_cont_list , names(prior_max) )
-  if ( length(missing_param) > 0) {
-    cat("Continuous ice params without uniform prior max (OK if Greenland retreat):\n",
-        file = logfile_design, append = TRUE)
-    cat( paste(c(missing_param, "\n")), file = logfile_design, append = TRUE)
-  }
-  stopifnot( length( missing_param) == 0
-             || (i_s == "GIS" && length(missing_param) == 1 &&
-                   missing_param == "retreat") ) # %in% c("GrIS", "GIS")
-
+  # Range of prior: mostly will be uniform
+  prior_range <- list()
+  for ( pp in ice_cont_list ) prior_range[[pp]] <- c(NA, NA)
 
   # SET EMPIRICAL PRIOR FOR Greenland
   if (i_s == "GIS") { # %in% c("GrIS", "GIS")
@@ -179,25 +65,38 @@ load_design_to_pred <- function(design_name) {
 
       prior_min["retreat"] <- min(retreat_prior)
       prior_max["retreat"] <- max(retreat_prior)
+      prior_range[["retreat"]] <- range(retreat_prior)
 
       cat(sprintf("Empirical retreat prior range: [%.4f, %4.f]\n", min(retreat_prior), max(retreat_prior)), file = logfile_design, append = TRUE)
 
+      # Cut tails of distribution
       if (FALSE) {
         retreat_prior <- retreat_prior[ retreat_prior >= -0.9705 & retreat_prior <= 0.0070 ]
 
         # Get min and max of sample to use for main effects design
         prior_min["retreat"] <- min(retreat_prior)
         prior_max["retreat"] <- max(retreat_prior)
+        prior_range[["retreat"]] <- range(retreat_prior)
 
         cat(sprintf("TRUNCATED RETREAT PRIOR TO 5-95%% RANGE: [%.4f, %4.f]\n",min(retreat_prior),max(retreat_prior)), file = logfile_design, append = TRUE)
       }
     }
   }
 
+  # USE RANGE FROM SIMULATIONS TO SET UNIFORM PRIORS
+  for ( pp in ice_cont_list ) {
+
+    # If not set yet
+    if ( is.na(prior_range[[pp]][1])) {
+      prior_range[[pp]][1] = min(ice_data[ , pp ])
+      prior_range[[pp]][2] = max(ice_data[ , pp ])
+    }
+  }
+
   cat("\nIce model input prior ranges (including non-uniform):\n",
       file = logfile_design, append = TRUE)
   for (pp in ice_cont_list ) {
-    cat(sprintf( "%s: [%.1e, %.1e]", pp, prior_min[[pp]], prior_max[[pp]]),"\n",file = logfile_design, append = TRUE)
+    cat(sprintf( "%s: [%.1e, %.1e]", pp, prior_range[[pp]][1], prior_range[[pp]][2]),"\n",file = logfile_design, append = TRUE)
   }
 
   # Main effects ------------------------------------------------------------------------
@@ -233,11 +132,11 @@ load_design_to_pred <- function(design_name) {
           nom[[ dd ]] <- -0.17
         } else {
           # Uniform prior
-          nom[[ dd ]] <- mean( c(as.numeric(prior_min[dd]), as.numeric(prior_max[dd])) )
+          nom[[dd]] <- mean(prior_range[[dd]])
         }
 
-        oaat[[ dd ]] <- seq( from = as.numeric(prior_min[dd]),
-                             to = as.numeric(prior_max[dd]),
+        oaat[[ dd ]] <- seq( from = as.numeric(prior_range[[dd]][1]),
+                             to = as.numeric(prior_range[[dd]][2]),
                              length = N_main )
 
       }
@@ -335,8 +234,8 @@ load_design_to_pred <- function(design_name) {
           samp <- sample( unlist(retreat_prior), N_prior, replace = TRUE )
         } else {
           # Uniform
-          samp <- runif( N_prior, min = as.numeric(prior_min[pp]),
-                         max = as.numeric(prior_max[pp]) )
+          samp <- runif( N_prior, min = as.numeric(prior_range[[pp]][1]),
+                         max = as.numeric(prior_range[[pp]][2]) )
         }
 
         # Store column
@@ -452,7 +351,7 @@ load_design_to_pred <- function(design_name) {
       if (length(temps_list) == 1) { N_temp <- length(design_prior_gsat)
       } else N_temp <- dim(design_prior_gsat)[1]
 
-      cat(paste("Got", N_temp, "GSAT samples from file for prior"), file = logfile_design, append = TRUE)
+      cat(paste("Got", N_temp, "GSAT samples from file for prior\n"), file = logfile_design, append = TRUE)
 
       # Dataset check: number of 2LM projections for each SSP
       #stopifnot( N_temp == N_2LM )
@@ -475,8 +374,8 @@ load_design_to_pred <- function(design_name) {
           samp <- sample( unlist(retreat_prior), N_temp, replace = TRUE )
         } else {
           # Uniform
-          samp <- runif( N_temp, min = as.numeric(prior_min[pp]),
-                         max = as.numeric(prior_max[pp]) )
+          samp <- runif( N_temp, min = as.numeric(prior_range[[pp]][1]),
+                         max = as.numeric(prior_range[[pp]][2]) )
         }
 
         # Store column
@@ -552,3 +451,61 @@ load_design_to_pred <- function(design_name) {
 #lines( years_sim, x, col = rgb(0.5,0,1, alpha = 0.4 ) ))
 #  lines( 1991:1995, rep(yleg, 5), col = rgb(0.5,0,1, alpha = 0.4 ) )
 #})
+
+# RANGES FOR LHS MODEL PRIORS in case I want to hard-code these again
+
+# AIS:
+  # Heat flux ranges in PROTECT deliverable D-4.5
+  #prior_min["heat_flux_PICO"] = 0.1e-5
+  #prior_max["heat_flux_PICO"] = 10e-5
+
+  #prior_min["heat_flux_Plume"] = 1e-4
+  #prior_max["heat_flux_Plume"] = 10e-4
+
+  #prior_min["heat_flux_Burgard"] = 1e-4
+  #prior_max["heat_flux_Burgard"] = 10e-4
+
+  #prior_min["heat_flux_ISMIP6_nonlocal"] = 1e4
+  #prior_max["heat_flux_ISMIP6_nonlocal"] = 4e4
+
+  #prior_min["heat_flux_ISMIP6_nonlocal_slope"] = 1e6
+  #prior_max["heat_flux_ISMIP6_nonlocal_slope"] = 4e6
+
+  #prior_min["lapse_rate"] = -12
+  #prior_max["lapse_rate"] = -5
+
+  #prior_min["refreeze_frac"] = 0.2
+  #prior_max["refreeze_frac"] = 0.8
+
+  #prior_min["refreeze"] = 0
+  #prior_max["refreeze"] = 15
+
+  #prior_min["PDD_ice"] = 4
+  #prior_max["PDD_ice"] = 12
+
+  #prior_min["PDD_snow"] = 0
+  #prior_max["PDD_snow"] = 6
+
+  #prior_min["PDD_sd"] = 3
+  #prior_max["PDD_sd"] = 5
+
+# GLA:
+# Precipitation correction factor (unitless)
+#prior_min["prec_corr_factor"] = 0.7
+#prior_max["prec_corr_factor"] = 11
+#prior_min["ddf_ice"] <- 2 # mm d-1 K-1 xxx 3 better?
+#prior_max["ddf_ice"] <- 9.0
+
+# GloGEM
+#prior_min["ratio_ddf_ice_to_snow"] <- 0.4 # unitless
+#prior_max["ratio_ddf_ice_to_snow"] <- 1
+#prior_min["prec_gradient"] <- 0 # m^-1
+#prior_max["prec_gradient"] <- 3
+
+# OGGM
+#prior_min["glen_a"] <- 1.8e-24 # s^-1 Pa^-3
+#prior_max["glen_a"] <- 1.7e-23
+#prior_min["temp_melt"] = -4.0 # degC
+#prior_max["temp_melt"] = 2.0
+#prior_min["temp_bias"] = -10.0 # degC!
+#prior_max["temp_bias"] = 12.0
