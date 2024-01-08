@@ -132,7 +132,7 @@ if (i_s == "GLA") {
 if (i_s == "GIS") ice_name <- "Greenland"  # %in% c("GrIS", "GIS"))
 if (i_s == "AIS") ice_name <- "Antarctica"
 if (i_s == "GLA") {
-  ice_name <- paste("Glaciers:", read.csv(paste0(inputs_ext,"/GLA/regionnames.txt"), header = FALSE)[reg_num,1])
+  ice_name <- read.csv(paste0(inputs_ext,"/GLA/regionnames.txt"), header = FALSE)[reg_num,1]
 }
 
 # Sample size for unif_temps design - used for convenience when adding uncertainty
@@ -142,7 +142,7 @@ N_prior <- 2000
 
 # Do LOO validation?
 do_loo_validation <- FALSE
-N_k <- NA # for every N_k-th simulation; NA for full LOO
+N_k <- 10 # for every N_k-th simulation; NA for full LOO
 
 print("Hello! Welcome to emulandice2: build")
 
@@ -272,7 +272,7 @@ stopifnot( length( setdiff(model_list, model_list_full )) == 0 )
 # Currently can choose AR6 settings (mostly linear), matern_5_2,
 # or pow_exp_19 (pow_exp, alpha = 1.9), 2.0
 # XXX Specify by ice sheet region later
-if ( i_s == "GIS") emulator_settings <- "pow_exp_20"
+if ( i_s == "GIS") emulator_settings <- "pow_exp_01"
 if ( i_s == "AIS") emulator_settings <- "pow_exp_10"
 if ( i_s == "GLA") {
 
@@ -669,6 +669,12 @@ if (i_s == "GLA") {
   if (max_glaciers[[reg]] < 1.0) {
     ylim[1] <- -0.005
     ylim_max[1] <- -0.01
+  }
+
+  # Specific region over-rides
+  if (reg == "RGI19") {
+    ylim <- c(-15,8)
+    ylim_max <- c(-50,12)
   }
   #  if (reg %in% c("RGI03")) ylim <- c(-2,7)  # max or 2100?
   #  if (reg %in% c("RGI12", "RGI18")) ylim <- c(-0.005,0.03) # max or 2100?

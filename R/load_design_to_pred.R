@@ -63,8 +63,8 @@ load_design_to_pred <- function(design_name) {
       retreat_prior <- sample( retreat_prior_dens$x, 10000, replace = TRUE,
                                prob = retreat_prior_dens$y )
 
-      prior_min["retreat"] <- min(retreat_prior)
-      prior_max["retreat"] <- max(retreat_prior)
+      #prior_min["retreat"] <- min(retreat_prior)
+      #prior_max["retreat"] <- max(retreat_prior)
       prior_range[["retreat"]] <- range(retreat_prior)
 
       cat(sprintf("Empirical retreat prior range: [%.4f, %4.f]\n", min(retreat_prior), max(retreat_prior)), file = logfile_design, append = TRUE)
@@ -74,8 +74,8 @@ load_design_to_pred <- function(design_name) {
         retreat_prior <- retreat_prior[ retreat_prior >= -0.9705 & retreat_prior <= 0.0070 ]
 
         # Get min and max of sample to use for main effects design
-        prior_min["retreat"] <- min(retreat_prior)
-        prior_max["retreat"] <- max(retreat_prior)
+        #prior_min["retreat"] <- min(retreat_prior)
+        #prior_max["retreat"] <- max(retreat_prior)
         prior_range[["retreat"]] <- range(retreat_prior)
 
         cat(sprintf("TRUNCATED RETREAT PRIOR TO 5-95%% RANGE: [%.4f, %4.f]\n",min(retreat_prior),max(retreat_prior)), file = logfile_design, append = TRUE)
