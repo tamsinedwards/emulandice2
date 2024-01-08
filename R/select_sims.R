@@ -81,9 +81,9 @@ select_sims <- function() {
     }
   }
 
-  # XXX quick hack for faster AIS LOO - get rid of this / improve
+  # XXX quick hack for faster AIS - get rid of this / improve speed
   if ( i_s == "AIS") { # dataset == "PROTECT" &&
-    if ( "Kori" %in% model_list && do_loo_validation)  {
+    if ( "Kori" %in% model_list ) { # && do_loo_validation)  {
       ice_data <- ice_data[ seq(from = 1, to = nrow(ice_data), by = 4), ]
       cat( paste("After selecting every 4th simulation:", dim(ice_data)[1], "\n"),
            file = logfile_build, append = TRUE)

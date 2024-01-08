@@ -107,7 +107,8 @@ stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 # Currently two Greenland and glacier ensembles to choose from
 if (i_s == "AIS") {
   stopifnot(final_year %in% c(2100, 2150, 2200, 2300))
-  ensemble_subset <- "RCM_forced"
+  ensemble_subset <- "GCM_forced"
+  stopifnot( ensemble_subset %in% c("GCM_forced", "RCM_forced", "all_forced")) # only RCM option used for now
 }
 if (i_s == "GIS") {
   stopifnot(final_year %in% c(2100, 2200, 2300))
@@ -494,25 +495,28 @@ if (i_s == "AIS") {
   #                   "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
   #                   "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
 
-  # Both: GCM-forced
+  # Both models: GCM-forced
   ice_cont_list <- c("lapse_rate",  "refreeze_frac",
                      "PDD_ice", "PDD_snow", "PDD_sd", "refreeze",
                      "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
                      "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
 
-  # GCM forced
-  ice_cont_list <- c(
-    "resolution", "PDD_sd",
-    "refreeze_frac",  # PDD (GCM only)
-    "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
-    "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
+  # GCM and RCM-forced ensembles: for testing
+#  ice_cont_list <- c(
+#    "resolution", "PDD_sd",
+#    "refreeze_frac",  # PDD (GCM only)
+#    "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
+#    "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
+
   #"overturning_PICO") # PICO only
   # "lapse_rate", "refreeze" "PDD_ice", "PDD_snow", "sliding_exponent", # need to impute RCM
   # "heat_flux_ISMIP6_local", # xxx not used?
   #"tillwater_decay_rate", "eff_fraction_overburden_pressure")
 
-  ice_factor_list <- c("Phase", "init_atmos", "init_ocean", "melt_param", "model",
-                       "forcing_type") #"sliding_law" )
+  # xxx Need to drop Phase when going to regions as Kori didn't save basins for Phase 1
+  ice_factor_list <- c("Phase", "init_atmos", "init_ocean", "melt_param", "model")
+   # RCM-forced:
+  # "forcing_type", #"sliding_law"
 
   # Kori only
   if (ensemble_subset == "RCM_forced") {
