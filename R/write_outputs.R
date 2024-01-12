@@ -85,7 +85,7 @@ write_outputs <- function(write_mean) {
     locdim <- ncdf4::ncdim_def("locations","",longname="",as.integer(-1))
 
     # Define variables
-    slc_def <- ncdf4::ncvar_def("sea_level_change","mm",list(sampledim, timedim, locdim),prec="short")
+    slc_def <- ncdf4::ncvar_def("sea_level_change","mm",list(timedim, sampledim, locdim),prec="short")
     lat_def <- ncdf4::ncvar_def("lat","",list(locdim),prec="float",missval=NA)
     lon_def <- ncdf4::ncvar_def("lon","",list(locdim),prec="float",missval=NA)
 
