@@ -102,11 +102,6 @@ cat(sprintf("Projections netcdf filename will be: %s\n", ncname))
 
 # BASIC CONSISTENCY CHECKS
 
-# Check scenario is in climate data file name
-if ( ! grepl(facts_ssp, basename(climate_data_file)) ) {
-  stop("Requested scenario is not found in climate file name" )
-}
-
 # Check emulator build arguments are consistent
 if ( ! grepl(i_s, basename(emu_file)) ) {
   stop("Requested ice source is not found in emulator build file name" )
