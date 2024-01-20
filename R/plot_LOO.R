@@ -26,8 +26,8 @@ plot_loo <- function() {
     loo_std_errs <- (loo_mean[[yind]] - ice_data[ , yind]) / loo_sd[[yind]]
 
     # xxx Improve?
-    if (yy <= 2025) ylim_loo = ylim_obs*1.1
-    if (yy == 2100) ylim_loo = 1.1*ylim
+    if (yy <= 2050) ylim_loo = ylim_obs*1.1
+    if (yy > 2050 && yy < 2200) ylim_loo = 1.1*ylim
     if (yy >= 2200) ylim_loo = ylim_max
 
     plot( ice_data[ , yind], loo_mean[[yind]],

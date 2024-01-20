@@ -7,8 +7,8 @@
 #' ---
 #' MULTIVARIATE EMULATION OF LAND ICE CONTRIBUTIONS TO SEA LEVEL
 # Tamsin Edwards
-# based on emulandice (Edwards et al., 2021)
-# and multivariate code by Jonathan Rougier
+# Originally based on emulandice (Edwards et al., 2021)
+# Updated to use multivariate code by Jonathan Rougier
 #
 # Emulators are built by emulator_build.R using multi-model simulations of
 # Greenland, Antarctica, and glacier regions (19) from EU H2020 PROTECT project.

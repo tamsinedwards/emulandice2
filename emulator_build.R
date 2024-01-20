@@ -400,7 +400,7 @@ cat(paste("Timeslices:", N_ts, "\n"), file = logfile_build, append = TRUE)
 
 #' ## Leave-one-out (LOO) validation choices
 
-do_loo_years <- c(2100, 2300) # c(2100, 2200, 2300) # Later add 2015/2020/50
+do_loo_years <- c(2100, 2300) # c(2050, 2100, 2150, 2200, 2250, 2300)
 # (Checks these years are emulated later)
 
 if (do_loo_validation) print(paste("LOO years:", paste(do_loo_years, collapse = ",")))
@@ -513,8 +513,8 @@ if (i_s == "AIS") {
   # "heat_flux_ISMIP6_local", # xxx not used?
   #"tillwater_decay_rate", "eff_fraction_overburden_pressure")
 
-  # xxx Need to drop Phase when going to regions as Kori didn't save basins for Phase 1
-  ice_factor_list <- c("Phase", "init_atmos", "init_ocean", "melt_param", "model")
+  # Note: dropped Phase 1 Kori in select_sims() because basins not saved (and saves compute time)
+  ice_factor_list <- c("init_atmos", "init_ocean", "melt_param", "model") # Phase
    # RCM-forced:
   # "forcing_type", #"sliding_law"
 
