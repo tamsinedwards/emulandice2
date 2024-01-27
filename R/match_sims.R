@@ -31,9 +31,6 @@ match_sims <- function() {
     colnames(temps) <- paste0("GSAT_", temps_list)
   }
 
-  # Drop erroneous last col of NAs
-  climate_data <- climate_data[ , -dim(climate_data)[2]]
-
   # To store all years of selected forcings for plots
   climate_exp_all <- NA
 

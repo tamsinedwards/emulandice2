@@ -107,7 +107,7 @@ stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 # Currently two Greenland and glacier ensembles to choose from
 if (i_s == "AIS") {
   stopifnot(final_year %in% c(2100, 2150, 2200, 2300))
-  ensemble_subset <- "GCM_forced"
+  ensemble_subset <- "RCM_forced"
   stopifnot( ensemble_subset %in% c("GCM_forced", "RCM_forced", "all_forced")) # only RCM option used for now
 }
 if (i_s == "GIS") {
@@ -241,7 +241,7 @@ if (i_s == "GIS") {
 
 if (i_s == "AIS") {
 
-  model_list_full <- c( "Kori", "PISM" )
+  model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce" )
 
   # Pick models to use
   model_list <- model_list_full
@@ -400,7 +400,7 @@ cat(paste("Timeslices:", N_ts, "\n"), file = logfile_build, append = TRUE)
 
 #' ## Leave-one-out (LOO) validation choices
 
-do_loo_years <- c(2100, 2300) # c(2050, 2100, 2150, 2200, 2250, 2300)
+do_loo_years <- c(2100, 2150, 2200, 2300)
 # (Checks these years are emulated later)
 
 if (do_loo_validation) print(paste("LOO years:", paste(do_loo_years, collapse = ",")))
@@ -483,52 +483,100 @@ if (i_s == "GIS") {
 
 if (i_s == "AIS") {
 
+  ice_cont_list_model <- list()
+  ice_factor_list_model <- list()
+
+  # Kori: all
+  ice_cont_list_model[["Kori"]] <- c("heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
+                                     "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
+  ice_factor_list_model[["Kori"]] <- c("init_ocean", "melt_param")
+
+  # Kori GCM-forced only
+  if ( ensemble_subset %in% c("GCM_forced", "all_forced") ) {
+    ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+                                       "lapse_rate", "PDD_ice", "PDD_snow", "refreeze")
+    # "PDD_sd" # Only perturbed in Phase 1 which is now dropped
+    # in select_sims() because basins were not saved (and saves compute time)
+
+    ice_factor_list_model[["Kori"]] <- c( ice_factor_list_model[["Kori"]],
+                                          "init_atmos")
+    # Note Phase factor accounts for model version
+    # but it doesn't makes sense to combine Phase 2 vs 3 across models
+    # so absorb into RCM-forced vs GCM-forced instead
+
+  }
+
+  # Kori RCM-forced only
+  if ( ensemble_subset %in% c("RCM_forced", "all_forced") ) {
+    ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+                                       "sliding_exponent")
+  }
+
   # PISM
-  #ice_cont_list <- c("lapse_rate",  "refreeze_frac",
-  #                   "PDD_ice", "PDD_snow",
-  #                   "heat_flux_PICO")
-  #ice_factor_list <- "init_atmos"
+  ice_cont_list_model[["PISM"]] <- c(  "heat_flux_PICO" )
 
-  # Kori
-  #ice_cont_list <- c("lapse_rate",
-  #                   "PDD_ice", "PDD_snow", "PDD_sd", "refreeze",
-  #                   "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
-  #                   "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
+  # PISM GCM-forced only
+  if ( ensemble_subset %in% c("GCM_forced", "all_forced") ) {
+    ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+                                       "lapse_rate",  "refreeze_frac",
+                                       "PDD_ice", "PDD_snow")
+    ice_factor_list_model[["PISM"]] <- c( "init_atmos" )
+  }
 
-  # Both models: GCM-forced
-  ice_cont_list <- c("lapse_rate",  "refreeze_frac",
-                     "PDD_ice", "PDD_snow", "PDD_sd", "refreeze",
-                     "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
-                     "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
-
-  # GCM and RCM-forced ensembles: for testing
-#  ice_cont_list <- c(
-#    "resolution", "PDD_sd",
-#    "refreeze_frac",  # PDD (GCM only)
-#    "heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
-#    "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
-
-  #"overturning_PICO") # PICO only
-  # "lapse_rate", "refreeze" "PDD_ice", "PDD_snow", "sliding_exponent", # need to impute RCM
-  # "heat_flux_ISMIP6_local", # xxx not used?
-  #"tillwater_decay_rate", "eff_fraction_overburden_pressure")
-
-  # Note: dropped Phase 1 Kori in select_sims() because basins not saved (and saves compute time)
-  ice_factor_list <- c("init_atmos", "init_ocean", "melt_param", "model") # Phase
-   # RCM-forced:
-  # "forcing_type", #"sliding_law"
-
-  # Kori only
-  if (ensemble_subset == "RCM_forced") {
-    ice_cont_list <- c("heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
-                       "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
-    ice_factor_list <- c("melt_param")
+  # PISM RCM-forced only
+  if ( ensemble_subset %in% c("RCM_forced", "all_forced") ) {
+    ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+                                       "resolution", "sliding_exponent",
+                                       "overturning_PICO",
+                                       "tillwater_decay_rate",
+                                       "eff_fraction_overburden_pressure")
   }
 
 
-  # "init_method",
+  # CISM
+  ice_cont_list_model[["CISM"]] <- c( "resolution",
+                                      "heat_flux_ISMIP6_nonlocal",
+                                      "heat_flux_ISMIP6_nonlocal_slope")
+  # Local only for 2100 runs
+  if (final_year == "2100") ice_cont_list_model[["CISM"]] <- c(ice_cont_list_model[["CISM"]],
+                                                               "heat_flux_ISMIP6_local")
+  ice_factor_list_model[["CISM"]] <- c("melt_param", "sliding_law")
 
-  # Add factor: model
+  # Elmer/Ice
+  ice_cont_list_model[["ElmerIce"]] <- c("heat_flux_PICO", "sliding_exponent")
+
+  # Combine model lists
+  ice_cont_list <- NA
+  ice_factor_list <- NA
+
+  for (mm in model_list) {
+    if (length(ice_cont_list_model[[mm]]) > 0) ice_cont_list <- c(ice_cont_list, ice_cont_list_model[[mm]])
+    if (length(ice_factor_list_model[[mm]]) > 0) ice_factor_list <- c(ice_factor_list, ice_factor_list_model[[mm]])
+  }
+
+  # Drop NA and duplicates
+  ice_cont_list <- unique( ice_cont_list[ -1 ] )
+  ice_factor_list <- unique( ice_factor_list[ -1 ] )
+
+  # Combine RCM and GCM-forced
+  if ( ensemble_subset == "all_forced" ) {
+    ice_factor_list <- c(ice_factor_list, "forcing_type")
+  }
+
+  # Add RCM factor (will fail if only using Elmer/Ice)
+  # xxx need to add something to
+  if (ensemble_subset == "all_forced" ||
+      (ensemble_subset == "RCM_forced" && final_year == 2100)) {
+    ice_factor_list <- c(ice_factor_list, "RCM")
+  }
+
+
+  # Add model switch and GCM vs RCM-forced factor:
+  if ( length(model_list) > 1 ) ice_factor_list <- c(ice_factor_list, "model")
+
+  # xxx Add init_method if complete for models (add PD12 Kori GCM and look at PISM RCM doc)
+  # xxx Double-check heat_flux names translation from GCM to RCM ensembles
+
 }
 
 if (i_s == "GLA") {
@@ -649,7 +697,7 @@ plot_level <- 2 # 0 for none, 1 for main, 2 for exhaustive
 q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
 
 # Sub-sample to plot; exclude any dates not predicted by emulator
-yy_plot <- c(cal_end,"2100", "2300")
+yy_plot <- c(cal_end,"2100", "2150", "2200", "2300")
 yy_plot <- yy_plot[ yy_plot %in% years_em ]
 
 # Same for LOO timeslices
@@ -685,7 +733,7 @@ if (i_s == "GLA") {
 }
 if (i_s == "AIS") {
   # xxx do list by timeslice?
-  ylim <- c(-50,150)  # 2100
+  ylim <- c(-50,200)  # 2200
   ylim_max <- c(-400, 1200) # 2300
 }
 if (i_s == "GIS") {  # %in% c("GrIS", "GIS")) {

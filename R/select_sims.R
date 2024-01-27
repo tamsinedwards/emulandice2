@@ -72,21 +72,12 @@ select_sims <- function() {
 
   # ANTARCTIC SELECTIONS
 
-  # xxx Obsolete: only use PICO
-  if ( i_s == "AIS") { # dataset == "PROTECT"
-    if ( "Kori" %in% model_list && !is.na(melt_param_select))  {
-      ice_data <- ice_data[ ice_data$melt_param == melt_param_select, ]
-      cat( paste("After selecting melt parameterisation for Kori:", dim(ice_data)[1], "\n"),
-           file = logfile_build, append = TRUE)
-    }
-  }
-
   # XXX quick hack for faster AIS - get rid of this / improve speed
   if ( i_s == "AIS") { # dataset == "PROTECT" &&
 
-    if ( "Kori" %in% model_list ) { # && do_loo_validation)  {
-      ice_data <- ice_data[ ice_data$Phase != 1, ]
-      cat( paste("After dropping Phase 1:", dim(ice_data)[1], "\n"),
+    if ( "Kori" %in% model_list && ensemble_subset %in% c("GCM_forced", "all_forced")) {
+      ice_data <- ice_data[ ice_data$Phase != 1 | is.na(ice_data), ] # Only Kori has Phase = 1 set
+      cat( paste("After dropping Kori Phase 1:", dim(ice_data)[1], "\n"),
            file = logfile_build, append = TRUE)
 
 #      ice_data <- ice_data[ seq(from = 1, to = nrow(ice_data), by = 4), ]
@@ -100,6 +91,14 @@ select_sims <- function() {
       cat( paste("After selecting only RCM-forced:", dim(ice_data)[1], "\n"),
            file = logfile_build, append = TRUE)
     }
+
+    # GCM-forced only
+    if (ensemble_subset == "GCM_forced") {
+      ice_data <- ice_data[ ice_data$forcing_type == "GCM", ]
+      cat( paste("After selecting only GCM-forced:", dim(ice_data)[1], "\n"),
+           file = logfile_build, append = TRUE)
+    }
+
 
   }
 
