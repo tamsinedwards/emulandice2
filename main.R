@@ -87,7 +87,7 @@ cat(sprintf("Scenario: %s\n", facts_ssp))
 cat(sprintf("Outputs will be placed in directory: %s\n", outdir_facts))
 
 # Write projection CSV files
-write_csv <- TRUE
+write_csv <- FALSE
 cat(sprintf("Write projections CSV files: %s\n", write_csv))
 
 # Netcdf filename
@@ -130,7 +130,7 @@ scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper
 set.seed(seed)
 
 # Plots: 0 = none, 1 = main, 2 = all
-plot_level <- 2
+plot_level <- 0
 
 # Number of 2LM projections of GSAT expected per SSP
 # (and therefore total number of samples for book-keeping by GSAT value)
