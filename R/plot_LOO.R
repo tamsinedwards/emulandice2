@@ -25,10 +25,9 @@ plot_loo <- function() {
     #loo_std_errs <- (loo_valid[[yind]]$mean - ice_data[ , yind]) / loo_valid[[yind]]$sd
     loo_std_errs <- (loo_mean[[yind]] - ice_data[ , yind]) / loo_sd[[yind]]
 
-    # xxx Improve?
-    if (yy <= 2050) ylim_loo = ylim_obs*1.1
-    if (yy > 2050 && yy < 2200) ylim_loo = 1.1*ylim
-    if (yy >= 2200) ylim_loo = ylim_max
+    # Expand plot range for uncertainty interval
+    # This works because lower bound always negative
+    ylim_loo <- c(sle_lim[[yy]][1], sle_lim[[yy]][2] * 1.1)
 
     plot( ice_data[ , yind], loo_mean[[yind]],
           xlim = ylim_loo, ylim = ylim_loo,

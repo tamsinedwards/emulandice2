@@ -14,18 +14,13 @@ plot_bayesian <- function() {
 
     for (scen in scenario_list) {
 
-      if (yy == cal_end) xlim_dist = ylim_obs
-      if (yy > cal_end && yy <= 2100 ) xlim_dist = ylim
-      if (yy > 2100 ) xlim_dist = ylim_max
-
       # FUTURE: mean projections
-      if (write_mean) {
-        prior_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy) ] )
-        post_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy)], weights = myem_weights[[scen]] )
-        plot( post_dens_future, main = paste("Mean", yy, scen_name[[scen]]),
-              xlim = xlim_dist, col = AR6_rgb[[scen]])
-        lines( prior_dens_future )
-      }
+      prior_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy) ] )
+      post_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy)], weights = myem_weights[[scen]] )
+      plot( post_dens_future, main = paste("Mean", yy, scen_name[[scen]]),
+            xlim = sle_lim[[yy]], col = AR6_rgb[[scen]])
+      lines( prior_dens_future )
+
 
       # FUTURE: final projections
       if (FALSE) {
@@ -44,12 +39,12 @@ plot_bayesian <- function() {
       post_dens_future <- density( projections[[scen]][, paste0("y",yy)], weights = proj_weights[[scen]] )
 
       plot( post_dens_future, main = paste("Final projections at", yy, "for", scen_name[[scen]]),
-            xlim = xlim_dist, col = AR6_rgb[[scen]], lwd = 1.5,
+            xlim = sle_lim[[yy]], col = AR6_rgb[[scen]], lwd = 1.5,
             xlab = paste("Sea level contribution at",yy,"(cm SLE)") )
       lines( prior_dens_future, col = "darkgrey" )
-      text( xlim_dist[1] + 0.68*(xlim_dist[2] - xlim_dist[1]),
+      text( sle_lim[[yy]][1] + 0.68*(sle_lim[[yy]][2] - sle_lim[[yy]][1]),
             0.93*max(post_dens_future$y), pos = 4, "Prior", col = "darkgrey")
-      text( xlim_dist[1] + 0.68*(xlim_dist[2] - xlim_dist[1]), 0.85*max(post_dens_future$y), pos = 4, "Posterior", col = AR6_rgb[[scen]])
+      text( sle_lim[[yy]][1] + 0.68*(sle_lim[[yy]][2] - sle_lim[[yy]][1]), 0.85*max(post_dens_future$y), pos = 4, "Posterior", col = AR6_rgb[[scen]])
 
       ymax <- max( c(ymax, max(post_dens_future$y) ) )
 

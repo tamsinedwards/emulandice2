@@ -11,25 +11,16 @@
 
 plot_distributions <- function(data_type, plot_level = 0) {
 
-  # Some rough axis limits
-  #  ylim_dist <- c(-60,90)
-  #  if (i_s == "GLA") {
-  #    ylim_dist <- c(-5,15)
-  #    if (reg %in% c("RGI12", "RGI18")) ylim_dist <- c(-0.005,0.03)
-  #  }
-
-  xlim_dist <- ylim_max # c(-30,80)  # -2, 7
-  # if (i_s == "GLA") {
-  #    xlim_dist <- c(-2,10)
-  #    if (reg %in% c("RGI12", "RGI18")) xlim_dist <- c(-0.005,0.03)
-  #  }
-
-
   # Distributions ------------------------------------------------------------
 
   # PROJECTION HISTOGRAMS AND PDFS
 
+  cfb_pale <- rgb(100,149,237, alpha = 50, maxColorValue = 255)
+  cfb_med <- rgb(100,149,237, alpha = 100, maxColorValue = 255)
+  cfb_dark <- rgb(100,149,237, alpha = 150, maxColorValue = 255)
+
   # Mean projections
+  # xxx could loop around mean, final, and Bayesian sample with same code
   if (plot_level >= 2) {
 
     for (yy in yy_plot ) {
@@ -38,25 +29,33 @@ plot_distributions <- function(data_type, plot_level = 0) {
 
         if (data_type == "posterior") {
 
-          hist(myem[[scen]]$mean[ , paste0("y",yy) ],
-               main = paste("Uncalibrated mean projections:", scen_name[[scen]]),
-               freq = FALSE, xlim = xlim_dist, #c(-30,80),
-               breaks = seq( from = floor(min(myem[[scen]]$mean[ , paste0("y",yy) ])),
-                             to = ceiling(max(myem[[scen]]$mean[ , paste0("y",yy) ])), by = 1),
-               col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
-          lines( density(myem[[scen]]$mean[,paste0("y",yy)]) )
+          # Get x breaks and y scale
+          proj_breaks <- seq( from = floor(min(myem[[scen]]$mean[ , paste0("y",yy) ])),
+                              to = ceiling(max(myem[[scen]]$mean[ , paste0("y",yy) ])),
+                              length = 50)
+          post_hist <- hist( myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
+                            breaks = proj_breaks )
+
+          # Mean projections
+          hist( myem[[scen]]$mean[ , paste0("y",yy) ],
+               ylim = c(0,max(post_hist$density)),
+               main = paste("Mean projections: history matching:", scen_name[[scen]]),
+               freq = FALSE, xlim = sle_lim[[yy]],
+               breaks = proj_breaks,
+               col = cfb_pale, border = NA,
+               xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+          lines( density(myem[[scen]]$mean[,paste0("y",yy)]),
+                 col = cfb_med, lwd = 1.2)
 
 
-          # Note: myem_nroy for calibration of mean
+          # NROY mean projections
           if (length(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ]) > 0) {
             hist(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ],
-                 main = paste("History matched mean projections:", scen_name[[scen]]),
-                 freq = FALSE, xlim = xlim_dist,
-                 breaks = seq( from = floor(min(myem[[scen]]$mean[ , paste0("y",yy) ])),
-                               to = ceiling(max(myem[[scen]]$mean[ , paste0("y",yy) ])), by = 1),
-                 col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+                 freq = FALSE, breaks = proj_breaks,
+                 col = cfb_med, border = NA, add = TRUE)
             if (length(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ]) > 2) {
-              lines( density(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy)]) )
+              lines( density(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy)]),
+                     col = "darkblue", lwd = 1.2)
             }
           }
         }
@@ -72,29 +71,61 @@ plot_distributions <- function(data_type, plot_level = 0) {
 
         if (data_type == "posterior") {
 
-          # Full projections
-          hist(projections[[scen]][ ,paste0("y",yy) ],
-               main = paste( "Uncalibrated final projections:", scen_name[[scen]] ),
-               freq = FALSE, xlim = xlim_dist, #c(-30,80),
-               breaks = seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
-                             to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])),
-                             by = 1),
-               col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
-          lines(density(projections[[scen]][,paste0("y",yy)]))
+          # Get x breaks and y scale
+          proj_breaks <- seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
+                              to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])),
+                              length = 50)
+          post_hist <- hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
+                             breaks = proj_breaks)
 
-          # Note: proj_nroy for final projections
+          # Full projections
+          hist(projections[[scen]][ , paste0("y",yy) ],
+               ylim = c(0,max(post_hist$density)),
+               main = paste( "Final projections: history matching", scen_name[[scen]] ),
+               freq = FALSE, xlim = sle_lim[[yy]],
+               breaks = proj_breaks,
+               col = cfb_pale, border = NA,
+               xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+          lines(density(projections[[scen]][,paste0("y",yy)]),
+                col = cfb_med, lwd = 1.2)
+
+          # NROY
           if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 0) {
+
             hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
-                 main = paste( "History matched final projections:", scen_name[[scen]] ),
-                 freq = FALSE, xlim = xlim_dist, # c(-30,80),
-                 seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
-                      to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])), by = 1),
-                 col = "cornflowerblue", xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+                 freq = FALSE, breaks = proj_breaks,
+                 col = cfb_med, border = NA, add = TRUE)
             if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 2) {
-              lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]))
+              lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]),
+                    col = "darkblue", lwd = 1.2)
             }
           }
-        } # posterior
+
+          # Get scale
+          post_hist <- hist(proj_post[[scen]][ , paste0("y",yy) ], plot = FALSE,
+                             breaks = proj_breaks)
+
+          # Full projections: uncalibrated
+          hist(projections[[scen]][ , paste0("y",yy) ],
+               ylim = c(0,max(post_hist$density)),
+               main = paste( "Final projections: Bayesian", scen_name[[scen]] ),
+               freq = FALSE, xlim = sle_lim[[yy]],
+               breaks = proj_breaks,
+               col = cfb_pale, border = NA,
+               xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+          lines(density(projections[[scen]][, paste0("y",yy)]),
+                col = cfb_med, lwd = 1.2)
+
+          # Full projections: Bayesian sample (final FACTS projections)
+          hist(proj_post[[scen]][ , paste0("y",yy) ],
+               freq = FALSE, breaks = proj_breaks,
+               col = cfb_med, border = NA, add = TRUE)
+          if (length(proj_post[[scen]][ , paste0("y",yy) ]) > 2) {
+            lines(density(proj_post[[scen]][ , paste0("y",yy)]),
+                  col = "darkblue", lwd = 1.2)
+          }
+
+        }
       } # end scenario loop
 
     } # years

@@ -39,37 +39,19 @@ plot_timeseries <- function(data_type, plot_level = 0) {
 
           if (data_type %in% c( "sims", "prior")) {
 
+            xstart <- first_year
+            xend <- ifelse(plot_scale == "zoom", 2050, final_year)
+
+            # Range for yaxis
+            ymin <- sle_lim[[ as.character(xend) ]][1]
+            ymax <- sle_lim[[ as.character(xend) ]][2]
+
+            # For legend lines
             if (plot_scale == "full") {
-
-              # xstart <- ifelse(dataset == "IPCC_AR6", 1990, 1950)
-              xstart <- 1950
-              xend <- 2300
-
-              # Use default ranges for 2300 full plot
-              ymin = ylim_max[1]
-              ymax = ylim_max[2]
-
-              # Or smaller ranges for shorter timescales
-              if ( final_year <= 2150) {
-                xend <- final_year
-                ymin <- ylim[1]
-                ymax <- ylim[2]
-              }
-
-              # For legend lines
               line_len <- 10
               leg_off <- 5
-
             }
-
-            # Zoom scales: hard-code these
             if (plot_scale == "zoom") {
-              xend <- 2030
-              ymin <- ylim_max[1] * 0.7
-              ymax <- ylim_max[2] * 0.8
-              if (i_s == "AIS") xstart <- 1950
-              if (i_s == "GIS") xstart <- 1995
-              if (i_s == "GLA") xstart <- 1980
               line_len <- 4
               leg_off <- 1
             }
@@ -186,7 +168,7 @@ plot_timeseries <- function(data_type, plot_level = 0) {
           plot(c(cal_start, years_em), c(0,myem[[scen]]$mean[1, ]), type = "l",
                col = AR6_rgb[[scen]],
                main = paste("Emulator uncertainty example:", scen_name[[scen]]),
-               ylim = ylim,
+               ylim = ylim[[as.character(final_year)]],
                xlab = "Year", ylab = "Sea level contribution (cm SLE)")
           polygon( c(cal_start, years_em, rev(years_em), cal_start),
                    c(0, myem[[scen]]$mean[1, ] + 2 * myem[[scen]]$sd[1, ],

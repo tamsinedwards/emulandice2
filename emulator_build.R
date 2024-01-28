@@ -158,23 +158,13 @@ if (do_loo_validation) {
 #if (dataset == "IPCC_AR6") years_sim <- 2015:2100 # no historical
 #if (dataset == "PROTECT") {
 
-# Year range of ensemble
-# Used to exclude e.g. runs that only go to 2100
-# xxx Not ideal: first date is first col in CSV and last date is one we *want*
-# xxx is that still true or do we detect first year now?
-if (i_s == "GIS") {
-  first_year <- 1960
-  #    if (ensemble_subset == "all") years_sim <- 1960:2100
-  #    if (ensemble_subset == "2300") years_sim <- 1960:2300
-}
-if (i_s == "AIS") first_year <- 1950 # 2300
-if (i_s == "GLA") { # xxx urgh
-  first_year <- 1980
-  #    if (ensemble_subset == "forcing") years_sim <- 1980:2100
-  #    if (ensemble_subset == "PPE") years_sim <- 1980:2300
-}
+# First year of simulations we want to use
+# checks later this is within CSV file header range
+if (i_s == "AIS") first_year <- 1950
+if (i_s == "GIS") first_year <- 1960
+if (i_s == "GLA") first_year <- 1980
+
 years_sim <- first_year:final_year
-#}
 
 # Timeslice frequency to predict (see below: first date is cal_start + nyr)
 nyrs = 5 # can be 2 when 2100
@@ -697,7 +687,7 @@ plot_level <- 2 # 0 for none, 1 for main, 2 for exhaustive
 q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
 
 # Sub-sample to plot; exclude any dates not predicted by emulator
-yy_plot <- c(cal_end,"2100", "2150", "2200", "2300")
+yy_plot <- c(as.character(cal_end),"2100", "2150", "2200", "2300")
 yy_plot <- yy_plot[ yy_plot %in% years_em ]
 
 # Same for LOO timeslices
@@ -711,39 +701,70 @@ for (scen in scenario_list) {
   scen_name[[scen]] <- paste( c(tmp[1:4], "-", tmp[5], ".", tmp[6]), collapse = "")
 }
 
+# Plot limits for each yy_plot timeslice
+sle_lim <- list()
+sle_inc <- list()
+
+if (i_s == "AIS") {
+  sle_lim[[as.character(cal_end)]] <- c(-4, 8); sle_inc[[as.character(cal_end)]] <- 0.5
+  sle_lim[["2050"]] <- c(-10, 90); sle_inc[["2050"]] <- 2
+  sle_lim[["2100"]] <- c(-50, 170); sle_inc[["2100"]] <- 5
+  sle_lim[["2150"]] <- c(-100, 300); sle_inc[["2150"]] <- 5
+  sle_lim[["2200"]] <- c(-200, 500); sle_inc[["2200"]] <- 10
+  sle_lim[["2300"]] <- c(-200, 1000); sle_inc[["2300"]] <- 20
+}
+
+if (i_s == "GIS") {  # %in% c("GrIS", "GIS")) {
+  sle_lim[[as.character(cal_end)]] <- c(-1, 2); sle_inc[[as.character(cal_end)]] <- 0.1
+  sle_lim[["2050"]] <- c(-1, 10); sle_inc[["2050"]] <- 0.5
+  sle_lim[["2100"]] <- c(-20, 40); sle_inc[["2100"]] <- 1
+  sle_lim[["2150"]] <- c(-50, 100); sle_inc[["2150"]] <- 2
+  sle_lim[["2200"]] <- c(-100, 220); sle_inc[["2200"]] <- 5
+  sle_lim[["2300"]] <- c(-200, 450); sle_inc[["2300"]] <- 10
+}
+
+
 if (i_s == "GLA") {
 
-  # 0.1 and 0.5 for others than 3?
-  ylim <- c(-2, 1.1*max_glaciers[[reg]])
-  ylim_max <- c(-8, 1.5*max_glaciers[[reg]])
+  # Large regions (>1cm)
+  # Checked with region 17; special limits for other large regions below
+  if (max_glaciers[[reg]] >= 1.0) {
+    sle_lim[[as.character(cal_end)]] <- c(-1, 2); sle_inc[[as.character(cal_end)]] <- 0.1
+    sle_lim[["2050"]] <- c(-1, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.1
+    sle_lim[["2100"]] <- c(-2, 1.5*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.1
+    sle_lim[["2150"]] <- c(-3, 1.5*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.1
+    sle_lim[["2200"]] <- c(-5, 1.5*max_glaciers[[reg]]); sle_inc[["2200"]] <- 0.1
+    sle_lim[["2300"]] <- c(-5, 1.8*max_glaciers[[reg]]); sle_inc[["2300"]] <- 0.1
+  }
 
-  # Adjust lower end for dinky glacier regions
+  # Adjust lower end for dinky glacier regions (< 1cm)
   if (max_glaciers[[reg]] < 1.0) {
-    ylim[1] <- -0.005
-    ylim_max[1] <- -0.01
+    sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
+    sle_lim[["2050"]] <- c(-0.005, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.1
+    sle_lim[["2100"]] <- c(-0.005, 1.1*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.1
+    sle_lim[["2150"]] <- c(-0.005, 1.3*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.1
+    sle_lim[["2200"]] <- c(-0.01, 1.4*max_glaciers[[reg]]); sle_inc[["2200"]] <- 0.1
+    sle_lim[["2300"]] <- c(-0.01, 1.5*max_glaciers[[reg]]); sle_inc[["2300"]] <- 0.1
   }
 
   # Specific region over-rides
-  if (reg == "RGI19") {
-    ylim <- c(-15,8)
-    ylim_max <- c(-50,12)
+  if (reg == "RGI01") {
+    sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
+    sle_lim[["2050"]] <- c(-5, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.5
+    sle_lim[["2100"]] <- c(-10, 1.1*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.5
+    sle_lim[["2150"]] <- c(-15, 1.3*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.5
+    sle_lim[["2200"]] <- c(-25, 1.4*max_glaciers[[reg]]); sle_inc[["2200"]] <- 1
+    sle_lim[["2300"]] <- c(-70, 1.5*max_glaciers[[reg]]); sle_inc[["2300"]] <- 1
   }
-  #  if (reg %in% c("RGI03")) ylim <- c(-2,7)  # max or 2100?
-  #  if (reg %in% c("RGI12", "RGI18")) ylim <- c(-0.005,0.03) # max or 2100?
+  if (reg == "RGI19") {
+    sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
+    sle_lim[["2050"]] <- c(-10, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.5
+    sle_lim[["2100"]] <- c(-20, 1.1*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.5
+    sle_lim[["2150"]] <- c(-25, 1.3*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.5
+    sle_lim[["2200"]] <- c(-35, 1.4*max_glaciers[[reg]]); sle_inc[["2200"]] <- 1
+    sle_lim[["2300"]] <- c(-50, 1.5*max_glaciers[[reg]]); sle_inc[["2300"]] <- 1
+  }
 }
-if (i_s == "AIS") {
-  # xxx do list by timeslice?
-  ylim <- c(-50,200)  # 2200
-  ylim_max <- c(-400, 1200) # 2300
-}
-if (i_s == "GIS") {  # %in% c("GrIS", "GIS")) {
-  # xxx do list by timeslice?
-  ylim <- c(-10,40)  # 2100
-  ylim_max <- c(-200, 500) # 2300
-}
-
-# But put max limit down if doing short timescale tests
-if (max(years_sim) <= 2150) ylim_max <- ylim
 
 # IPCC AR6 colours
 AR6_rgb <- list()
@@ -785,7 +806,7 @@ if (i_s == "AIS") ylim_obs <- c(-10,10)
 # Hugonnet for glaciers, not IMBIE!
 # and do list or similar for regions
 if (i_s == "GLA") {
-  ylim_obs <- c(-0.5,2) # 1 for RGI05 LOO?
+  ylim_obs <- c(-1,2) # 1 for RGI05 LOO?
   if (reg %in% c("RGI12", "RGI18")) ylim_obs <- c(-0.01,0.03)
 }
 #}

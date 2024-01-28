@@ -86,10 +86,9 @@ cat(sprintf("Scenario: %s\n", facts_ssp))
 
 cat(sprintf("Outputs will be placed in directory: %s\n", outdir_facts))
 
-# Write mean emulator projections as well as full projections with noise
-# (used as arg for write_outputs(), and in plot_bayesian.R for some reason)
-write_mean <- FALSE
-cat(sprintf("Write mean projections CSV: %s\n", write_mean))
+# Write projection CSV files
+write_csv <- TRUE
+cat(sprintf("Write projections CSV files: %s\n", write_csv))
 
 # Netcdf filename
 # Old name: _emulandice.",facts_ssp,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
@@ -131,7 +130,7 @@ scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper
 set.seed(seed)
 
 # Plots: 0 = none, 1 = main, 2 = all
-plot_level <- 0
+plot_level <- 2
 
 # Number of 2LM projections of GSAT expected per SSP
 # (and therefore total number of samples for book-keeping by GSAT value)
@@ -178,6 +177,10 @@ N_temp <- length( design_pred[[1]][ , 1] )
 
 cat("\nPredict:\n", file = logfile_results, append = TRUE)
 
+# Reinitialise to delete the previous uniform and main effects projections
+# from emulator_build.R (reusing scenario-based plotting code)
+myem <- list()
+
 for (scen in scenario_list) {
 
   cat(paste("Scenario:",scen,"\n"), file = logfile_results, append = TRUE)
@@ -187,9 +190,11 @@ for (scen in scenario_list) {
                                    scale = inputs_scale )
   design_pred_scaled <- as.data.frame( design_pred[[scen]]  )
   design_pred_scaled[ , input_cont_list] <- design_pred_scaled_cont
+
   myem[[scen]] <- emulator_predict( design_pred_scaled )
 
 }
+
 
 #' ## Cap glacier mean projections
 # GLACIER CAP: MEAN PROJECTIONS
@@ -253,45 +258,69 @@ for (scen in scenario_list) {
 
 #' ## Output results
 
+yy_table <- c(2100, 2150, 2200, 2300)
+yy_table <- yy_table[ yy_table %in% years_em ]
+
+
 # PRINT SUMMARY
+cat("\n\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n", file = logfile_results, append = TRUE)
+cat("RESULTS: 50 [17, 83]% percentiles (cm SLE)\n", file = logfile_results, append = TRUE)
+cat("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n", file = logfile_results, append = TRUE)
+
 cat("\n_________________________________________\n", file = logfile_results, append = TRUE)
 cat("PROJECTIONS: uncalibrated\n\n", file = logfile_results, append = TRUE)
 
-for (yy in c(2100, 2300)) {
+# Quantile range to report
+qr <- c(0.17,0.83)
+stopifnot(qr %in% q_list)
 
-  if (yy %in% years_em) {
-
-    cat(paste0("\n",yy,"\n"), file = logfile_results, append = TRUE)
-
-    for (scen in scenario_list) {
-
-      # Mean
-      cat ("Mean:\n",  file = logfile_results, append = TRUE)
-      cat(sprintf("%s: %.1f [%.1f,%.1f] cm SLE\n",
-                  scen,
-                  quantile(myem[[scen]]$mean[ , paste0("y", yy) ], probs = 0.5),
-                  quantile(myem[[scen]]$mean[ , paste0("y", yy) ], probs = 0.05),
-                  quantile(myem[[scen]]$mean[ , paste0("y", yy) ], probs = 0.95)),
-          file = logfile_results, append = TRUE)
-
-      # Final
-      cat ("Final:\n",  file = logfile_results, append = TRUE)
-
-      cat(sprintf("%s: %.1f [%.1f,%.1f] cm SLE\n",
-                  scen,
-                  projections_quant[[scen]][ q_list == 0.5, paste0("y", yy) ],
-                  projections_quant[[scen]][ q_list == 0.05, paste0("y", yy) ],
-                  projections_quant[[scen]][ q_list == 0.95, paste0("y", yy) ]),
-          file = logfile_results, append = TRUE)
-    }
+# Write mean table
+cat(paste("\t", paste(yy_table,collapse = "\t"),"\n"), file = logfile_results, append = TRUE)
+cat(paste("Mean\n"), file = logfile_results, append = TRUE)
+for (scen in scenario_list) {
+  for (yy in yy_table) {
+    if (yy == yy_table[1]) first_el <- scen
+    else first_el <- table_row
+    table_row <- sprintf("%s\t%.1f [%.1f, %.1f]", first_el,
+                           quantile(myem[[scen]]$mean[ , paste0("y", yy) ], probs = 0.5),
+                           quantile(myem[[scen]]$mean[ , paste0("y", yy) ], probs = qr[1]),
+                           quantile(myem[[scen]]$mean[ , paste0("y", yy) ], probs = qr[2]))
   }
+
+  table_row <- paste(table_row, "\n")
+  cat(table_row, file = logfile_results, append = TRUE)
+
 }
 
-# PRINT UNCALIBRATED PROJECTIONS TO CSV AND NETCDF FILES
-write_outputs(write_mean)
+# Write final table
+cat(paste("Final\n"), file = logfile_results, append = TRUE)
+
+for (scen in scenario_list) {
+  for (yy in yy_table) {
+    if (yy == yy_table[1]) {
+      table_row <- sprintf("%s: %.1f [%.1f, %.1f]",scen,
+                           projections_quant[[scen]][ q_list == 0.5, paste0("y", yy) ],
+                           projections_quant[[scen]][ q_list == qr[1], paste0("y", yy) ],
+                           projections_quant[[scen]][ q_list == qr[2], paste0("y", yy) ])
+    } else {
+      table_row <- sprintf("%s\t%.1f [%.1f, %.1f]\t", table_row,
+                           projections_quant[[scen]][ q_list == 0.5, paste0("y", yy) ],
+                           projections_quant[[scen]][ q_list == qr[1], paste0("y", yy) ],
+                           projections_quant[[scen]][ q_list == qr[2], paste0("y", yy) ])
+    }
+  }
+
+  table_row <- paste(table_row, "\n")
+  cat(table_row, file = logfile_results, append = TRUE)
+
+}
+
 
 #' # Calibration
 # Calibrate --------------------------------------------------------------------
+
+cat("_________________________\n", file = logfile_results, append = TRUE)
+cat("CALIBRATION\n", file = logfile_results, append = TRUE)
 
 #' ## Calculate model-obs differences
 
@@ -299,16 +328,13 @@ write_outputs(write_mean)
 obs_change <- obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"]
 obs_change_err <- total_err[obs_data$Year == cal_end]
 
-cat(paste0("\nObserved change (", cal_start,"-", cal_end, "): "), file = logfile_results, append = TRUE)
-cat(sprintf("%.3f +/- %.3f cm SLE (1 sigma obs error)\n\n", obs_change, obs_data[obs_data$Year == cal_end,"SLE_sd"]), file = logfile_results, append = TRUE)
-cat(sprintf("     +/- %.3f cm SLE (3 sigma total error)\n\n", 3*obs_change_err), file = logfile_results, append = TRUE)
+cat(paste0("\nObserved change (", cal_start,"-", cal_end, "):\n"), file = logfile_results, append = TRUE)
+cat(sprintf("%.3f +/- %.3f cm SLE (3 sigma total error)\n\n", obs_change, 3*obs_change_err), file = logfile_results, append = TRUE)
 
 # Calculate difference between each ensemble member (mean and final) and observations
 dist_mean <- list()
 dist_proj <- list()
 
-cat("_________________________\n", file = logfile_results, append = TRUE)
-cat("CALIBRATION\n", file = logfile_results, append = TRUE)
 
 # xxx Note by not subtracting cal_start we are assuming already baselined to this year!
 cat("\nCalculating difference between ensemble members and observations\n",
@@ -328,10 +354,9 @@ myem_nroy <- list()
 proj_nroy <- list()
 
 for (scen in scenario_list) {
-  cat(paste0("\n", scen,"\n"), file = logfile_results, append = TRUE)
-  cat("Calibrating mean projections:\n", file = logfile_results, append = TRUE)
+  cat("Calibrating mean projections\n", file = logfile_results, append = TRUE)
   myem_nroy[[scen]] <- do_calibration(dist_mean[[scen]], "history_matching")
-  cat("Calibrating full projections:\n", file = logfile_results, append = TRUE)
+  cat("\nCalibrating full projections\n", file = logfile_results, append = TRUE)
   proj_nroy[[scen]] <- do_calibration(dist_proj[[scen]], "history_matching")
 }
 
@@ -354,40 +379,37 @@ for (scen in scenario_list) {
 
 #' ### Output results
 
-cat("_______________________________________\n", file = logfile_results, append = TRUE)
-cat("PROJECTIONS: calibrated (history matching)\n", file = logfile_results, append = TRUE)
+cat("\n_______________________________________\n", file = logfile_results, append = TRUE)
+cat("PROJECTIONS: calibrated\n\n", file = logfile_results, append = TRUE)
 
-for (yy in c(2100, 2300)) {
+# Mean NROY if I want to write it
+# quantile(myem[[scen]]$mean[ myem_nroy[[scen]] , "y2100"], probs = 0.5)
 
-  if (yy %in% years_em) {
+# Write NROY table
+cat(paste("\t", paste(yy_table,collapse = "\t"),"\n"), file = logfile_results, append = TRUE)
+cat(paste("NROY\n"), file = logfile_results, append = TRUE)
 
-    cat(paste0("\n", yy,"\n"), file = logfile_results, append = TRUE)
-
-    for (scen in scenario_list) {
-
-      # Mean
-      # cat(sprintf("NROY: %.1f [%.1f,%.1f] cm SLE",
-      #                quantile(myem[[scen]]$mean[ myem_nroy[[scen]] , "y2100"], probs = 0.5),
-      #                quantile(myem[[scen]]$mean[ myem_nroy[[scen]] , "y2100"], probs = 0.05),
-      #                quantile(myem[[scen]]$mean[ myem_nroy[[scen]] , "y2100"], probs = 0.95)))
-
-      # Final
-      cat(sprintf("%s: %.1f [%.1f,%.1f] cm SLE\n",
-                  scen,
-                  projections_nroy_quant[[scen]][ q_list == 0.5, paste0("y",yy) ],
-                  projections_nroy_quant[[scen]][ q_list == 0.05, paste0("y",yy) ],
-                  projections_nroy_quant[[scen]][ q_list == 0.95, paste0("y",yy) ]),
-          file = logfile_results, append = TRUE)
+for (scen in scenario_list) {
+  for (yy in yy_table) {
+    if (yy == yy_table[1]) {
+      table_row <- sprintf("%s: %.1f [%.1f, %.1f]",scen,
+                           projections_nroy_quant[[scen]][ q_list == 0.5, paste0("y", yy) ],
+                           projections_nroy_quant[[scen]][ q_list == qr[1], paste0("y", yy) ],
+                           projections_nroy_quant[[scen]][ q_list == qr[2], paste0("y", yy) ])
+    } else {
+      table_row <- sprintf("%s\t%.1f [%.1f, %.1f]\t", table_row,
+                           projections_nroy_quant[[scen]][ q_list == 0.5, paste0("y", yy) ],
+                           projections_nroy_quant[[scen]][ q_list == qr[1], paste0("y", yy) ],
+                           projections_nroy_quant[[scen]][ q_list == qr[2], paste0("y", yy) ])
     }
   }
+
+  table_row <- paste(table_row, "\n")
+  cat(table_row, file = logfile_results, append = TRUE)
+
 }
 
 #' ## Bayesian calibration
-
-cat("_______________________________________\n", file = logfile_results, append = TRUE)
-cat("PROJECTIONS: calibrated (Bayesian)\n", file = logfile_results, append = TRUE)
-
-cat("\nBayesian calibration\n", file = logfile_results, append = TRUE)
 
 # Save normalised weights
 myem_weights <- list()
@@ -397,9 +419,70 @@ for (scen in scenario_list) {
   proj_weights[[scen]] <- do_calibration(dist_proj[[scen]], "Bayesian")
 }
 
-# PRINT CALIBRATED PROJECTIONS TO CSV FILES
-# xxx add calibrated option to this function!
-# write_outputs(write_mean)
+# Generate posterior sample as main projections
+proj_post <- list()
+
+for (scen in scenario_list) {
+
+  # Directly sample from 1:N_temp projections using the weights
+  post_index <- sample(N_temp, N_temp, replace = TRUE,
+                       prob = proj_weights[[scen]])
+
+  # Put the sample into the list
+  proj_post[[scen]] <- matrix(NA, nrow = N_temp, ncol = length(years_em))
+  colnames(proj_post[[scen]]) <- paste0("y", years_em)
+  for ( tt in 1:N_temp) {
+    proj_post[[scen]][tt, ] <- projections[[scen]][ post_index[tt], ]
+  }
+
+}
+
+#' ## Calculate posterior (calibrated) quantiles
+
+proj_post_quant <- list()
+
+for (scen in scenario_list) {
+
+  # Projections
+  proj_post_quant[[scen]] <- matrix( nrow = length(q_list), ncol = N_ts)
+  colnames(proj_post_quant[[scen]]) <- paste0("y", years_em)
+  rownames(proj_post_quant[[scen]]) <- paste0("q", q_list)
+  for (yy in years_em) {
+    proj_post_quant[[scen]][ , paste0("y", yy) ] <- quantile(proj_post[[scen]][, paste0("y", yy)], q_list)
+  }
+
+}
+
+# Write posterior table xxx currently original
+cat(paste("\t", paste(yy_table,collapse = "\t"),"\n"), file = logfile_results, append = TRUE)
+cat(paste("Posterior\n"), file = logfile_results, append = TRUE)
+
+for (scen in scenario_list) {
+  for (yy in yy_table) {
+    if (yy == yy_table[1]) {
+      table_row <- sprintf("%s: %.1f [%.1f, %.1f]",scen,
+                           proj_post_quant[[scen]][ q_list == 0.5, paste0("y", yy) ],
+                           proj_post_quant[[scen]][ q_list == qr[1], paste0("y", yy) ],
+                           proj_post_quant[[scen]][ q_list == qr[2], paste0("y", yy) ])
+    } else {
+      table_row <- sprintf("%s\t%.1f [%.1f, %.1f]\t", table_row,
+                           proj_post_quant[[scen]][ q_list == 0.5, paste0("y", yy) ],
+                           proj_post_quant[[scen]][ q_list == qr[1], paste0("y", yy) ],
+                           proj_post_quant[[scen]][ q_list == qr[2], paste0("y", yy) ])
+    }
+  }
+
+  table_row <- paste(table_row, "\n")
+  cat(table_row, file = logfile_results, append = TRUE)
+
+}
+
+cat("\n\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n", file = logfile_results, append = TRUE)
+cat("END OF RESULTS\n", file = logfile_results, append = TRUE)
+cat("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n", file = logfile_results, append = TRUE)
+
+# PRINT PROJECTIONS TO CSV AND NETCDF FILES
+write_outputs(write_csv)
 
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -411,7 +494,7 @@ if (plot_level > 0) {
 
   #' ### Plot results if requested
 
-  cat("\nPlot uncalibrated projections:\n",file = logfile_results, append = TRUE)
+  cat("\nPlot uncalibrated projections\n",file = logfile_results, append = TRUE)
 
   pdf( file = paste0( outdir_facts, out_name, "_UNCALIBRATED.pdf"),
        width = 9, height = 5)
@@ -421,7 +504,7 @@ if (plot_level > 0) {
   plot_distributions("prior", plot_level)
   dev.off()
 
-  cat("\nPlot calibrated projections:\n", file = logfile_results, append = TRUE)
+  cat("Plot calibrated projections\n", file = logfile_results, append = TRUE)
   pdf( file = paste0( outdir_facts, out_name, "_CALIBRATED.pdf"),
        width = 9, height = 5)
   plot_designs("posterior", plot_level)

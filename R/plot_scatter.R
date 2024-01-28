@@ -24,10 +24,8 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
 
     for (yy in yy_plot ) {
 
-      # xxx This will break for other yy_plot values
       if (yy == cal_end) next # because plotting vs cal_end
-      if (yy == 2100) ylim_scat = ylim
-      if (yy == 2300) ylim_scat <- ylim_max
+
 
       # * Future vs past: mean ------------------------------------------------------------
 
@@ -37,7 +35,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         plot(1:3, 1:3, type = "n",
              main = paste0( ice_name, " ", yy, " vs ", cal_end,": ", scen_name[[scen]],
                             " mean"), # xxx fix name when sims only; ditch 5-95% intervals
-             xlim = ylim_obs, ylim = ylim_scat, xaxs = "i", yaxs = "i",
+             xlim = ylim_obs, ylim = sle_lim[[yy]], xaxs = "i", yaxs = "i",
              cex.main = 0.7,
              xlab = paste("Sea level contribution from",cal_start,"-",cal_end,"(cm)"),
              ylab = paste("Sea level contribution from",cal_start,"-",yy,"(cm)"))
@@ -50,14 +48,14 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         abline( v = obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"],
                 col = grey(0.2, 0.4), lwd = 1.6)
         rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
-              ylim_scat[1],
+              sle_lim[[yy]][1],
               obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
-              ylim_scat[2],
+              sle_lim[[yy]][2],
               col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
         rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
-              ylim_scat[1],
+              sle_lim[[yy]][1],
               obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
-              ylim_scat[2],
+              sle_lim[[yy]][2],
               col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
 
         if (data_type == "prior") {
@@ -85,14 +83,14 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                   code = 3, length = 0.08, angle = 90, lwd = 0.1,
                   col = AR6_rgb_light[[scen]])
 
-          yleg <- 0.90*ylim_scat[2]
+          yleg <- 0.90*sle_lim[[yy]][2]
           points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, col = AR6_rgb_light[[scen]], cex = 0.7)
           text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated mean +/- 2 s.d.", cex = 0.7)
 
         } # prior only
 
         # ADD SIMULATED
-        yleg <- 0.82*ylim_scat[2]
+        yleg <- 0.82*sle_lim[[yy]][2]
 
         # Note AR6_2LM should not necessarily overlap simulations due to sampling of GSAT
         if (design_name %in% c("AR6_2LM","unif_temps")) {
@@ -151,7 +149,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
 
         plot(1:3, 1:3, type = "n",
              main = paste0( ice_name, " ", yy, " vs ", cal_end,": ", scen_name[[scen]], " final"),
-             xlim = ylim_obs, ylim = ylim_scat, xaxs = "i", yaxs = "i",
+             xlim = ylim_obs, ylim = sle_lim[[yy]], xaxs = "i", yaxs = "i",
              xlab = paste("Sea level contribution from",cal_start,"-",cal_end,"(cm)"),
              ylab = paste("Sea level contribution from",cal_start,"-",yy,"(cm)"))
         abline( h = 0, lwd = 0.2, col = "darkgrey" )
@@ -163,14 +161,14 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         abline( v = obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"],
                 col = grey(0.2, 0.4), lwd = 1.6)
         rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
-              ylim_scat[1],
+              sle_lim[[yy]][1],
               obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
-              ylim_scat[2],
+              sle_lim[[yy]][2],
               col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
         rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
-              ylim_scat[1],
+              sle_lim[[yy]][1],
               obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
-              ylim_scat[2],
+              sle_lim[[yy]][2],
               col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
 
         # EMULATED
@@ -178,7 +176,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                projections[[scen]][ , paste0("y",yy) ], pch = 16, cex = 0.5,
                col = AR6_rgb_light[[scen]], bg = AR6_rgb_light[[scen]])
 
-        yleg <- ylim_scat[1] + 0.87*(ylim_scat[2] - ylim_scat[1])
+        yleg <- sle_lim[[yy]][1] + 0.87*(sle_lim[[yy]][2] - sle_lim[[yy]][1])
         points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, cex = 0.7,
                 col = AR6_rgb_light[[scen]], bg = AR6_rgb_light[[scen]] )
         text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated", cex = 0.7)
@@ -190,14 +188,14 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                  projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
                  pch = 16, cex = 0.5, bg = AR6_rgb_light[[scen]],
                  col = AR6_rgb_med[[scen]])
-          yleg <- ylim_scat[1] + 0.82*(ylim_scat[2] - ylim_scat[1])
+          yleg <- sle_lim[[yy]][1] + 0.82*(sle_lim[[yy]][2] - sle_lim[[yy]][1])
           points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, cex = 0.7,
                   col = AR6_rgb_med[[scen]], bg = AR6_rgb_med[[scen]] )
           text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated: NROY", cex = 0.7)
         }
 
         # SIMULATIONS
-        yleg <- ylim_scat[1] + 0.92*(ylim_scat[2] - ylim_scat[1])
+        yleg <- sle_lim[[yy]][1] + 0.92*(sle_lim[[yy]][2] - sle_lim[[yy]][1])
 
         # Note AR6_2LM should not necessarily overlap simulations due to sampling of GSAT
         if (design_name %in% c("AR6_2LM","unif_temps")) {
@@ -234,11 +232,6 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
       # [does this refer to yy or plot?]
       for (yy in yy_plot) {
 
-        # xxx This will break for other yy_plot values
-        if (yy == cal_end) ylim_scat = ylim_obs
-        if (yy == 2100) ylim_scat = ylim
-        if (yy == 2300) ylim_scat = ylim_max
-
         for (scen in scenario_list) {
 
           # SEA LEVEL VS TEMP TIMESLICES
@@ -252,7 +245,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                   main = paste( "Mean projections at",yy,"for", scen_name[[scen]] ),
                   xlab = GSAT_lab[[gg]],
                   ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-                  ylim = ylim_scat)
+                  ylim = sle_lim[[yy]])
             abline( h = 0 )
 
             if (yy == cal_end) {
@@ -293,7 +286,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                   main = paste( "Final projections at",yy,"for", scen_name[[scen]] ),
                   xlab = GSAT_lab[[gg]],
                   ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-                  ylim = ylim_scat)
+                  ylim = sle_lim[[yy]])
             abline( h = 0 )
 
             if (yy == cal_end) {
@@ -330,7 +323,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                   pch = 16, col = AR6_rgb_light[[scen]],
                   main = paste("Mean projections at",yy,"for", scen_name[[scen]]),
                   ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-                  xlab = pp, ylim = ylim_scat)
+                  xlab = pp, ylim = sle_lim[[yy]])
             abline( h = 0 )
 
             if (yy == cal_end) {
@@ -372,7 +365,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                   pch = 16, cex = 0.8, col = AR6_rgb_light[[scen]], # grey(0.8, alpha = 0.4),
                   main = paste("Final projections at",yy,"for", scen_name[[scen]]),
                   ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-                  xlab = pp, ylim = ylim_scat )
+                  xlab = pp, ylim = sle_lim[[yy]] )
             abline( h = 0 )
 
             # xxx Note this excludes any RCPs!!
@@ -412,10 +405,6 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
 
     for (yy in yy_plot) {
 
-      if (yy == cal_end) ylim_scat = ylim_obs
-      if (yy == 2100) ylim_scat = ylim
-      if (yy == 2300) ylim_scat = ylim_max # AIS
-
       # SEA LEVEL VS TEMP
       # Mean projections
 
@@ -432,7 +421,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
               main = paste( "Main effect: sea level at",yy,"vs", gg ),
               xlab = GSAT_lab[[gg]],
               ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-              ylim = ylim_scat )
+              ylim = sle_lim[[yy]] )
         abline( h = 0 )
         if (i_s == "GLA") {
           abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
@@ -451,10 +440,10 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
 
         leg_x1 <- min(design_sa[[gg]][,gg])
         leg_x2 <- max(design_sa[[gg]][,gg])
-        rect( leg_x1, 0.94*ylim_scat[2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.9*ylim_scat[2], col = col_darker, border = NA)
-        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.92*ylim_scat[2], pos = 4, "Mean +/- 1 s.d.")
-        rect( leg_x1, 0.8*ylim_scat[2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.75*ylim_scat[2], col = col_paler, border = NA)
-        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.78*ylim_scat[2], pos = 4, "Mean +/- 2 s.d.")
+        rect( leg_x1, 0.94*sle_lim[[yy]][2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.9*sle_lim[[yy]][2], col = col_darker, border = NA)
+        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.92*sle_lim[[yy]][2], pos = 4, "Mean +/- 1 s.d.")
+        rect( leg_x1, 0.8*sle_lim[[yy]][2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.75*sle_lim[[yy]][2], col = col_paler, border = NA)
+        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.78*sle_lim[[yy]][2], pos = 4, "Mean +/- 2 s.d.")
 
       } # GSAT loop
 
@@ -475,7 +464,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
               type = "l", lwd = 1.2,
               main = paste("Main effect: sea level at",yy,"vs", pp),
               ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-              xlab = pp, ylim = ylim_scat)
+              xlab = pp, ylim = sle_lim[[yy]])
         abline( h = 0 )
         if (i_s == "GLA") {
           abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
@@ -496,10 +485,10 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
 
         leg_x1 <- min(design_sa[[pp]][,pp])
         leg_x2 <- max(design_sa[[pp]][,pp])
-        rect( leg_x1, 0.94*ylim_scat[2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.9*ylim_scat[2], col = col_darker, border = NA)
-        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.92*ylim_scat[2], pos = 4, "Mean +/- 1 s.d.")
-        rect( leg_x1, 0.8*ylim_scat[2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.75*ylim_scat[2], col = col_paler, border = NA)
-        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.78*ylim_scat[2], pos = 4, "Mean +/- 2 s.d.")
+        rect( leg_x1, 0.94*sle_lim[[yy]][2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.9*sle_lim[[yy]][2], col = col_darker, border = NA)
+        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.92*sle_lim[[yy]][2], pos = 4, "Mean +/- 1 s.d.")
+        rect( leg_x1, 0.8*sle_lim[[yy]][2], leg_x1 + 0.1*(leg_x2 - leg_x1), 0.75*sle_lim[[yy]][2], col = col_paler, border = NA)
+        text( leg_x1 + 0.1*(leg_x2 - leg_x1), 0.78*sle_lim[[yy]][2], pos = 4, "Mean +/- 2 s.d.")
 
       } # param list
 
@@ -515,7 +504,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         plot( 1:3, 1:3, type = "n", xaxt = "n",
               main = paste("Main effect: sea level at",yy,"vs", pp),
               ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-              xlab = pp, xlim = c(0,length(ice_factor_values[[pp]])+1), ylim = ylim_scat, xaxs = "i")
+              xlab = pp, xlim = c(0,length(ice_factor_values[[pp]])+1), ylim = sle_lim[[yy]], xaxs = "i")
         axis(side = 1, at = 1:length(ice_factor_values[[pp]]), labels = ice_factor_values[[pp]],
              cex.axis = 0.6, las = 3)
         abline( h = 0 )
