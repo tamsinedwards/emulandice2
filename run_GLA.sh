@@ -1,10 +1,18 @@
 #!/bin/bash
+#
 # Run GLA analysis
 # ./run_GLA.sh final_year
 # where final_year is 2100 or 2300
+#
+#______________________________________________________
 
-# Check plot_level = 1 in main.R
+# Specify emulandice2 and results directories
+emulandice_dir=/Users/tamsinedwards/PROTECT/emulandice2
+results_dir=/Users/tamsinedwards/PROTECT/RESULTS
 
+#______________________________________________________
+
+# Final year is command line argument
 final_year=$1
 
 if [ "$final_year" != 2100 -a "$final_year" != 2300 ]
@@ -15,7 +23,7 @@ fi
 
 
 now=$(date +'%y%m%d')
-outdir=/Users/tamsinedwards/PROTECT/RESULTS/"$now"_GLA_ALL_"$final_year"
+outdir="$results_dir"/"$now"_GLA_ALL_"$final_year"
 
 for region in $(seq -f "%02g" 1 19)
 do
@@ -43,4 +51,4 @@ done
 
 # Won't copy if predictions exist
 mkdir $outdir
-mv /Users/tamsinedwards/PROTECT/emulandice2/out/GLA* ~/PROTECT/emulandice2/data-raw/GLA* $outdir
+mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA* $outdir

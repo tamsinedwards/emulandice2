@@ -1,9 +1,18 @@
 #!/bin/bash
+#
 # Run GIS analysis
+# ./run_GIS.sh final_year
+# where final_year argument can be 2100 or 2300
+#
+#______________________________________________________
 
-# Check plot_level = 1 in main.R
+# Specify emulandice2 and results directories
+emulandice_dir=/Users/tamsinedwards/PROTECT/emulandice2
+results_dir=/Users/tamsinedwards/PROTECT/RESULTS
 
-# 2300 or 2100
+#______________________________________________________
+
+# Final year is command line argument
 final_year=$1
 
 if [ "$final_year" != 2100 -a "$final_year" != 2300 ]
@@ -14,7 +23,7 @@ fi
 
 # Moved to today's directory
 now=$(date +'%y%m%d')
-outdir=/Users/tamsinedwards/PROTECT/RESULTS/"$now"_GIS_ALL_"$final_year"
+outdir="$results_dir"/"$now"_GIS_ALL_"$final_year"
 
 echo run_GIS: build
 Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GIS 0 $final_year
@@ -39,4 +48,5 @@ for ssp in "ssp126" "ssp245" "ssp585"
 
 # Won't copy if predictions exist
 mkdir $outdir
-mv /Users/tamsinedwards/PROTECT/emulandice2/out/GIS* ~/PROTECT/emulandice2/data-raw/GIS* $outdir
+mv "$emulandice_dir"/out/GIS* "$emulandice_dir"/data-raw/GIS* $outdir
+
