@@ -86,39 +86,33 @@ which must match those in the filename of the third (emu_file). The rest give th
 
 The steering bash script and module will do some basic checks on these arguments, and attempt to write the output directory if it does not exist.
 
-The current builds (from some basic optimisation checks using preliminary data in autumn 2023) are:
+The current builds are dated 28th-29th January 2024. [need to find a place to put these]
 
-```
-./emulandice_steer.sh GLA RGI03 GloGEM_OGGM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
-./emulandice_steer.sh AIS ALL Kori_PISM_pow_exp_10 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
-./emulandice_steer.sh GIS ALL CISM_IMAUICE_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
-./emulandice_steer.sh GIS ALL CISM_pow_exp_20 path_to_emu_file path_to_climate_file ssp_name seed pipeline_id
-```
-
-If no arguments are used, the code should default to running something quick for testing (currently: glaciers, region 3).
+If no arguments are used, the code should default to running something quick for testing.
 
 **Primary output file:**
 
-The projections are written in FACTS format, e.g. for SSP5-8.5:
-
-emulandice.ssp585.emuGLA.emulandice.GLA_RGI03_globalsl.nc.
+The projections are written in FACTS netcdf format.
 
 **Other output files:**
 
+Output files are written to $outdir specified on the command line (see above).
+
 * [filename]_results.txt - main log file 
 * [filename]_RESULTS.Rdata - workspace file
-* [filename]_projections_FULL_SSPXXX.csv - CSV of uncalibrated final projections
-
-Output files are written to outdir, which is currently taken from the emulator build 
-file ("~/PROTECT/RESULTS/tmp"). 
 
 Plotting is turned OFF by default. Changing plot_level from 0 to 1 or 2 will output:
 
 * [filename]_UNCALIBRATED.pdf - plots of uncalibrated (prior) projections
 * [filename]_CALIBRATED.pdf - plots of calibrated (posterior) projections
 
-Outputting mean projections (without emulator uncertainty) is switched OFF by default. 
-To turn it on, set write_mean = TRUE.
+Outputting CSV files is switched OFF by default. To turn it on, set write_csv = TRUE.
 
-* [filename]_projections_MEAN_SSPXXX.csv - CSV of uncalibrated mean projections.
+* [filename]_projections_MEAN_SSPXXX.csv - uncalibrated mean projections (i.e. no emulator uncertainty - just for information).
+* [filename]_projections_FULL_SSPXXX.csv - uncalibrated full projections (i.e. with emulator uncertainties)
+* [filename]_projections_POSTERIOR_SSPXXX.csv - Bayesian calibrated projections 
+* [filename]_projections_NROY_SSPXXX.csv - history matching calibrated projections (NROY = not ruled out yet). 
+
+All have one row per GSAT projection, except NROY where some are usually ruled out.
+
 
