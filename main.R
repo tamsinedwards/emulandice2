@@ -170,8 +170,6 @@ N_temp <- length( design_pred[[1]][ , 1] )
 # emulator_predict() calls emu_mv with type = "var"
 # FACTS: uses emulator object saved to RData workspace file
 
-# myem <- list() # This is initalised in RData file with ME and uniform projections
-
 # Rescale priors using same scaling factors as for simulator inputs
 # Not the most elegant
 

@@ -34,16 +34,16 @@ plot_distributions <- function(data_type, plot_level = 0) {
                               to = ceiling(max(myem[[scen]]$mean[ , paste0("y",yy) ])),
                               length = 50)
           post_hist <- hist( myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
-                            breaks = proj_breaks )
+                             breaks = proj_breaks )
 
           # Mean projections
           hist( myem[[scen]]$mean[ , paste0("y",yy) ],
-               ylim = c(0,max(post_hist$density)),
-               main = paste("Mean projections: history matching:", scen_name[[scen]]),
-               freq = FALSE, xlim = sle_lim[[yy]],
-               breaks = proj_breaks,
-               col = cfb_pale, border = NA,
-               xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+                ylim = c(0,max(post_hist$density)),
+                main = paste("Mean projections: history matching:", scen_name[[scen]]),
+                freq = FALSE, xlim = sle_lim[[yy]],
+                breaks = proj_breaks,
+                col = cfb_pale, border = NA,
+                xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
           lines( density(myem[[scen]]$mean[,paste0("y",yy)]),
                  col = cfb_med, lwd = 1.2)
 
@@ -63,7 +63,7 @@ plot_distributions <- function(data_type, plot_level = 0) {
     } #years
   } # all plots
 
-  if (plot_level >= 2) {
+  if (plot_level >= 1) {
 
     for (yy in yy_plot ) {
 
@@ -75,35 +75,41 @@ plot_distributions <- function(data_type, plot_level = 0) {
           proj_breaks <- seq( from = floor(min(projections[[scen]][ , paste0("y",yy) ])),
                               to = ceiling(max(projections[[scen]][ , paste0("y",yy) ])),
                               length = 50)
-          post_hist <- hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
-                             breaks = proj_breaks)
-
-          # Full projections
-          hist(projections[[scen]][ , paste0("y",yy) ],
-               ylim = c(0,max(post_hist$density)),
-               main = paste( "Final projections: history matching", scen_name[[scen]] ),
-               freq = FALSE, xlim = sle_lim[[yy]],
-               breaks = proj_breaks,
-               col = cfb_pale, border = NA,
-               xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
-          lines(density(projections[[scen]][,paste0("y",yy)]),
-                col = cfb_med, lwd = 1.2)
 
           # NROY
-          if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 0) {
+          if (plot_level >= 2) {
 
-            hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
-                 freq = FALSE, breaks = proj_breaks,
-                 col = cfb_med, border = NA, add = TRUE)
-            if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 2) {
-              lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]),
-                    col = "darkblue", lwd = 1.2)
+            post_hist <- hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
+                              breaks = proj_breaks)
+
+            # Full projections
+            hist(projections[[scen]][ , paste0("y",yy) ],
+                 ylim = c(0,max(post_hist$density)),
+                 main = paste( "Final projections: history matching", scen_name[[scen]] ),
+                 freq = FALSE, xlim = sle_lim[[yy]],
+                 breaks = proj_breaks,
+                 col = cfb_pale, border = NA,
+                 xlab = paste("Sea level contribution at",yy,"(cm SLE)"))
+            lines(density(projections[[scen]][,paste0("y",yy)]),
+                  col = cfb_med, lwd = 1.2)
+
+            # NROY
+            if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 0) {
+
+              hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
+                   freq = FALSE, breaks = proj_breaks,
+                   col = cfb_med, border = NA, add = TRUE)
+              if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 2) {
+                lines(density(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy)]),
+                      col = "darkblue", lwd = 1.2)
+              }
             }
+
           }
 
           # Get scale
           post_hist <- hist(proj_post[[scen]][ , paste0("y",yy) ], plot = FALSE,
-                             breaks = proj_breaks)
+                            breaks = proj_breaks)
 
           # Full projections: uncalibrated
           hist(projections[[scen]][ , paste0("y",yy) ],

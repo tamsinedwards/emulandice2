@@ -107,7 +107,7 @@ stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 # Currently two Greenland and glacier ensembles to choose from
 if (i_s == "AIS") {
   stopifnot(final_year %in% c(2100, 2150, 2200, 2300))
-  ensemble_subset <- "RCM_forced"
+  ensemble_subset <- "all_forced"
   stopifnot( ensemble_subset %in% c("GCM_forced", "RCM_forced", "all_forced")) # only RCM option used for now
 }
 if (i_s == "GIS") {
@@ -128,6 +128,9 @@ if (i_s == "GLA") {
   stopifnot(final_year %in% c(2100, 2300))
 }
 #}
+
+# Limit data size for testing
+target_size <- 1000 # NA to use all simulations
 
 # Long names for outputs
 if (i_s == "GIS") ice_name <- "Greenland"  # %in% c("GrIS", "GIS"))
@@ -195,15 +198,9 @@ if (i_s == "GIS") {
   model_list_full <- c( "CISM", "IMAUICE", "ElmerIce", "GISM" )
 
   # Pick models to use: list or CISM only
-  if (final_year <= 2100) model_list <- c( "CISM", "IMAUICE") # "GISM" )
+  if ( final_year <= 2100 ) model_list <- model_list_full
+  if ( final_year > 2100 ) model_list <- "CISM"
 
-  if ( final_year > 2100 ) { # ensemble_subset == "2300") {
-    #      if (length(model_list) > 1 ||
-    #          (length(model_list) == 1 && model_list != "CISM")) {
-    #        warning("Requested final year beyond 2100: resetting model_list to CISM only")
-    model_list <- "CISM"
-    #  }
-  }
   # If ElmerIce: change cal range later to 1992-2014 (if 2 yr timeslices)
 
   # Require this flag for matching historical + projection retreat values
@@ -233,8 +230,11 @@ if (i_s == "AIS") {
 
   model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce" )
 
-  # Pick models to use
-  model_list <- model_list_full
+  # Would drop short simulations anyway but early is better for emulator inputs
+  if (ensemble_subset == "GCM_forced" ||
+      (ensemble_subset == "all_forced" && final_year > 2200) ) {
+    model_list <- c( "Kori", "PISM" )
+  } else model_list <- model_list_full
 
   # Obsolete: leave as NA
   melt_param_select <- NA # "PICO"
@@ -436,39 +436,32 @@ cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append =
 # Continuous and categorical (factor) model inputs
 if (i_s == "GIS") {
 
+  # Individual model lists
+  # None for GISM
+  ice_factor_list_model <- list()
+  ice_factor_list_model[["CISM"]] <- c("thermodyn", "RCM_init", "init_yrs", "elev_feedback")
+  ice_factor_list_model[["IMAUICE"]] <- c("sliding") # xxx not SP_climate because has missing
+  ice_factor_list_model[["ElmerIce"]] <- c("sliding")
+
+  # Combined model lists
   # Continuous parameters
   # xxx Make init_yrs continuous too?
   # xxx Ignoring retreat_hist for now
   ice_cont_list <- c("retreat", "resolution")
 
-  # xxx p7 2300 hack because only one resolution value and no init_yrs
-  # ice_cont_list <- "retreat"
-
-  ice_factor_list_model <- list()
-
-  ice_factor_list_model[["CISM"]] <- c("RCM", "thermodyn", "RCM_init", "init_yrs", "elev_feedback") # "model_variant"
-
-  # xxx p7 hack because different columns then
-  # ice_factor_list_model[["CISM"]] <- c("thermodyn", "RCM", "init", "model_variant")
-
-  ice_factor_list_model[["IMAUICE"]] <- c("RCM", "sliding", "SP_climate") #"model_variant")
-  ice_factor_list_model[["GISM"]] <- c("RCM") #"model_variant")
-  ice_factor_list_model[["ElmerIce"]] <- c("RCM",  "sliding") # "model_variant")
-
-
-  # ONE MODEL
-  if ( length(model_list) == 1) {
-    ice_factor_list <- ice_factor_list_model[[ model_list ]]
-  } else {
-
-    # ALL POSSIBLE INPUTS
-    # will fail if too many
-    # ice_factor_list <- c("RCM", "init", "sliding", "thermodyn", "model_variant", "model") # All: p7
-
-    # xxx For now drop SP_climate!! because NA for missing - needs default 'value' instead
-    ice_factor_list <- c("RCM", "sliding", "thermodyn", "init", "RCM_init", "init_yrs", "elev_feedback", "model")
-
+  # Factors
+  # Ignore model_variant as this (sub-name) should be accounted for by other inputs
+  ice_factor_list <- "RCM"
+  for (mm in model_list) {
+    if (length(ice_factor_list_model[[mm]]) > 0) ice_factor_list <- c(ice_factor_list, ice_factor_list_model[[mm]])
   }
+
+  # Drop NA and duplicates
+  ice_factor_list <- unique( ice_factor_list[ -1 ] )
+
+  # Add model input
+  if (length(model_list) > 1) ice_factor_list <- c(ice_factor_list, "model")
+
 }
 
 if (i_s == "AIS") {
@@ -514,7 +507,8 @@ if (i_s == "AIS") {
   }
 
   # PISM RCM-forced only
-  if ( ensemble_subset %in% c("RCM_forced", "all_forced") ) {
+  if ( ensemble_subset == "RCM_forced" ||
+       (ensemble_subset == "all_forced" && final_year <= 2200) ) {
     ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
                                        "resolution", "sliding_exponent",
                                        "overturning_PICO",
@@ -549,13 +543,13 @@ if (i_s == "AIS") {
   ice_factor_list <- unique( ice_factor_list[ -1 ] )
 
   # Combine RCM and GCM-forced
-  if ( ensemble_subset == "all_forced" ) {
+  if ( ensemble_subset == "all_forced" && final_year <= 2200 ) {
     ice_factor_list <- c(ice_factor_list, "forcing_type")
   }
 
   # Add RCM factor (will fail if only using Elmer/Ice)
   # xxx need to add something to
-  if (ensemble_subset == "all_forced" ||
+  if ( (ensemble_subset == "all_forced" && final_year <= 2200) ||
       (ensemble_subset == "RCM_forced" && final_year == 2100)) {
     ice_factor_list <- c(ice_factor_list, "RCM")
   }
@@ -681,7 +675,7 @@ stopifnot(kernel %in% c("pow_exp", "matern_5_2", "matern_3_2"))
 # Plot settings ------------------------------------------------------------
 
 # Plot all or just subset of figures
-plot_level <- 2 # 0 for none, 1 for main, 2 for exhaustive
+plot_level <- 0 # 0 for none, 1 for main, 2 for exhaustive
 
 # Quantiles to output [to text?]
 q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
@@ -708,10 +702,10 @@ sle_inc <- list()
 if (i_s == "AIS") {
   sle_lim[[as.character(cal_end)]] <- c(-4, 8); sle_inc[[as.character(cal_end)]] <- 0.5
   sle_lim[["2050"]] <- c(-10, 90); sle_inc[["2050"]] <- 2
-  sle_lim[["2100"]] <- c(-50, 170); sle_inc[["2100"]] <- 5
-  sle_lim[["2150"]] <- c(-100, 300); sle_inc[["2150"]] <- 5
-  sle_lim[["2200"]] <- c(-200, 500); sle_inc[["2200"]] <- 10
-  sle_lim[["2300"]] <- c(-200, 1000); sle_inc[["2300"]] <- 20
+  sle_lim[["2100"]] <- c(-70, 170); sle_inc[["2100"]] <- 5
+  sle_lim[["2150"]] <- c(-150, 300); sle_inc[["2150"]] <- 5
+  sle_lim[["2200"]] <- c(-250, 500); sle_inc[["2200"]] <- 10
+  sle_lim[["2300"]] <- c(-300, 1000); sle_inc[["2300"]] <- 20
 }
 
 if (i_s == "GIS") {  # %in% c("GrIS", "GIS")) {
@@ -732,9 +726,9 @@ if (i_s == "GLA") {
     sle_lim[[as.character(cal_end)]] <- c(-1, 2); sle_inc[[as.character(cal_end)]] <- 0.1
     sle_lim[["2050"]] <- c(-1, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.1
     sle_lim[["2100"]] <- c(-2, 1.5*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.1
-    sle_lim[["2150"]] <- c(-3, 1.5*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.1
-    sle_lim[["2200"]] <- c(-5, 1.5*max_glaciers[[reg]]); sle_inc[["2200"]] <- 0.1
-    sle_lim[["2300"]] <- c(-5, 1.8*max_glaciers[[reg]]); sle_inc[["2300"]] <- 0.1
+    sle_lim[["2150"]] <- c(-3, 2*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.1
+    sle_lim[["2200"]] <- c(-5, 2*max_glaciers[[reg]]); sle_inc[["2200"]] <- 0.1
+    sle_lim[["2300"]] <- c(-5, 2*max_glaciers[[reg]]); sle_inc[["2300"]] <- 0.1
   }
 
   # Adjust lower end for dinky glacier regions (< 1cm)
@@ -750,11 +744,11 @@ if (i_s == "GLA") {
   # Specific region over-rides
   if (reg == "RGI01") {
     sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
-    sle_lim[["2050"]] <- c(-5, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.5
-    sle_lim[["2100"]] <- c(-10, 1.1*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.5
-    sle_lim[["2150"]] <- c(-15, 1.3*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.5
-    sle_lim[["2200"]] <- c(-25, 1.4*max_glaciers[[reg]]); sle_inc[["2200"]] <- 1
-    sle_lim[["2300"]] <- c(-70, 1.5*max_glaciers[[reg]]); sle_inc[["2300"]] <- 1
+    sle_lim[["2050"]] <- c(-10, 1.5*max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.5
+    sle_lim[["2100"]] <- c(-10, 1.5*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.5
+    sle_lim[["2150"]] <- c(-15, 2*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.5
+    sle_lim[["2200"]] <- c(-25, 2*max_glaciers[[reg]]); sle_inc[["2200"]] <- 1
+    sle_lim[["2300"]] <- c(-70, 2*max_glaciers[[reg]]); sle_inc[["2300"]] <- 1
   }
   if (reg == "RGI19") {
     sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
@@ -801,12 +795,12 @@ AR6_rgb_light[["SSP585"]] <- rgb(132, 11, 34, maxColorValue = 255, alpha = 25) #
 #if (dataset == "IPCC_AR6") ylim_obs <- c(-1,1.5)
 #if (dataset == "PROTECT") {
 if (i_s == "GIS") ylim_obs <- c(-1.5,2)
-if (i_s == "AIS") ylim_obs <- c(-10,10)
+if (i_s == "AIS") ylim_obs <- c(-10,12)
 
 # Hugonnet for glaciers, not IMBIE!
 # and do list or similar for regions
 if (i_s == "GLA") {
-  ylim_obs <- c(-1,2) # 1 for RGI05 LOO?
+  ylim_obs <- c(-1.5,2)
   if (reg %in% c("RGI12", "RGI18")) ylim_obs <- c(-0.01,0.03)
 }
 #}
@@ -1248,7 +1242,7 @@ if ( ! exists("emu_mv") ) {
 # Main effects (i.e. one-at-a-time design for sensitivity analysis)
 design_sa <- emulandice2::load_design_to_pred("main_effects")
 
-# Predict
+# Predict: overwrite object
 myem <- list()
 for (input in names( design_sa )) {
 

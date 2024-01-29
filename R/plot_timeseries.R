@@ -23,7 +23,7 @@ plot_timeseries <- function(data_type, plot_level = 0) {
   # Sims (and emulation) --------------------------------------------------------------------
 
   #______________________________
-  if (plot_level >= 2) {
+  if (plot_level >= 1) {
 
     # Loops over all scenarios for simulations when called from emulator_build.R
     # or one scenario with emulator projections when called from main.R

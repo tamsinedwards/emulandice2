@@ -72,17 +72,16 @@ select_sims <- function() {
 
   # ANTARCTIC SELECTIONS
 
-  # XXX quick hack for faster AIS - get rid of this / improve speed
   if ( i_s == "AIS") { # dataset == "PROTECT" &&
 
+    # Drop Phase 1 Kori
     if ( "Kori" %in% model_list && ensemble_subset %in% c("GCM_forced", "all_forced")) {
-      ice_data <- ice_data[ ice_data$Phase != 1 | is.na(ice_data), ] # Only Kori has Phase = 1 set
+
+      # Only Kori has Phase = 1 set
+      ice_data <- ice_data[ ice_data$Phase != 1 | is.na(ice_data$Phase), ]
       cat( paste("After dropping Kori Phase 1:", dim(ice_data)[1], "\n"),
            file = logfile_build, append = TRUE)
 
-#      ice_data <- ice_data[ seq(from = 1, to = nrow(ice_data), by = 4), ]
-#      cat( paste("After selecting every 4th simulation:", dim(ice_data)[1], "\n"),
-#           file = logfile_build, append = TRUE)
     }
 
     # Faster if drop big GCM-forced ensembles...
@@ -118,6 +117,22 @@ select_sims <- function() {
         cat(paste("After selecting forcing ensemble(s):", dim(ice_data)[1],"\n"),file = logfile_build, append = TRUE)
       }
     }
+  }
+
+  #__________________________________________________
+  # Subset simulations for testing
+
+  if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
+
+    #sel_num <- ceiling( dim(ice_data)[1] / target_size )
+
+    # Randomly sample
+    sel_index <- sort(sample(nrow(ice_data), target_size))
+
+    #ice_data <- ice_data[ seq(from = 1, to = nrow(ice_data), by = sel_num), ]
+    ice_data <- ice_data[ sel_index, ]
+    cat( paste("After randomly selecting",target_size,"simulations to limit size:", dim(ice_data)[1], "\n"),
+         file = logfile_build, append = TRUE)
   }
 
   #__________________________________________________

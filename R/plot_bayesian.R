@@ -15,12 +15,13 @@ plot_bayesian <- function() {
     for (scen in scenario_list) {
 
       # FUTURE: mean projections
-      prior_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy) ] )
-      post_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy)], weights = myem_weights[[scen]] )
-      plot( post_dens_future, main = paste("Mean", yy, scen_name[[scen]]),
-            xlim = sle_lim[[yy]], col = AR6_rgb[[scen]])
-      lines( prior_dens_future )
-
+      if (plot_level > 1) {
+        prior_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy) ] )
+        post_dens_future <- density( myem[[scen]]$mean[, paste0("y",yy)], weights = myem_weights[[scen]] )
+        plot( post_dens_future, main = paste("Mean", yy, scen_name[[scen]]),
+              xlim = sle_lim[[yy]], col = AR6_rgb[[scen]])
+        lines( prior_dens_future )
+      }
 
       # FUTURE: final projections
       if (FALSE) {
