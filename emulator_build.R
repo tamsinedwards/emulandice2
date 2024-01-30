@@ -56,6 +56,9 @@ set.seed(2024)
 # Directory for output files
 rdatadir <- "./data-raw/" # RData file containing emulator
 outdir <- "./out/" # Everything else
+
+# Create directories if they do not exist (may not if running on HPC)
+if ( ! file.exists(rdatadir) ) dir.create(file.path(rdatadir))
 if ( ! file.exists(outdir) ) dir.create(file.path(outdir))
 
 # Directories for input datasets
@@ -111,9 +114,7 @@ if (i_s == "AIS") {
   stopifnot( ensemble_subset %in% c("GCM_forced", "RCM_forced", "all_forced")) # only RCM option used for now
 }
 if (i_s == "GIS") {
-  stopifnot(final_year %in% c(2100, 2200, 2300))
-  #    ensemble_subset <- "2300"
-  #    stopifnot(ensemble_subset %in% c("all", "2300"))
+  stopifnot(final_year %in% c(2100, 2150, 2200, 2250, 2300))
 }
 if (i_s == "GLA") {
 
@@ -146,7 +147,7 @@ N_prior <- 2000
 
 # Do LOO validation?
 do_loo_validation <- FALSE
-N_k <- 10 # for every N_k-th simulation; NA for full LOO
+N_k <- NA # for every N_k-th simulation; NA for full LOO
 
 print("Hello! Welcome to emulandice2: build")
 
