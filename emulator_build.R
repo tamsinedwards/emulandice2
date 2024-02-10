@@ -148,7 +148,7 @@ N_prior <- 2000
 
 # Do LOO validation?
 do_loo_validation <- FALSE
-N_k <- NA # for every N_k-th simulation; NA for full LOO
+N_k <- 10 # for every N_k-th simulation; NA for full LOO
 
 print("Hello! Welcome to emulandice2: build")
 
@@ -392,7 +392,7 @@ cat(paste("Timeslices:", N_ts, "\n"), file = logfile_build, append = TRUE)
 
 #' ## Leave-one-out (LOO) validation choices
 
-do_loo_years <- c(2100, 2150, 2200, 2250, 2300)
+do_loo_years <- c(2100, 2150, 2200, 2300)
 # (Checks these years are emulated later)
 
 if (do_loo_validation) print(paste("LOO years:", paste(do_loo_years, collapse = ",")))
@@ -402,6 +402,8 @@ if (do_loo_validation) print(paste("LOO years:", paste(do_loo_years, collapse = 
 # Emulator settings ------------------------------------------------------------
 #_______________
 cat("\nEMULATOR INPUTS:\n", file = logfile_build, append = TRUE)
+
+# // GSAT ------------------------------------------------------------
 
 # GSAT timeslices for ice_design
 # XXX consider going back earlier?
@@ -427,6 +429,7 @@ if (max(temps_list) > max(years_sim)) {
 }
 cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append = TRUE)
 
+# // Ice model params ----------------------------------------------------------
 
 # Ice model parameters for ice_design
 
@@ -1042,7 +1045,7 @@ if (plot_level > 0) {
 
 if (TRUE) {
 
-  make_emu <- function(designX, responseF, r = NULL, thresh = 0.99) {
+  make_emu <- function(designX, responseF, r = NULL, thresh = 0.999) {
 
     # PUT MAKE_EMU() HERE BECAUSE NOT WORKING WHEN IN FUNCTION
     # ARGUMENTS:
