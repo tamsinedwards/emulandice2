@@ -31,6 +31,15 @@ do
   echo "Build file for region RGI: $region"
   Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GLA $region $final_year
 
+  # Emulator file name
+  if [ "$region" == "01" -o "$region" == "04" -o "$region" == "05" -o "$region" == "07" -o "$region" == "19" ]
+  then
+       covar="pow_exp_01"
+  else
+       covar="pow_exp_20"
+  fi
+
+  # START PREDICTION
   echo "Predict for region RGI: $region"
 
   for ssp in "ssp126" "ssp245" "ssp585"
@@ -38,17 +47,11 @@ do
 
   echo "Scenario:" $ssp
 
-  if [ "$region" == "01" -o "$region" == "04" -o "$region" == "05" -o "$region" == "07" -o "$region" == "19" ]
-  then
-       covar="pow_exp_01"
-  else
-       covar="pow_exp_20"
-  fi
   ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData ./inst/extdata/GSAT/bamber19."$ssp".temperature.fair.temperature_climate.nc $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
 
   done
 done
 
-# Won't copy if predictions exist
+# Won't move if predictions already exist
 mkdir $outdir
 mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA* $outdir
