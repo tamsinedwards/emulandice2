@@ -33,8 +33,15 @@ plot_distributions <- function(data_type, plot_level = 0) {
           proj_breaks <- seq( from = floor(min(myem[[scen]]$mean[ , paste0("y",yy) ])),
                               to = ceiling(max(myem[[scen]]$mean[ , paste0("y",yy) ])),
                               length = 50)
-          post_hist <- hist( myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
-                             breaks = proj_breaks )
+
+          # Get y axis from NROY (if there are any)
+          if (length(myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ]) > 0) {
+            post_hist <- hist( myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
+                               breaks = proj_breaks )
+          } else {
+            post_hist <- hist( myem[[scen]]$mean[ , paste0("y",yy) ], plot = FALSE,
+                               breaks = proj_breaks )
+          }
 
           # Mean projections
           hist( myem[[scen]]$mean[ , paste0("y",yy) ],
