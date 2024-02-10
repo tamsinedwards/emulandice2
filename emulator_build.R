@@ -107,6 +107,7 @@ stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 
 #if (dataset == "PROTECT") {
 
+# If adding final_year option need to add to sle_lim too (xxx add check)
 # Currently two Greenland and glacier ensembles to choose from
 if (i_s == "AIS") {
   stopifnot(final_year %in% c(2100, 2150, 2200, 2300))
@@ -391,7 +392,7 @@ cat(paste("Timeslices:", N_ts, "\n"), file = logfile_build, append = TRUE)
 
 #' ## Leave-one-out (LOO) validation choices
 
-do_loo_years <- c(2100, 2150, 2200, 2300)
+do_loo_years <- c(2100, 2150, 2200, 2250, 2300)
 # (Checks these years are emulated later)
 
 if (do_loo_validation) print(paste("LOO years:", paste(do_loo_years, collapse = ",")))
@@ -583,7 +584,7 @@ if (i_s == "GLA") {
   # Ensemble is for any setup differences, e.g.:
   # For OGGM, forcing uses reanalysis 2000-2020 and parameter uses GM
   # For GloGEM, forcing parameters are regional means over glaciers but parameter ensemble has same value everywhere
-  ice_factor_list <- "model" # c("ensemble","model")
+  ice_factor_list <- "model"
 
 }
 
@@ -706,6 +707,7 @@ if (i_s == "AIS") {
   sle_lim[["2100"]] <- c(-70, 170); sle_inc[["2100"]] <- 5
   sle_lim[["2150"]] <- c(-150, 300); sle_inc[["2150"]] <- 5
   sle_lim[["2200"]] <- c(-250, 500); sle_inc[["2200"]] <- 10
+  sle_lim[["2250"]] <- c(-250, 800); sle_inc[["2200"]] <- 10
   sle_lim[["2300"]] <- c(-300, 1000); sle_inc[["2300"]] <- 20
 }
 
@@ -715,6 +717,7 @@ if (i_s == "GIS") {  # %in% c("GrIS", "GIS")) {
   sle_lim[["2100"]] <- c(-20, 40); sle_inc[["2100"]] <- 1
   sle_lim[["2150"]] <- c(-50, 100); sle_inc[["2150"]] <- 2
   sle_lim[["2200"]] <- c(-100, 220); sle_inc[["2200"]] <- 5
+  sle_lim[["2250"]] <- c(-150, 350); sle_inc[["2200"]] <- 5
   sle_lim[["2300"]] <- c(-200, 450); sle_inc[["2300"]] <- 10
 }
 

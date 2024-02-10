@@ -47,12 +47,9 @@ select_sims <- function() {
 
     # Exclude control runs from GIS
     # xxx add "if PROTECT"?
-    if (i_s == "GIS") {
-      ice_data <- ice_data [ ice_data$scenario != "ctrl", ]
-      cat( paste("After removing GIS control simulations:", dim(ice_data)[1],"\n"),
-           file = logfile_build, append = TRUE)
-    }
-
+    ice_data <- ice_data [ ice_data$scenario != "ctrl", ]
+    cat( paste("After removing GIS control simulations:", dim(ice_data)[1],"\n"),
+         file = logfile_build, append = TRUE)
 
     # Greenland CISM-only: select best (matching historical)
     # xxx add "if PROTECT"?
@@ -65,6 +62,7 @@ select_sims <- function() {
            file = logfile_build, append = TRUE)
 
     }
+
 
   }
 

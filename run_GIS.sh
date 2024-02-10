@@ -15,9 +15,9 @@ results_dir=/Users/tamsinedwards/PROTECT/RESULTS
 # Final year is command line argument
 final_year=$1
 
-if [ "$final_year" != 2100 -a "$final_year" != 2300 ]
+if [ "$final_year" != 2100 -a "$final_year" != 2200 -a "$final_year" != 2250 -a "$final_year" != 2300 ]
 then
-     echo "Incorrect final year argument: please choose from 2100 or 2300"
+     echo "Incorrect final year argument: please choose from 2100, 2200, 2250 or 2300"
      exit 1
 fi
 
@@ -35,7 +35,7 @@ for ssp in "ssp126" "ssp245" "ssp585"
   do
 
   echo "Scenario:" $ssp
-  if [ "$final_year" == 2300 ]
+  if [ "$final_year" -gt 2100 ]
   then
     ./emulandice_steer.sh GIS ALL ./data-raw/GIS_ALL_CISM_pow_exp_01_EMULATOR.RData ./inst/extdata/GSAT/bamber19."$ssp".temperature.fair.temperature_climate.nc $ssp ./out/GIS_ALL_"$ssp"_"$final_year"/ 2024 GIS_ALL_"$ssp"_"$final_year"
   fi

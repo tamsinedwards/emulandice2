@@ -22,9 +22,6 @@ calculate_sle_anom <- function() {
     # CALCULATE SEA LEVEL ANOMALIES w.r.t. calibration start date
     ice_data[ , paste0("y",years_sim)] <- ice_data[ , paste0("y",years_sim)] - ice_data[ , paste0("y",cal_start) ]
 
-    # Greenland is "ice thickness change" in SLE, so just need to reverse sign
-    if (i_s == "GIS") ice_data[ , paste0("y",years_sim)] <- -1 * ice_data[ , paste0("y",years_sim) ]
-
     # Convert mm SLE volume (above flot for GloGEM; also OGGM?) to cm SLE for glaciers
     if (i_s == "GLA") ice_data[ , paste0("y",years_sim)] <- ice_data[ , paste0("y",years_sim) ] / 10.0
 
