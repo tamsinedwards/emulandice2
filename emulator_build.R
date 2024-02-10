@@ -481,7 +481,7 @@ if (i_s == "AIS") {
 
   # Kori GCM-forced only
   if ( ensemble_subset %in% c("GCM_forced", "all_forced") ) {
-    ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+    ice_cont_list_model[["Kori"]] <- c(ice_cont_list_model[["Kori"]],
                                        "lapse_rate", "PDD_ice", "PDD_snow", "refreeze")
     # "PDD_sd" # Only perturbed in Phase 1 which is now dropped
     # in select_sims() because basins were not saved (and saves compute time)
@@ -496,7 +496,7 @@ if (i_s == "AIS") {
 
   # Kori RCM-forced only
   if ( ensemble_subset %in% c("RCM_forced", "all_forced") ) {
-    ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+    ice_cont_list_model[["Kori"]] <- c(ice_cont_list_model[["PISM"]],
                                        "sliding_exponent")
   }
 
