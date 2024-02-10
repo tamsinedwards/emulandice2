@@ -34,7 +34,7 @@ do
   echo
   echo "run GLA: build file for region RGI: $region"
 
-  echo Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GLA $region $final_year
+  Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GLA $region $final_year
 
   # Emulator file name
   if [ "$region" == "01" -o "$region" == "04" -o "$region" == "05" -o "$region" == "07" -o "$region" == "19" ]
@@ -58,11 +58,11 @@ do
 
   echo "GSAT file:" $gsat_file
 
-  echo ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData ./inst/extdata/GSAT/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
+  ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData ./inst/extdata/GSAT/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
 
   done
 done
 
 # Won't move if predictions already exist
-echo mkdir $outdir
-echo mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA* $outdir
+mkdir $outdir
+mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA* $outdir
