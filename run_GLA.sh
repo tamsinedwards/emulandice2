@@ -10,6 +10,9 @@
 emulandice_dir=/Users/tamsinedwards/PROTECT/emulandice2
 results_dir=/Users/tamsinedwards/PROTECT/RESULTS
 
+# Assumes build file is in package directory ./data-raw
+# and climate file is in package directory ./inst/extdata/GSAT
+
 #______________________________________________________
 
 # Final year is command line argument
@@ -28,8 +31,10 @@ outdir="$results_dir"/"$now"_GLA_ALL_"$final_year"
 for region in $(seq -f "%02g" 1 19)
 do
 
-  echo "Build file for region RGI: $region"
-  Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GLA $region $final_year
+  echo
+  echo "run GLA: build file for region RGI: $region"
+
+  echo Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GLA $region $final_year
 
   # Emulator file name
   if [ "$region" == "01" -o "$region" == "04" -o "$region" == "05" -o "$region" == "07" -o "$region" == "19" ]
@@ -40,18 +45,24 @@ do
   fi
 
   # START PREDICTION
-  echo "Predict for region RGI: $region"
+  echo
+  echo "run GLA: predict for region RGI: $region"
 
-  for ssp in "ssp126" "ssp245" "ssp585"
+  for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp585"
   do
 
   echo "Scenario:" $ssp
 
-  ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData ./inst/extdata/GSAT/bamber19."$ssp".temperature.fair.temperature_climate.nc $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
+  # Victor files
+  gsat_file="$ssp".temperature.fair.temperature_climate.nc
+
+  echo "GSAT file:" $gsat_file
+
+  echo ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData ./inst/extdata/GSAT/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
 
   done
 done
 
 # Won't move if predictions already exist
-mkdir $outdir
-mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA* $outdir
+echo mkdir $outdir
+echo mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA* $outdir
