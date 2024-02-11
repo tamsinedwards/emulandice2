@@ -262,8 +262,8 @@ stopifnot( length( setdiff(model_list, model_list_full )) == 0 )
 #' ## Set emulator covariance function
 # Choose emulator covariance function here so can put in output name for now
 
-# Currently can choose AR6 settings (mostly linear), matern_5_2,
-# or pow_exp_19 (pow_exp, alpha = 1.9), 2.0
+# Currently can choose AR6 settings (mostly linear), matern_5_2, matern_3_2,
+# or pow_exp_xx (pow_exp with alpha = 0.1, 1.0, 1.9, 2.0)
 # XXX Specify by ice sheet region later
 if ( i_s == "GIS") emulator_settings <- "pow_exp_01"
 if ( i_s == "AIS") emulator_settings <- "pow_exp_10"
@@ -300,6 +300,8 @@ cat(paste("\nEmulator covariance:",emulator_settings,"\n"), file = logfile_build
 
 
 #' ## Glacier maximum contributions
+# Glacier caps --------
+
 # GLACIER CAPS: mm SLE for each region from Farinotti et al.
 # as in emulandice v1
 max_glaciers <- list()
@@ -340,9 +342,9 @@ for (rr in names(max_glaciers)) {
 # Default 2014 because projections start in 2015
 # xxx urgh
 # %in% c("GrIS", "GIS")
-if (i_s == "GIS") cal_end <- 2015 # 2015 # 2014 for 2100; but 2015 for ElmerIce or 2300 (or 2020?)
-if (i_s == "AIS") cal_end <- 2015
-if (i_s == "GLA") cal_end <- 2020 # because OGGM fails if too early xxx
+if (i_s == "GIS") cal_end <- 2020 # 2015 # 2014 for 2100 2 yr; but 2015 for ElmerIce or 2300 (or 2020?)
+if (i_s == "AIS") cal_end <- 2020
+if (i_s == "GLA") cal_end <- 2020 # because OGGM fails if too early xxx obsolete?
 
 # End of IMBIE GIS and Hugonnet; also encroaches onto SSPs; xxx change for AIS?
 stopifnot(cal_end <= 2020)
@@ -461,8 +463,8 @@ if (i_s == "GIS") {
     if (length(ice_factor_list_model[[mm]]) > 0) ice_factor_list <- c(ice_factor_list, ice_factor_list_model[[mm]])
   }
 
-  # Drop NA and duplicates
-  ice_factor_list <- unique( ice_factor_list[ -1 ] )
+  # Drop duplicates
+  ice_factor_list <- unique( ice_factor_list )
 
   # Add model input
   if (length(model_list) > 1) ice_factor_list <- c(ice_factor_list, "model")
