@@ -148,7 +148,7 @@ N_prior <- 2000
 
 # Do LOO validation?
 do_loo_validation <- FALSE
-N_k <- 10 # for every N_k-th simulation; NA for full LOO
+N_k <- NA # for every N_k-th simulation; NA for full LOO
 
 print("Hello! Welcome to emulandice2: build")
 
@@ -479,7 +479,7 @@ if (i_s == "AIS") {
   # Kori: all
   ice_cont_list_model[["Kori"]] <- c("heat_flux_PICO", "heat_flux_Plume", "heat_flux_Burgard",
                                      "heat_flux_ISMIP6_nonlocal", "heat_flux_ISMIP6_nonlocal_slope")
-  ice_factor_list_model[["Kori"]] <- c("init_ocean", "melt_param")
+  ice_factor_list_model[["Kori"]] <- c("melt_param")
 
   # Kori GCM-forced only
   if ( ensemble_subset %in% c("GCM_forced", "all_forced") ) {
@@ -489,7 +489,7 @@ if (i_s == "AIS") {
     # in select_sims() because basins were not saved (and saves compute time)
 
     ice_factor_list_model[["Kori"]] <- c( ice_factor_list_model[["Kori"]],
-                                          "init_atmos")
+                                          "init_atmos", "init_ocean")
     # Note Phase factor accounts for model version
     # but it doesn't makes sense to combine Phase 2 vs 3 across models
     # so absorb into RCM-forced vs GCM-forced instead
@@ -498,16 +498,17 @@ if (i_s == "AIS") {
 
   # Kori RCM-forced only
   if ( ensemble_subset %in% c("RCM_forced", "all_forced") ) {
-    ice_cont_list_model[["Kori"]] <- c(ice_cont_list_model[["PISM"]],
+    ice_cont_list_model[["Kori"]] <- c(ice_cont_list_model[["Kori"]],
                                        "sliding_exponent")
   }
 
   # PISM
-  ice_cont_list_model[["PISM"]] <- c(  "heat_flux_PICO" )
+  ice_cont_list_model[["PISM"]] <- c( "heat_flux_PICO" )
 
   # PISM GCM-forced only
   if ( ensemble_subset %in% c("GCM_forced", "all_forced") ) {
     ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+                                       "sliding_exponent",
                                        "lapse_rate",  "refreeze_frac",
                                        "PDD_ice", "PDD_snow")
     ice_factor_list_model[["PISM"]] <- c( "init_atmos" )
@@ -517,10 +518,15 @@ if (i_s == "AIS") {
   if ( ensemble_subset == "RCM_forced" ||
        (ensemble_subset == "all_forced" && final_year <= 2200) ) {
     ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
-                                       "resolution", "sliding_exponent",
                                        "overturning_PICO",
                                        "tillwater_decay_rate",
                                        "eff_fraction_overburden_pressure")
+  }
+
+  # PISM different resolution between the two
+  if ( ensemble_subset == "all_forced" && final_year <= 2200 ) {
+    ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
+                                       "resolution")
   }
 
 
@@ -543,6 +549,12 @@ if (i_s == "AIS") {
   for (mm in model_list) {
     if (length(ice_cont_list_model[[mm]]) > 0) ice_cont_list <- c(ice_cont_list, ice_cont_list_model[[mm]])
     if (length(ice_factor_list_model[[mm]]) > 0) ice_factor_list <- c(ice_factor_list, ice_factor_list_model[[mm]])
+  }
+
+  # If both models present, can also include this
+  # as they use different values
+  if ("Kori" %in% model_list && "PISM" %in% model_list) {
+    ice_cont_list <- c(ice_cont_list, "overturning_PICO")
   }
 
   # Drop NA and duplicates
