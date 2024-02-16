@@ -128,11 +128,13 @@ plot_designs <- function(data_type, plot_level = 0) {
                 max(plot_temps),
                 obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
                 col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-          rect( min(plot_temps),
-                obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
-                max(plot_temps),
-                obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
-                col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+          if (plot_level > 2) {
+            rect( min(plot_temps),
+                  obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
+                  max(plot_temps),
+                  obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
+                  col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+          }
         } # plot obs
 
         leg_y <- 0.9 * max( ice_data[ , paste0("y", yy) ])
@@ -199,11 +201,13 @@ plot_designs <- function(data_type, plot_level = 0) {
                       max(param_plot),
                       obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
                       col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-                rect( min(param_plot),
-                      obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
-                      max(param_plot),
-                      obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
-                      col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+                if (plot_level > 2) {
+                  rect( min(param_plot),
+                        obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
+                        max(param_plot),
+                        obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
+                        col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+                }
               } # plot obs
             } # continuous
           } # years

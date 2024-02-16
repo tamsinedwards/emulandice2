@@ -129,7 +129,7 @@ scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper
 
 set.seed(seed)
 
-# Plots: 0 = none, 1 = main, 2 = all
+# Plots: 0 = none, 1 = main, 2 = nearly all, 3 = replot SIMS.pdf with model error
 plot_level <- 0
 
 # Number of 2LM projections of GSAT expected per SSP
@@ -150,6 +150,41 @@ logfile_results <- paste0(outdir_facts, out_name,"_results.txt")
 cat(sprintf("\nemulandice2: %s %s\n\n", i_s, reg), file = logfile_results)
 
 cat(sprintf("\nLoaded emulator file: %s\n", emu_file), file = logfile_results, append = TRUE)
+
+#' # Priors are default or custom
+# Priors -----------------------------------------------------------------------
+prior_choices <- "custom" # Currently just one input range changed for OGGM GLA
+cat("Prior choices:", prior_choices,"\n",  file = logfile_results, append = TRUE)
+
+#' # Set model discrepancy
+# Model error -----------------------------------------------------------------------
+
+# Model discrepancy
+# xxx Using multiple of obs error for now
+if (i_s == "GLA") { scale_mod_err = 10
+} else scale_mod_err = 3
+stopifnot( scale_mod_err > 1 )
+model_err <- scale_mod_err * obs_data[,"SLE_sd"]
+
+cat(paste("\nModel error for calibration: using",scale_mod_err,"x obs error", "\n"),
+    file = logfile_results, append = TRUE)
+
+# Calculate combined discrepancy
+total_err <- sqrt(obs_data[,"SLE_sd"]^2 + model_err^2)
+
+#' # Option to replot simulations
+# Replot sims -----------------------------------------------------------------------
+
+# This time the history matching window will include model discrepancy (total_err)
+if (plot_level > 2) {
+  pdf( file = paste0( outdir, out_name, "_SIMS.pdf"),
+       width = 9, height = 5)
+  emulandice2::plot_designs("sims", plot_level)
+  emulandice2::plot_timeseries("sims", plot_level)
+  emulandice2::plot_scatter("sims", "none", plot_level)
+  emulandice2::plot_distributions("sims", plot_level)
+  dev.off()
+}
 
 #' # Create design
 # Create design -----------------------------------------------------------------------

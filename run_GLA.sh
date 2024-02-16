@@ -9,6 +9,7 @@
 # Specify emulandice2 and results directories
 emulandice_dir=/Users/tamsinedwards/PROTECT/emulandice2
 results_dir=/Users/tamsinedwards/PROTECT/RESULTS
+gsat_dir=/Users/tamsinedwards/PROTECT/gsat
 
 # Assumes build file is in package directory ./data-raw
 # and climate file is in package directory ./inst/extdata/GSAT
@@ -53,12 +54,15 @@ do
 
   echo "Scenario:" $ssp
 
-  # Victor files
-  gsat_file="$ssp".temperature.fair.temperature_climate.nc
+  # IPCC AR6: FaIR 2LM
+  gsat_file=twolayer_SSPs.h5
+
+  # Victor test files: FaIR 3LM
+  # gsat_file="$ssp".temperature.fair.temperature_climate.nc
 
   echo "GSAT file:" $gsat_file
 
-  ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData ./inst/extdata/GSAT/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
+  ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData "$gsat_dir"/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
 
   done
 done

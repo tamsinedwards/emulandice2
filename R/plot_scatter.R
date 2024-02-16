@@ -52,11 +52,13 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
               obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
               sle_lim[[yy]][2],
               col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-        rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
-              sle_lim[[yy]][1],
-              obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
-              sle_lim[[yy]][2],
-              col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+        if (plot_level > 2) {
+          rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
+                sle_lim[[yy]][1],
+                obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
+                sle_lim[[yy]][2],
+                col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+        }
 
         if (data_type == "prior") {
 
@@ -165,12 +167,13 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
               obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
               sle_lim[[yy]][2],
               col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-        rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
-              sle_lim[[yy]][1],
-              obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
-              sle_lim[[yy]][2],
-              col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
-
+        if (plot_level > 2) {
+          rect( obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
+                sle_lim[[yy]][1],
+                obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
+                sle_lim[[yy]][2],
+                col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+        }
         # EMULATED
         points(projections[[scen]][ , paste0("y",cal_end) ],
                projections[[scen]][ , paste0("y",yy) ], pch = 16, cex = 0.5,
@@ -256,11 +259,13 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                     max(design_pred[[scen]][,gg]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
                     col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-              rect( min(design_pred[[scen]][,gg]),
-                    obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
-                    max(design_pred[[scen]][,gg]),
-                    obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
-                    col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+              if (plot_level > 2) {
+                rect( min(design_pred[[scen]][,gg]),
+                      obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
+                      max(design_pred[[scen]][,gg]),
+                      obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
+                      col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+              }
             }
 
             # Error bars
@@ -297,11 +302,13 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                     max(design_pred[[scen]][,gg]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
                     col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-              rect( min(design_pred[[scen]][,gg]),
+              if (plot_level > 2) {
+                rect( min(design_pred[[scen]][,gg]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
                     max(design_pred[[scen]][,gg]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
                     col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+              }
             }
 
             # xxx Note this excludes any RCPs!!
@@ -334,11 +341,13 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                     max(design_pred[[scen]][,pp]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
                     col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-              rect( min(design_pred[[scen]][,pp]),
+              if (plot_level > 2) {
+                rect( min(design_pred[[scen]][,pp]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
                     max(design_pred[[scen]][,pp]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
                     col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+              }
             }
 
             arrows( design_pred[[scen]][,pp],
@@ -382,11 +391,13 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                     max(design_pred[[scen]][,pp]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * obs_data[obs_data$Year == cal_end,"SLE_sd"],
                     col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-              rect( min(design_pred[[scen]][,pp]),
+              if (plot_level > 2) {
+                rect( min(design_pred[[scen]][,pp]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err[obs_data$Year == cal_end],
                     max(design_pred[[scen]][,pp]),
                     obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err[obs_data$Year == cal_end],
                     col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+              }
             }
           } # param list
 

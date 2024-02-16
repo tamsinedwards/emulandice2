@@ -148,7 +148,7 @@ N_prior <- 2000
 
 # Do LOO validation?
 do_loo_validation <- FALSE
-N_k <- NA # for every N_k-th simulation; NA for full LOO
+N_k <- 10 # for every N_k-th simulation; NA for full LOO
 
 print("Hello! Welcome to emulandice2: build")
 
@@ -694,7 +694,9 @@ stopifnot(kernel %in% c("pow_exp", "matern_5_2", "matern_3_2"))
 # Plot settings ------------------------------------------------------------
 
 # Plot all or just subset of figures
-plot_level <- 0 # 0 for none, 1 for main, 2 for exhaustive
+# 0 for none, 1 for main, 2 for exhaustive
+plot_level <- 0
+stopifnot(plot_level %in% c(0,1,2)) # using plot_level = 3 to distinguish main.R calls
 
 # Quantiles to output [to text?]
 q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
@@ -1021,22 +1023,7 @@ scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"])
 #if ( ! exists("obs_data") )
 obs_data <- emulandice2::load_obs()
 
-#' # Set model discrepancy
-# Model error -----------------------------------------------------------------------
 
-# Model discrepancy
-# xxx Using multiple of obs error for now
-# Glacier error very small so use large scaling factor
-if (i_s == "GLA") { scale_mod_err = 20
-} else scale_mod_err = 3
-stopifnot( scale_mod_err > 1 )
-model_err <- scale_mod_err * obs_data[,"SLE_sd"]
-
-cat(paste("\nModel error: using",scale_mod_err,"x obs error", "\n"),
-    file = logfile_build, append = TRUE)
-
-# Calculate combined discrepancy
-total_err <- sqrt(obs_data[,"SLE_sd"]^2 + model_err^2)
 
 #' # Plot simulations
 # Plot sims -----------------------------------------------------------------------
@@ -1044,6 +1031,7 @@ total_err <- sqrt(obs_data[,"SLE_sd"]^2 + model_err^2)
 cat("\nPlot simulator projections:\n", file = logfile_build, append = TRUE)
 
 # Plot simulations (some with observations)
+# Can repeat from main.R to tweak or add model discrepancy to history matching window
 if (plot_level > 0) {
   pdf( file = paste0( outdir, out_name, "_SIMS.pdf"),
        width = 9, height = 5)

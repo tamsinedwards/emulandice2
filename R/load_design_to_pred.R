@@ -69,17 +69,6 @@ load_design_to_pred <- function(design_name) {
 
       cat(sprintf("Empirical retreat prior range: [%.4f, %4.f]\n", min(retreat_prior), max(retreat_prior)), file = logfile_design, append = TRUE)
 
-      # Cut tails of distribution
-      if (FALSE) {
-        retreat_prior <- retreat_prior[ retreat_prior >= -0.9705 & retreat_prior <= 0.0070 ]
-
-        # Get min and max of sample to use for main effects design
-        #prior_min["retreat"] <- min(retreat_prior)
-        #prior_max["retreat"] <- max(retreat_prior)
-        prior_range[["retreat"]] <- range(retreat_prior)
-
-        cat(sprintf("TRUNCATED RETREAT PRIOR TO 5-95%% RANGE: [%.4f, %4.f]\n",min(retreat_prior),max(retreat_prior)), file = logfile_design, append = TRUE)
-      }
     }
   }
 
@@ -93,11 +82,64 @@ load_design_to_pred <- function(design_name) {
     }
   }
 
-  cat("\nIce model input prior ranges (including non-uniform):\n",
+  cat("\nInitial ice model input ranges:\n",
       file = logfile_design, append = TRUE)
   for (pp in ice_cont_list ) {
     cat(sprintf( "%s: [%.1e, %.1e]", pp, prior_range[[pp]][1], prior_range[[pp]][2]),"\n",file = logfile_design, append = TRUE)
   }
+
+  # CUSTOMISE PRIORS
+
+  # Ice sheets: restrict to higher resolution
+  if (i_s %in% c("GIS", "AIS") && prior_choices == "custom") {
+
+    # Maximum = 8km
+    prior_range[["resolution"]][2] <- 8.0
+
+  }
+
+  if ( i_s == "GIS" && prior_choices == "custom" ) {
+
+    # Cut 5% tails of empirical distribution off
+    retreat_prior <- retreat_prior[ retreat_prior >= -0.9705 & retreat_prior <= 0.0070 ]
+
+    # Get min and max of sample to use for main effects design
+    prior_range[["retreat"]] <- range(retreat_prior)
+
+    cat(sprintf("TRUNCATED RETREAT PRIOR TO 5-95%% RANGE: [%.4f, %4.f]\n",
+                min(retreat_prior),max(retreat_prior)), file = logfile_design, append = TRUE)
+  }
+
+  if ( i_s == "AIS" && prior_choices == "custom" ) {
+
+    # Halve the range
+    prior_range[["heat_flux_ISMIP6_nonlocal"]][2] <-  prior_range[["heat_flux_ISMIP6_nonlocal"]][1] +
+      0.5 * (prior_range[["heat_flux_ISMIP6_nonlocal"]][2] - prior_range[["heat_flux_ISMIP6_nonlocal"]][1])
+
+     prior_range[["heat_flux_ISMIP6_nonlocal_slope"]][2] <-  prior_range[["heat_flux_ISMIP6_nonlocal_slope"]][1] +
+      0.5 * (prior_range[["heat_flux_ISMIP6_nonlocal_slope"]][2] - prior_range[["heat_flux_ISMIP6_nonlocal_slope"]][1])
+
+  }
+
+  # Glaciers: restrict ranges
+  if (i_s == "GLA" && "OGGM" %in% model_list && prior_choices == "custom") {
+
+    # Halve the max
+    prior_range[["prec_corr_factor"]][2] <- prior_range[["prec_corr_factor"]][2] / 2.0
+
+    # Halve the range, centred
+    tb_range <- prior_range[["temp_bias"]][2] - prior_range[["temp_bias"]][1]
+    prior_range[["temp_bias"]][1] <- prior_range[["temp_bias"]][1] + 0.25*tb_range
+    prior_range[["temp_bias"]][2] <- prior_range[["temp_bias"]][2] -0.25*tb_range
+
+  }
+
+  cat("\nFinal input ranges for priors:\n",
+      file = logfile_design, append = TRUE)
+  for (pp in ice_cont_list ) {
+    cat(sprintf( "%s: [%.1e, %.1e]", pp, prior_range[[pp]][1], prior_range[[pp]][2]),"\n",file = logfile_design, append = TRUE)
+  }
+
 
   # Main effects ------------------------------------------------------------------------
   # Design for each parameter

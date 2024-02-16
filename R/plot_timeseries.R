@@ -94,23 +94,23 @@ plot_timeseries <- function(data_type, plot_level = 0) {
             if (data_type %in% c( "sims", "prior")) {
 
               # commented out 19/12/23 because no emulator
-             # if (design_name %in% c("AR6_2LM", "unif_temps")) {
+              # if (design_name %in% c("AR6_2LM", "unif_temps")) {
 
-                scen_list <- scen # Was NA, but this should catch other SSPs
-                if (scen == "SSP126") scen_list <- c("RCP26", "SSP126")
-                if (scen == "SSP245") scen_list <- c("RCP45", "SSP245")
-                if (scen == "SSP585") scen_list <- c("RCP85", "SSP585")
+              scen_list <- scen # Was NA, but this should catch other SSPs
+              if (scen == "SSP126") scen_list <- c("RCP26", "SSP126")
+              if (scen == "SSP245") scen_list <- c("RCP45", "SSP245")
+              if (scen == "SSP585") scen_list <- c("RCP85", "SSP585")
 
-                # If find simulations for scenario(s):
-                if (length(ice_data[ ice_data$scenario %in% scen_list, ]) > 0) {
-                  apply( ice_data[ ice_data$scenario %in% scen_list, paste0("y", years_sim) ],
-                         1, function(x) lines( years_sim, x, col =  AR6_rgb[[scen]], lwd = 0.3) )
+              # If find simulations for scenario(s):
+              if (length(ice_data[ ice_data$scenario %in% scen_list, ]) > 0) {
+                apply( ice_data[ ice_data$scenario %in% scen_list, paste0("y", years_sim) ],
+                       1, function(x) lines( years_sim, x, col =  AR6_rgb[[scen]], lwd = 0.3) )
 
-                  # Legend
-                  yleg <- 0.90*ymax
-                  lines( leg_off + (xstart + 1):(xstart + line_len), rep(yleg, line_len), lwd = 1.5, col = AR6_rgb[[scen]] )
-                  text(x = leg_off + (xstart + line_len), y = yleg, pos = 4, "Simulations")
-                }
+                # Legend
+                yleg <- 0.90*ymax
+                lines( leg_off + (xstart + 1):(xstart + line_len), rep(yleg, line_len), lwd = 1.5, col = AR6_rgb[[scen]] )
+                text(x = leg_off + (xstart + line_len), y = yleg, pos = 4, "Simulations")
+              }
 
               #}
 
@@ -133,11 +133,14 @@ plot_timeseries <- function(data_type, plot_level = 0) {
             }
 
 
-              # mean +- 3 x total_error
+            # mean +- 3 x total_error
+            if (plot_level > 2) {
+
               polygon( c(obs_data[,"Year"], rev(obs_data[,"Year"])),
                        c( obs_data[,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err,
                           rev(obs_data[,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err)),
                        col = grey(0.2,0.05), border = "black", lwd = 0.5, lty = 1)
+            }
 
             #}
 
