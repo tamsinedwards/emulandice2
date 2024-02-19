@@ -153,7 +153,13 @@ cat(sprintf("\nLoaded emulator file: %s\n", emu_file), file = logfile_results, a
 
 #' # Priors are default or custom
 # Priors -----------------------------------------------------------------------
-prior_choices <- "custom" # Currently just one input range changed for OGGM GLA
+
+# Uniform is currently uniform for all except GIS retreat
+# Custom currently restricts ranges of ice sheet resolution, AIS ISMIP6 heat fluxes,
+# and GLA temp_bias and precip_corr_factor
+if (i_s %in% c("GIS", "AIS")) { prior_choices <- "custom"
+} else prior_choices <- "uniform"
+stopifnot(prior_choices %in% c("uniform", "custom"))
 cat("Prior choices:", prior_choices,"\n",  file = logfile_results, append = TRUE)
 
 #' # Set model discrepancy

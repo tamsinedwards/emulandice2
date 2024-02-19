@@ -69,4 +69,4 @@ done
 
 # Won't move if predictions already exist
 mkdir $outdir
-mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA* $outdir
+mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA*_EMULATOR.RData $outdir

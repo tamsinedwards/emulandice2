@@ -102,19 +102,46 @@ select_sims <- function() {
   #__________________________________________________
   # GLACIER SELECTIONS
 
-  # This is no longer needed because we have combined forcing and PPE ensembles
-  # keep in case useful later
-  if (FALSE) {
-    if ( i_s == "GLA" ) {
-      if (ensemble_subset == "PPE") {
-        ice_data <- ice_data[ ! is.na(ice_data$prec_corr_factor), ]
-        cat(paste("After selecting PPE(s):", dim(ice_data)[1],"\n"), file = logfile_build, append = TRUE)
+  # Restrict temp_bias
+  if ( i_s == "GLA" ) {
 
-      } else {
-        ice_data <- ice_data[ is.na(ice_data$prec_corr_factor), ]
-        cat(paste("After selecting forcing ensemble(s):", dim(ice_data)[1],"\n"),file = logfile_build, append = TRUE)
-      }
-    }
+    # Get range of temp_bias in OGGM ensemble
+    min_tb <- min(ice_data[ ice_data$model == "OGGM", "temp_bias" ])
+    max_tb <- max(ice_data[ ice_data$model == "OGGM", "temp_bias" ])
+    range_tb <- max_tb - min_tb
+
+    cat( sprintf("Restricting OGGM temp_bias range from original range (%.2f to %.2f)\n",
+               min_tb, max_tb ),
+         file = logfile_build, append = TRUE)
+
+    # Reduce range to 20%, i.e. +/- 1degC not 5degC from regional mean of tuned values
+    min_tb <- min_tb + 0.4*range_tb
+    max_tb <- max_tb - 0.4*range_tb
+
+    cat( sprintf("to new range (%.2f to %.2f): ", min_tb, max_tb),
+         file = logfile_build, append = TRUE )
+
+    # Restrict for OGGM only
+    ice_data <- ice_data[ ( ice_data$model == "OGGM" &
+                              ice_data$temp_bias >= min_tb & ice_data$temp_bias <= max_tb )
+                          | ice_data$model %in% model_list[ model_list != "OGGM"], ]
+
+    cat( paste(dim(ice_data)[1], "\n"),
+         file = logfile_build, append = TRUE)
+
+    # Restrict precip_corr_factor to maximum value
+    # Based on comparison with observations (and GloGEM max is 2.2)
+    pcf_max <- 4.0
+
+    # Restrict for OGGM only
+    ice_data <- ice_data[ ( ice_data$model == "OGGM" &
+                              ice_data$prec_corr_factor <= pcf_max )
+                          | ice_data$model %in% model_list[ model_list != "OGGM"], ]
+
+    cat( sprintf("After restricting OGGM precip_corr_factor range to < %.1f: %i\n",
+                 pcf_max, dim(ice_data)[1]),
+         file = logfile_build, append = TRUE)
+
   }
 
   #__________________________________________________
