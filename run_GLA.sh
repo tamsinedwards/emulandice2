@@ -25,6 +25,8 @@ then
      exit 1
 fi
 
+model_list=GloGEM_OGGM
+#model_list=GloGEM
 
 now=$(date +'%y%m%d')
 outdir="$results_dir"/"$now"_GLA_ALL_"$final_year"
@@ -62,7 +64,7 @@ do
 
   echo "GSAT file:" $gsat_file
 
-  ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_GloGEM_OGGM_"$covar"_EMULATOR.RData "$gsat_dir"/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
+  ./emulandice_steer.sh GLA RGI"$region" ./data-raw/GLA_RGI"$region"_"$model_list"_"$covar"_EMULATOR.RData "$gsat_dir"/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ 2024 GLA_RGI"$region"_"$ssp"_"$final_year"
 
   done
 done

@@ -88,18 +88,14 @@ plot_distributions <- function(data_type, plot_level = 0) {
           # NROY
           if (plot_level >= 2) {
 
-            post_hist <- hist(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
-                              breaks = proj_breaks)
-
             # Get y axis from NROY (if there are any)
             if (length(projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ]) > 0) {
-              post_hist <- hist( myem[[scen]]$mean[ myem_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
+              post_hist <- hist( projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ], plot = FALSE,
                                  breaks = proj_breaks )
             } else {
               post_hist <- hist( projections[[scen]][ , paste0("y",yy) ], plot = FALSE,
                                  breaks = proj_breaks )
             }
-
 
             # Full projections
             hist(projections[[scen]][ , paste0("y",yy) ],

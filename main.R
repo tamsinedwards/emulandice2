@@ -528,6 +528,8 @@ write_outputs(write_csv)
 # END OF FACTS ANALYSIS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+# Save workspace now in case plots fail
+save.image( paste0(outdir_facts, out_name, "_RESULTS.RData") )
 
 if (plot_level > 0) {
 
@@ -556,8 +558,6 @@ if (plot_level > 0) {
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Save workspace
-save.image( paste0(outdir_facts, out_name, "_RESULTS.RData") )
 
 cat("...done.\n")
 

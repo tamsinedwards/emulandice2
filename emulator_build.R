@@ -569,7 +569,7 @@ if (i_s == "AIS") {
   # Add RCM factor (will fail if only using Elmer/Ice)
   # xxx need to add something to
   if ( (ensemble_subset == "all_forced" && final_year <= 2200) ||
-      (ensemble_subset == "RCM_forced" && final_year == 2100)) {
+       (ensemble_subset == "RCM_forced" && final_year == 2100)) {
     ice_factor_list <- c(ice_factor_list, "RCM")
   }
 
@@ -596,12 +596,17 @@ if (i_s == "GLA") {
                                      "temp_melt", "temp_bias", "glen_a")
 
   # Both
-  ice_cont_list <- unique( c(ice_cont_list_model[["GloGEM"]], ice_cont_list_model[["OGGM"]]))
+  ice_cont_list <- NA
+  if ("GloGEM" %in% model_list) ice_cont_list <- c(ice_cont_list, ice_cont_list_model[["GloGEM"]])
+  if ("OGGM" %in% model_list) ice_cont_list <- c(ice_cont_list, ice_cont_list_model[["OGGM"]])
+  ice_cont_list <- ice_cont_list[-1]
+  ice_cont_list <- unique( ice_cont_list )
 
   # Ensemble is for any setup differences, e.g.:
   # For OGGM, forcing uses reanalysis 2000-2020 and parameter uses GM
   # For GloGEM, forcing parameters are regional means over glaciers but parameter ensemble has same value everywhere
-  ice_factor_list <- "model"
+  if (length(model_list) > 1) { ice_factor_list <- "model"
+  } else ice_factor_list <- NA
 
 }
 
@@ -833,6 +838,12 @@ if (i_s == "GLA") {
 
 #' # Load and process data
 
+#' ## Load observations
+# Get obs -------------------------------------------------------------------
+
+# Needs to be before select_sims for history matching filtering of glaciers
+obs_data <- emulandice2::load_obs()
+
 #' ## Load climate and ice simulations
 # Get sims ---------------------------------------------------------------------
 
@@ -869,11 +880,16 @@ cat("\nDeduced ice model inputs from CSV header:\n", file = logfile_build, appen
 cat(paste(paste(ice_param_list_full, collapse = " "), "\n"), file = logfile_build, append = TRUE)
 stopifnot(ice_param_list %in% ice_param_list_full)
 
+# Select sims ---------------------------------------------------------------------
+
 # Select ice source, region, model(s) and any other exclusions
-ice_data <- emulandice2::select_sims()
+ice_data <- emulandice2::select_sims("main")
 
 # Calculate SLE change w.r.t. cal_start year, and tidy units
 ice_data <- emulandice2::calculate_sle_anom()
+
+# Do second selection using values of SLE change
+ice_data <- emulandice2::select_sims("history_match")
 
 # Get corresponding forcings (match by GCM + scenario; check length)
 temps <- emulandice2::match_sims()
@@ -1016,13 +1032,6 @@ for (cc in 1:dim(ice_design_scaled)[2]) {
 # Make sure scenario list only includes those of simulations
 scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"]) ]
 #cat(paste("Scenario list:",paste(scenario_list, collapse = ","), "\n"), logfile_build, append = TRUE)
-
-#' ## Load observations
-# Get obs -------------------------------------------------------------------
-
-#if ( ! exists("obs_data") )
-obs_data <- emulandice2::load_obs()
-
 
 
 #' # Plot simulations
