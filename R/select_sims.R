@@ -107,10 +107,10 @@ select_sims <- function(select_type) {
     #__________________________________________________
     # GLACIER SELECTIONS
 
-    # Restrict temp_bias
     if ( i_s == "GLA" ) {
 
-      # Simple thresholds didn't work well and better to do history matching - below
+      # Restrict temp_bias and prec_corr_factor
+      # Actually, simple thresholds didn't work well and better to do history matching - below
       if (FALSE) {
         # Get range of temp_bias in OGGM ensemble
         min_tb <- min(ice_data[ ice_data$model == "OGGM", "temp_bias" ])
@@ -151,6 +151,21 @@ select_sims <- function(select_type) {
       }
 
 
+      # Excluding using data quality flag "complete":
+
+      # Fraction of glaciers that must have completed (guidance from Fabien Maussion)
+      complete_thresh <- 0.8
+
+      # Index to keep: only filter for OGGM as I don't have info for GloGEM yet
+      complete_sel <- (ice_data$complete >= complete_thresh & ice_data$model == "OGGM") |
+        ice_data$model %in% model_list[ model_list != "OGGM"]
+
+      # Restrict dataset
+      ice_data <- ice_data[ complete_sel , ]
+
+      cat( sprintf("\nAfter restricting OGGM to >= %.0f%% complete: %i\n",
+                   100.0*complete_thresh, dim(ice_data)[1]),
+           file = logfile_build, append = TRUE )
 
     }
 
@@ -177,11 +192,13 @@ select_sims <- function(select_type) {
 
     if (i_s == "GLA") {
 
+      # Pre-screening with history matching:
+
       # Broad history matching, using slightly tailored thresholds
       # xxx Temporary code until consolidating more neatly
       # use _sel to avoid confusion with later projection calibration
 
-      # Model discrepancy scaling factor for glaciers
+      # Model discrepancy scaling factor for glacier pre-screening only
       scale_mod_err_sel <- 10
 
       # Total error
@@ -215,15 +232,24 @@ select_sims <- function(select_type) {
       if (reg_num == 14) imp_thresh <- 100
 
       # Index to keep
-      nroy_sel <- (implausibility <= imp_thresh & ice_data$model == "OGGM") |
-        ice_data$model %in% model_list[ model_list != "OGGM"]
+      # Apply just to OGGM
+#      nroy_sel <- (implausibility <= imp_thresh & ice_data$model == "OGGM") |
+#        ice_data$model %in% model_list[ model_list != "OGGM"]
+
+      # Apply to both models
+      nroy_sel <- implausibility <= imp_thresh
 
       # Restrict dataset
       ice_data <- ice_data[ nroy_sel , ]
 
-      cat( sprintf("\nAfter restricting OGGM to I < %i (model discrep x %i obs_error): %i\n",
+      #cat( sprintf("\nAfter restricting OGGM to I < %i (model discrep x %i obs_error): %i\n",
+      #             imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
+      #     file = logfile_build, append = TRUE )
+
+      cat( sprintf("\nAfter restricting to I < %i (model discrep x %i obs_error): %i\n",
                    imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
            file = logfile_build, append = TRUE )
+
 
     } # GLA
 

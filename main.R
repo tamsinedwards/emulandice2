@@ -167,7 +167,7 @@ cat("Prior choices:", prior_choices,"\n",  file = logfile_results, append = TRUE
 
 # Model discrepancy
 # xxx Using multiple of obs error for now
-if (i_s == "GLA") { scale_mod_err = 10
+if (i_s == "GLA") { scale_mod_err = 20
 } else scale_mod_err = 3
 stopifnot( scale_mod_err > 1 )
 model_err <- scale_mod_err * obs_data[,"SLE_sd"]
