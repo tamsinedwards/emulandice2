@@ -35,7 +35,7 @@ load_sims <- function(variable, source = NA) { # dataset
     # Land ice simulations: results from PROTECT!
     # GLA are in mm, ice shets are cm... xxx put this in filename when fixing abs values
     if (variable == "ice") {
-      if (source == "GIS") data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240210.csv")
+      if (source == "GIS") data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_2403017.csv")
       if (source == "AIS") data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_240127.csv")
       if (source == "GLA") data_file <- paste0( inputs_preprocess, "/GLA/SLE_SIMULATIONS_GLA_v2_240317.csv")
     }
