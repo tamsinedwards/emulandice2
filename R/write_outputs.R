@@ -86,11 +86,8 @@ write_outputs <- function(write_mean) {
 
   } # write CSV
 
-  cat("write_outputs: writing netcdf file ", ncname, "\n", file = logfile_results, append = TRUE)
 
-
-  # FACTS NETCDF: transpose posterior projections and convert cm to mm
-  csv_mat <- 10.0* t( proj_post[[scen]] )
+  # SETUP NETCDF STRUCTURE FIRST
 
   # xxx Currently fixed baseline, but this will change
   baseyear <- paste0(cal_start,"LL")
@@ -105,29 +102,62 @@ write_outputs <- function(write_mean) {
   lat_def <- ncdf4::ncvar_def("lat","",list(locdim),prec="float",missval=NA)
   lon_def <- ncdf4::ncvar_def("lon","",list(locdim),prec="float",missval=NA)
 
-  # Create file
-  ncout <- ncdf4::nc_create( ncname, list(slc_def, lat_def, lon_def), force_v4 = TRUE )
-  print(paste("Writing",ncname))
 
-  # Fill with an array; 1 location
-  csv_data <- array(NA, dim = c(length(years_em), N_temp, 1))
-  csv_data[ , ,1] <- as.matrix( csv_mat )
-  ncdf4::ncvar_put(ncout,slc_def,csv_data)
+  # REGION(S) TO WRITE
+  regions_write <- reg
 
-  # Add for consistency with FACTS formats
-  ncdf4::ncvar_put(ncout,lat_def, NA)
-  ncdf4::ncvar_put(ncout,lon_def, NA)
+  # Loop for writing ice sheet regional files (and later glacer regions, if modelled jointly)
+  if (i_s %in% c("GIS", "AIS")) regions_write <- c(regions_write, region_names)
 
-  # Attributes
-  ncdf4::ncatt_put(ncout,0,"description",paste("Global SLR contribution from",ice_name,"using the emulandice2 module"))
-  ncdf4::ncatt_put(ncout,0,"history",paste("Created", date()))
-  ncdf4::ncatt_put(ncout,0,"source",paste0("FACTS: emulandice.",facts_ssp,".emu",i_s,".emulandice.",reg))
-  ncdf4::ncatt_put(ncout,0,"baseyear", baseyear)
-  ncdf4::ncatt_put(ncout,0,"scenario",facts_ssp)
-  ncdf4::ncatt_put(ncout,0,"region",paste(i_s, reg, sep = "."))
 
-  # Close
-  ncdf4::nc_close(ncout)
+  # VARIABLE TO WRITE: transpose posterior projections and convert cm to mm for FACTS
+  var_to_write <- as.matrix( 10.0* t( proj_post[[scen]] ) )
+
+  for ( rr in regions_write ) {
+
+    if (rr == reg) { ncname_reg <- ncname
+    } else {
+      # Use globalsl extension to avoid accidental extra substitutions
+      ncname_reg <- gsub( paste(reg, "globalsl", sep = "_"), paste(rr, "globalsl", sep = "_"), ncname )
+    }
+
+    cat("write_outputs: writing netcdf file ", ncname_reg, "\n", file = logfile_results, append = TRUE)
+    print(paste("Writing",ncname_reg))
+
+    # Create file
+    ncout <- ncdf4::nc_create( ncname_reg, list(slc_def, lat_def, lon_def), force_v4 = TRUE )
+
+    # Fill with an array; 1 location
+    csv_data <- array(NA, dim = c(length(years_em), N_temp, 1))
+
+    # SL contribution for full projection or ice sheet regional fraction
+    if (rr == reg) { csv_data[ , ,1] <- var_to_write
+    } else {
+      # Fixed fraction of total
+      csv_data[ , ,1] <- var_to_write * region_fracs[[ rr ]]
+    }
+
+    ncdf4::ncvar_put(ncout,slc_def,csv_data)
+
+    # Add for consistency with FACTS formats
+    ncdf4::ncvar_put(ncout,lat_def, NA)
+    ncdf4::ncvar_put(ncout,lon_def, NA)
+
+    # Attributes
+    if (rr == reg) { ncdf4::ncatt_put( ncout,0,"description", paste0("Global SLR contribution from ", ice_name, " using the emulandice2 module"))
+    } else ncdf4::ncatt_put( ncout,0,"description", paste("Global SLR contribution from", ice_name, "(",rr,")", "using the emulandice2 module") )
+
+    ncdf4::ncatt_put(ncout,0,"history",paste("Created", date()))
+    ncdf4::ncatt_put(ncout,0,"source",paste0("FACTS: emulandice.",facts_ssp,".emu",i_s,".emulandice.",reg))
+    ncdf4::ncatt_put(ncout,0,"baseyear", baseyear)
+    ncdf4::ncatt_put(ncout,0,"scenario",facts_ssp)
+    ncdf4::ncatt_put(ncout,0,"region",paste(i_s, reg, sep = "."))
+
+    # Close
+    ncdf4::nc_close(ncout)
+
+  }
+
 
   cat("\n_____________________________________\n",file = logfile_results, append = TRUE)
 

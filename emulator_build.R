@@ -912,6 +912,49 @@ cat(paste("\nFINAL DATA SELECTION: using", N_sims, "ice simulations for",
 # Check some simulations found!
 stopifnot(N_sims > 0)
 
+print("After selection:")
+
+###########################################################
+# ICE SHEET REGION FRACTIONS
+###########################################################
+
+# Get row numbers i.e. selected simulations of main dataset
+sims_index <- rownames(ice_data[ ,  paste0("y", years_em) ])
+
+# Run calculation_sle_anom: just anomaly and x100 (so probably not needed)
+
+region_names <- list()
+region_fracs <- list()
+
+# Get mean fractions for regions
+if (i_s == "GIS") {
+
+  # List of regions in CSV
+  region_list <- c( "nw", "no", "cw",  "ne", "sw", "se")
+
+  # Nice region names for netcdf files
+  region_names[["nw"]] <- "NW"
+  region_names[["no"]] <- "NO"
+  region_names[["cw"]] <- "CW"
+  region_names[["ne"]] <- "NE"
+  region_names[["cw"]] <- "SW"
+  region_names[["se"]] <- "SE"
+
+  # 2300 test numbers
+  region_fracs[["NW"]] <- 0.1205
+  region_fracs[["NO"]] <- 0.1199
+  region_fracs[["CW"]] <- 0.1360
+  region_fracs[["NE"]] <- 0.1454
+  region_fracs[["SW"]] <- 0.2950
+  region_fracs[["SE"]] <- 0.1832
+
+}
+
+
+#########################################
+
+
+
 # Degrees of freedom check: do we have enough simulations (rows)
 # for predicting timeslices (columns)?
 stopifnot(N_sims > N_ts)

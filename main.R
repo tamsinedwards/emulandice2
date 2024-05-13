@@ -91,7 +91,7 @@ write_csv <- FALSE
 cat(sprintf("Write projections CSV files: %s\n", write_csv))
 
 # Netcdf filename
-# Old name: _emulandice.",facts_ssp,".emu",i_s,".emulandice.",i_s,"_",reg,"_globalsl.nc")
+# Don't change because we use format to substitute reg with regional for ice sheet files
 ncname <- paste0(outdir_facts, pipeline_id,"_",reg,"_globalsl.nc")
 cat(sprintf("Projections netcdf filename will be: %s\n", ncname))
 
