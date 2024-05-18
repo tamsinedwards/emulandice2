@@ -102,13 +102,11 @@ write_outputs <- function(write_mean) {
   lat_def <- ncdf4::ncvar_def("lat","",list(locdim),prec="float",missval=NA)
   lon_def <- ncdf4::ncvar_def("lon","",list(locdim),prec="float",missval=NA)
 
-
   # REGION(S) TO WRITE
   regions_write <- reg
 
-  # Loop for writing ice sheet regional files (and later glacer regions, if modelled jointly)
+  # Loop for writing ice sheet regional files (and later glacier regions, if modelled jointly)
   if (i_s %in% c("GIS", "AIS")) regions_write <- c(regions_write, region_names)
-
 
   # VARIABLE TO WRITE: transpose posterior projections and convert cm to mm for FACTS
   var_to_write <- as.matrix( 10.0* t( proj_post[[scen]] ) )

@@ -914,9 +914,7 @@ stopifnot(N_sims > 0)
 
 print("After selection:")
 
-###########################################################
-# ICE SHEET REGION FRACTIONS
-###########################################################
+# Ice sheet regions ------------------------------------------------------------
 
 # Get row numbers i.e. selected simulations of main dataset
 sims_index <- rownames(ice_data[ ,  paste0("y", years_em) ])
@@ -950,10 +948,30 @@ if (i_s == "GIS") {
 
 }
 
+# Get mean fractions for regions
+if (i_s == "AIS") {
 
-#########################################
+  # List of regions in CSV
+  # region_list <- # these will be grouped Zwally in CSV
 
+  # 2300 test numbers
+  region_fracs[["ASE"]] <- 0.493
+  region_fracs[["WAIS1"]] <- 0.030
+  region_fracs[["WAIS2"]] <- 0.045
+  region_fracs[["PEN"]] <- 0.028
+  region_fracs[["EAIS1"]] <- 0.041
+  region_fracs[["EAIS2"]] <- 0.147
+  region_fracs[["EAIS3"]] <- 0.002
+  region_fracs[["EAIS4"]] <- 0.047
+  region_fracs[["EAIS5"]] <- 0.129
+  region_fracs[["EAIS6"]] <- 0.030
+  region_fracs[["EAIS7"]] <- 0.008
 
+  region_names <- names(region_fracs)
+
+}
+
+# Final checks ------
 
 # Degrees of freedom check: do we have enough simulations (rows)
 # for predicting timeslices (columns)?
