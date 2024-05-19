@@ -935,7 +935,7 @@ if (i_s == "GIS") {
   region_names[["no"]] <- "NO"
   region_names[["cw"]] <- "CW"
   region_names[["ne"]] <- "NE"
-  region_names[["cw"]] <- "SW"
+  region_names[["sw"]] <- "SW"
   region_names[["se"]] <- "SE"
 
   # 2300 test numbers
