@@ -930,6 +930,10 @@ if (i_s == "GIS") {
   # List of regions in CSV
   region_list <- c( "nw", "no", "cw",  "ne", "sw", "se")
 
+  # This file has ALL + 6 regions
+  # xxx issue: Remake after deliverable: this is sle not slc
+  region_file <- read.csv(paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240304.csv"))
+
   # Nice region names for netcdf files
   region_names[["nw"]] <- "NW"
   region_names[["no"]] <- "NO"
@@ -938,13 +942,49 @@ if (i_s == "GIS") {
   region_names[["sw"]] <- "SW"
   region_names[["se"]] <- "SE"
 
-  # 2300 test numbers
-  region_fracs[["NW"]] <- 0.1205
-  region_fracs[["NO"]] <- 0.1199
-  region_fracs[["CW"]] <- 0.1360
-  region_fracs[["NE"]] <- 0.1454
-  region_fracs[["SW"]] <- 0.2950
-  region_fracs[["SE"]] <- 0.1832
+  # All simulations (to construct index)
+  all <- region_file[ region_file$region == "ALL",  ]
+  nrows_all <- dim(all)[1]
+
+  # Timeslices for sims selected in main analysis
+  all <- all[ sims_index, paste0("y", years_em) ]
+
+  # Open plot file
+  pdf( file = paste0( outdir, "region_fractions_", i_s, ".pdf" ))
+  par(mfrow = c(3,2))
+
+  print("Regional fractions:")
+
+  for (rr in names(region_names) ) {
+
+    # Get all simulations for region and number rows
+    region_all <- region_file[ region_file$region == rr, paste0("y", years_em) ]
+    rownames(region_all) <- 1:nrows_all
+
+    # Pick same rows as main analysis
+    region_all <- region_all[ sims_index, ]
+
+    # Calculate fraction (all timeslices in all simulations)
+    region_fracs_all <- unlist(  region_all / all )
+
+    # Plot
+    hist(region_fracs_all, xlim = c(0,1),
+         breaks = seq(from = floor(min(region_fracs_all, na.rm = TRUE)),
+                      to = ceiling(max(region_fracs_all, na.rm = TRUE)), by = 0.01),
+         main = paste0(ice_name, ": ", region_names[[rr]]), xlab = "Fraction" )
+    abline(v = mean(region_fracs_all, na.rm=TRUE), lwd = 2, col = "blue")
+    text( 0.7, 300, sprintf("Mean: %.2f",
+                             mean(region_fracs_all, na.rm = TRUE)), col = "blue")
+
+    region_fracs[[ region_names[[rr]] ]] <- mean(region_fracs_all, na.rm = TRUE)
+    print( sprintf( "%s: %.4f",  region_names[[rr]],
+                    region_fracs[[ region_names[[rr]] ]] ))
+
+  }
+
+  dev.off()
+
+  print(paste("Total:", sum(unlist(region_fracs))))
 
 }
 
