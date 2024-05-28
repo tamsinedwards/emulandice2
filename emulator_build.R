@@ -916,25 +916,25 @@ print("After selection:")
 
 # Ice sheet regions ------------------------------------------------------------
 
+cat("\nIce sheet regional fractions\n", file = logfile_build, append = TRUE)
+
 # Get row numbers i.e. selected simulations of main dataset
 sims_index <- rownames(ice_data[ ,  paste0("y", years_em) ])
 
-# Run calculation_sle_anom: just anomaly and x100 (so probably not needed)
+# No need to run calculation_sle_anom: just anomaly and x100
 
-region_names <- list()
-region_fracs <- list()
+region_names <- list() # names of regions
+region_fracs_all <- list() # histograms for each region
+region_fracs <- list() # mean or adjusted median fraction for each region
 
-# Get mean fractions for regions
+# Calculate mean fractions for regions
 if (i_s == "GIS") {
-
-  # List of regions in CSV
-  region_list <- c( "nw", "no", "cw",  "ne", "sw", "se")
 
   # This file has ALL + 6 regions
   # xxx issue: Remake after deliverable: this is sle not slc
   region_file <- read.csv(paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240304.csv"))
 
-  # Nice region names for netcdf files
+  # Translate CSV regions to nicer names for netcdf files
   region_names[["nw"]] <- "NW"
   region_names[["no"]] <- "NO"
   region_names[["cw"]] <- "CW"
@@ -943,17 +943,19 @@ if (i_s == "GIS") {
   region_names[["se"]] <- "SE"
 
   # All simulations (to construct index)
+  # xxx could use load_sims here
   all <- region_file[ region_file$region == "ALL",  ]
   nrows_all <- dim(all)[1]
 
   # Timeslices for sims selected in main analysis
   all <- all[ sims_index, paste0("y", years_em) ]
 
-  # Open plot file
-  pdf( file = paste0( outdir, "region_fractions_", i_s, ".pdf" ))
-  par(mfrow = c(3,2))
-
-  print("Regional fractions:")
+  # Open plot file for histograms
+  # xxx use prefix name as for other pdfs
+  if (plot_level > 0) {
+    pdf( file = paste0( outdir, "region_fractions_", i_s, ".pdf" ))
+    par(mfrow = c(3,2))
+  }
 
   for (rr in names(region_names) ) {
 
@@ -961,53 +963,182 @@ if (i_s == "GIS") {
     region_all <- region_file[ region_file$region == rr, paste0("y", years_em) ]
     rownames(region_all) <- 1:nrows_all
 
+    rr_name <- region_names[[rr]]
+
     # Pick same rows as main analysis
     region_all <- region_all[ sims_index, ]
 
-    # Calculate fraction (all timeslices in all simulations)
+    # Calculate fractions (all timeslices in all simulations)
     region_fracs_all <- unlist(  region_all / all )
 
-    # Plot
-    hist(region_fracs_all, xlim = c(0,1),
-         breaks = seq(from = floor(min(region_fracs_all, na.rm = TRUE)),
-                      to = ceiling(max(region_fracs_all, na.rm = TRUE)), by = 0.01),
-         main = paste0(ice_name, ": ", region_names[[rr]]), xlab = "Fraction" )
-    abline(v = mean(region_fracs_all, na.rm=TRUE), lwd = 2, col = "blue")
-    text( 0.7, 300, sprintf("Mean: %.2f",
-                             mean(region_fracs_all, na.rm = TRUE)), col = "blue")
+    # Mean of these
+    region_fracs[[ rr_name ]] <- mean(region_fracs_all, na.rm = TRUE)
 
-    region_fracs[[ region_names[[rr]] ]] <- mean(region_fracs_all, na.rm = TRUE)
-    print( sprintf( "%s: %.4f",  region_names[[rr]],
-                    region_fracs[[ region_names[[rr]] ]] ))
+    # Print to file
+    cat( sprintf( "%s: %.4f\n", rr_name,
+                  region_fracs[[ rr_name ]] ), file = logfile_build, append = TRUE)
+
+    # Plot
+    if (plot_level > 0) {
+
+      hist(region_fracs_all, xlim = c(0,1),
+           breaks = seq(from = floor(min(region_fracs_all, na.rm = TRUE)),
+                        to = ceiling(max(region_fracs_all, na.rm = TRUE)), by = 0.01),
+           main = paste0(ice_name, ": ", rr_name), xlab = "Fraction" )
+      abline(v = region_fracs[[ rr_name ]], lwd = 2, col = "blue")
+      text( 0.7, 300, sprintf("Mean: %.3f",
+                              region_fracs[[ rr_name ]]), col = "blue")
+    }
+
 
   }
 
-  dev.off()
+  if (plot_level > 0) dev.off()
 
-  print(paste("Total:", sum(unlist(region_fracs))))
+  cat( paste("\nTotal:", sum(unlist(region_fracs)), "\n"), file = logfile_build, append = TRUE)
 
 }
 
-# Get mean fractions for regions
+# Calculate adjusted mean fractions for regions
 if (i_s == "AIS") {
 
-  # List of regions in CSV
-  # region_list <- # these will be grouped Zwally in CSV
+  region_names <- c( "WAIS1", "WAIS2", "WAIS3", # ASE, Ross, RF
+                     "PEN",
+                     paste0("EAIS", 1:7) )
 
-  # 2300 test numbers
-  region_fracs[["ASE"]] <- 0.493
-  region_fracs[["WAIS1"]] <- 0.030
-  region_fracs[["WAIS2"]] <- 0.045
-  region_fracs[["PEN"]] <- 0.028
-  region_fracs[["EAIS1"]] <- 0.041
-  region_fracs[["EAIS2"]] <- 0.147
-  region_fracs[["EAIS3"]] <- 0.002
-  region_fracs[["EAIS4"]] <- 0.047
-  region_fracs[["EAIS5"]] <- 0.129
-  region_fracs[["EAIS6"]] <- 0.030
-  region_fracs[["EAIS7"]] <- 0.008
+  # All simulations (to construct index)
+  all <- emulandice2::load_sims(variable = "ice", source = i_s)
 
-  region_names <- names(region_fracs)
+  # Drop Phase 1 before getting num. simulations because none in regional files
+  all <- all[ all$Phase != 1 | is.na(all$Phase), ]
+  nrows_all <- dim(all)[1]
+
+  # Timeslices for sims selected in main analysis
+  all <- all[ sims_index, paste0("y", years_em) ]
+
+  for (rr in 1:length(region_names) ) {
+
+    # Regional CSV
+    # xxx Could add region arg to load_sims?
+    region_file <- read.csv(paste0( inputs_preprocess, "/AIS/regions/SLE_SIMULATIONS_AIS_full_region_",rr,"_240527.csv"))
+
+    rr_name <- region_names[[rr]]
+
+    # Get all simulations for region and number rows
+    region_all <- region_file[ , paste0("y", years_em) ]
+    rownames(region_all) <- 1:nrows_all
+
+    # Pick same rows as main analysis
+    region_all <- region_all[ sims_index, ]
+
+    # Calculate fractions (all timeslices in all simulations)
+    region_fracs_all[[ rr_name ]] <- as.numeric(unlist(region_all))  / as.numeric(unlist(all))
+
+    # Calculate MEDIAN not mean for Antarctica
+    region_fracs[[ rr_name ]] <- median(region_fracs_all[[ rr_name ]], na.rm = TRUE)
+
+    # Print to file
+    cat( sprintf( "%s: %.4f\n", rr_name,
+                  region_fracs[[ rr_name ]] ), file = logfile_build, append = TRUE)
+
+  }
+
+  total_median <- sum(unlist(region_fracs))
+
+  cat( paste("\nTotal of medians:", total_median, "\n"), file = logfile_build, append = TRUE)
+
+  missing <- 1.0 - total_median
+  cat(sprintf("\nMissing fraction before adjustment: %.3f\n", missing), file = logfile_build, append = TRUE)
+
+  # Get median fractions to adjust
+  region_fracs_adj <- unlist(region_fracs)
+
+  # Sort sectors - this is from when I redistributed only to largest sectors
+  cat("\nSectors in decreasing contribution:\n", file = logfile_build, append = TRUE)
+  sec_sort <- sort(unlist(region_fracs_adj), decreasing = T, index.return = T)
+  for (ss in sec_sort$ix) {
+    cat(sprintf("%i: %.1f%%\n", ss, 100.0*region_fracs_adj[ss]), file = logfile_build, append = TRUE)
+  }
+
+  # Now redistribute amongst all regions instead
+  n_largest <- length(region_names)
+
+  cat(paste("\nTake largest",n_largest,"sub-sectors:\n"), file = logfile_build, append = TRUE)
+  largest <- sec_sort$ix[1:n_largest]
+  cat(largest, "\n", file = logfile_build, append = TRUE)
+
+  cat("\nNormalise these, from:\n", file = logfile_build, append = TRUE)
+  cat(region_fracs_adj[largest],"\n", file = logfile_build, append = TRUE)
+
+  # Proportion of total of this subset
+  prop <- region_fracs_adj[largest] / (sum(region_fracs_adj[largest]))
+  cat("to:\n", file = logfile_build, append = TRUE)
+  cat(prop, "\n", file = logfile_build, append = TRUE)
+  stopifnot(sum(prop) - 1 < 0.0001)
+
+  tot_adj <- 0.0
+  tot_adj_largest <- 0.0
+
+  # Pdf later than for GIS because adjusting fractions
+  if (plot_level > 0) {
+    # xxx Use prefix name - can probably move both outside i_s chunks
+    pdf( file = paste0( outdir, "region_fractions_", i_s, ".pdf" ))
+    par(mfrow = c(3,2))
+  }
+
+  cat("\nAdjust median fractions to sum to 1:\n", file = logfile_build, append = TRUE)
+
+  for (ss in 1:length(region_names)) {
+
+    # Using approx. fraction
+    if (ss %in% largest) {
+
+      miss_bits <- prop[ which(ss == largest, arr.ind = T) ] * missing
+      region_fracs_adj[ss] = region_fracs_adj[ss] + miss_bits
+
+
+      tot_adj_largest <- tot_adj_largest + region_fracs_adj[ss]
+
+      cat( sprintf("%i: median = %.3f, adjusted = %.3f (%.0f%% adjustment)\n",
+                   ss, region_fracs[[ss]], region_fracs_adj[ss], 100.0*miss_bits / region_fracs[[ss]] ),
+           file = logfile_build, append = TRUE)
+
+    } else {
+
+      cat( sprintf("%i: median = %.3f\n",
+                   ss, region_fracs_adj[ss]), file = logfile_build, append = TRUE )
+
+    }
+
+    tot_adj <- tot_adj + region_fracs_adj[ss]
+
+
+    # Plot histograms now so can show median and adjusted together
+    if (plot_level > 0) {
+      hist(region_fracs_all[[ ss ]], xlim = c(-1,1),
+           breaks = seq(from = floor(min(region_fracs_all[[ ss ]], na.rm = TRUE)),
+                        to = ceiling(max(region_fracs_all[[ ss ]], na.rm = TRUE)), by = 0.01),
+           main = paste0(ice_name, ": ", region_names[[ss]]), xlab = "Fraction" )
+      abline(v = region_fracs[[ ss ]], lwd = 2, col = "darkred")
+      abline(v = region_fracs_adj[ ss ], lwd = 2, col = "red", lty = 2)
+
+      # xxx sort ypos for 2300 and 2100
+      text( 0.45, 800, pos = 4, sprintf("Median: %.3f",
+                                       region_fracs[[ ss ]]), col = "darkred", cex = 0.9)
+      text( 0.45, 400, pos = 4, sprintf("Adjusted: %.3f",
+                                       region_fracs_adj[ ss ]), col = "red", cex = 0.9)
+    }
+
+    # Overwrite original fraction list with adjusted AFTER plotting histograms
+    region_fracs[[ss]] <- region_fracs_adj[ss]
+
+
+  }
+
+  if (plot_level > 0) dev.off()
+
+  cat(sprintf("\nTotal of largest %i sectors after adjustment: %.3f\n", n_largest, tot_adj_largest), file = logfile_build, append = TRUE )
+  cat(sprintf("Total of all sectors after adjustment = %.3f\n", tot_adj), file = logfile_build, append = TRUE)
 
 }
 
