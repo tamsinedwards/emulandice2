@@ -1034,6 +1034,9 @@ if (i_s == "AIS") {
     # Calculate fractions (all timeslices in all simulations)
     region_fracs_all[[ rr_name ]] <- as.numeric(unlist(region_all))  / as.numeric(unlist(all))
 
+    # Replace infinities with missing
+    region_fracs_all[[ rr_name ]][is.infinite(region_fracs_all[[ rr_name ]])] <- NA
+
     # Calculate MEDIAN not mean for Antarctica
     region_fracs[[ rr_name ]] <- median(region_fracs_all[[ rr_name ]], na.rm = TRUE)
 
