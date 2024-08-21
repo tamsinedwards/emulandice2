@@ -206,6 +206,10 @@ if (i_s == "GLA") {
   # Pick models to use
   model_list <- model_list_full
 
+  # Fraction of glaciers that must have completed (guidance from Fabien Maussion)
+  # Currently only applied to OGGM; XXX add GO model to select_sims()
+  complete_thresh <- 0.8
+
 }
 
 # Check model names are correct
