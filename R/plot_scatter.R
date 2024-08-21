@@ -97,7 +97,10 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         # Note AR6_2LM should not necessarily overlap simulations due to sampling of GSAT
         if (design_name %in% c("AR6_2LM","unif_temps")) {
 
-          plot_data <- NA
+          # Get simulations for this scenario
+          plot_data <- ice_data[ ice_data$scenario == scen, ]
+
+          # Add nearest RCPs xxx should put RCPs in legends too
           if (scen == "SSP126") plot_data <- ice_data[ ice_data$scenario %in% c("RCP26", "SSP126"), ]
           if (scen == "SSP245") plot_data <- ice_data[ ice_data$scenario %in% c("RCP45", "SSP245"), ]
           if (scen == "SSP585") plot_data <- ice_data[ ice_data$scenario %in% c("RCP85", "SSP585"), ]
@@ -203,7 +206,10 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         # Note AR6_2LM should not necessarily overlap simulations due to sampling of GSAT
         if (design_name %in% c("AR6_2LM","unif_temps")) {
 
-          plot_data <- NA
+          # Get simulations for this scenario
+          plot_data <- ice_data[ ice_data$scenario == scen, ]
+
+          # Add nearest RCPs xxx should put RCP in legends too
           if (scen == "SSP126") plot_data <- ice_data[ ice_data$scenario %in% c("RCP26", "SSP126"), ]
           if (scen == "SSP245") plot_data <- ice_data[ ice_data$scenario %in% c("RCP45", "SSP245"), ]
           if (scen == "SSP585") plot_data <- ice_data[ ice_data$scenario %in% c("RCP85", "SSP585"), ]
