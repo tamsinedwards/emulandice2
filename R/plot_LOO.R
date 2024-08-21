@@ -92,7 +92,7 @@ plot_loo <- function() {
       plot( ice_design[ param_sort, pp], loo_std_errs[ param_sort ],
             xlim = range(ice_design[ , pp]), ylim = c(-6,6),
             pch = 20, xlab = pp, cex = 1.2,
-            ylab = paste("Emulated - simulated sea level contributio at",yy,"(cm SLE)"),
+            ylab = paste("Emulated - simulated sea level contribution at",yy,"(cm SLE)"),
             main = paste("LOO std errors by input value:",yy))
       abline ( h = 0 )
 

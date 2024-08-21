@@ -11,10 +11,12 @@
 #
 # Writes RData file: paste0("outdir", out_name, "_EMULATOR.RData")
 # to be read by FACTS for predicting land ice contributions with FaIR GSAT projections
+#
+# Set plot_level > 0 to output plot pdf files
 #_______________________________________________________________________________
 
-#' # Setup
-# Setup ------------------------------------------------------------------------
+# SETUP ------------------------------------------------------------------------
+#' # SETUP
 
 # Get arguments from RScript
 args <- commandArgs(TRUE)
@@ -24,31 +26,24 @@ if (length(args) == 0) {
 
   warning("No arguments set - using defaults")
   i_s <- "GLA"
-  reg_num <- 1 # 3
-  final_year <- 2300 # 2300
+  reg_num <- 1
+  final_year <- 2300
 
 } else {
 
-  #' # Choose source and end year
-  # Source and end year ----------------------------------------------------------
+  # Ice source and final year ----------------------------------------------------------
+  #' # Choose ice source and final year
 
   # Ice source
   i_s <- args[1]
 
   # Region number (only used by glaciers for now)
-  # xxx OGGM test PPE: regions 3,8,10,18 (will be replaced)
   reg_num <- as.numeric(args[2])
 
   # End year
   final_year <- as.numeric(args[3]) # if past 2100, applies model/ensemble selections later
-  # Values checked later
 
 }
-
-stopifnot(i_s %in% c("GIS","AIS", "GLA"))
-
-# GIS need_hist_match = FALSE by default [still true? xxx]
-
 
 # Fix random seed
 set.seed(2024)
@@ -62,34 +57,24 @@ if ( ! file.exists(rdatadir) ) dir.create(file.path(rdatadir))
 if ( ! file.exists(outdir) ) dir.create(file.path(outdir))
 
 # Directories for input datasets
-# (all in the same place, grouped by type)
+# (all in the same place, but grouped by type in case want to change structure)
 inputs_preprocess <- paste0(system.file("extdata", package = "emulandice2"), "/")
 inputs_ext <- inputs_preprocess
-#inputs_preprocess <- "~/PROTECT/emulandice2/inst/extdata/" # Processed: PROTECT data
-#inputs_ext <- "~/PROTECT/emulandice2/inst/extdata/" # Pre-existing: GSAT data and AR6 files
+
+# Analysis choices ------------------------------------------------------------------------
 
 #' # Analysis choices
 #' ## Dataset, ice source, region [ensemble]
 
-# Choices ------------------------------------------------------------------------
-# i_s is name in simulations CSV filename and first column
+# Check ice source name
+stopifnot(i_s %in% c("GIS","AIS", "GLA"))
 
-# IPCC MIPs or PROTECT: no need to keep AR6
-# dataset <- "PROTECT"
-# stopifnot(dataset %in% c("IPCC_AR6", "PROTECT"))
-
-# xxx Future: test/extend AR6 for glaciers, Antarctica, regions
-# if (dataset == "IPCC_AR6") {
-#  i_s <- "GrIS" # GrIS, AIS
-#  reg <- "ALL"
-# }
-
+# Later there are options to pick sub-ensembles
 ensemble_subset <- NA
 
-#if (dataset == "PROTECT") {
+# Region is set here
 
-# Region set here
-# CHOOSE ICE SHEET BASIN (when implemented)
+# CHOOSE ICE SHEET SECTOR (when implemented)
 if (i_s %in% c("GIS", "AIS")) {
   reg <- "ALL"
   stopifnot(reg %in% c("ALL")) # will add basins
@@ -101,22 +86,22 @@ if (i_s == "GLA") reg <- paste0("RGI", sprintf("%02i", reg_num)) # zero-padded
 # Check region name is valid
 stopifnot(reg %in% c("ALL", paste0("RGI", sprintf("%02i",1:19))))
 
-#}
-
 # ENSEMBLE DATA
+# Main end dates of simulations in PROTECT ensembles
 
-#if (dataset == "PROTECT") {
-
-# If adding final_year option need to add to sle_lim too (xxx add check)
+# If add new final_year option, need to add to sle_lim list for plots too (xxx add check)
 # Currently two Greenland and glacier ensembles to choose from
+
 if (i_s == "AIS") {
   stopifnot(final_year %in% c(2100, 2150, 2200, 2300))
   ensemble_subset <- "all_forced"
   stopifnot( ensemble_subset %in% c("GCM_forced", "RCM_forced", "all_forced")) # only RCM option used for now
 }
+
 if (i_s == "GIS") {
   stopifnot(final_year %in% c(2100, 2150, 2200, 2250, 2300))
 }
+
 if (i_s == "GLA") {
 
   ensemble_subset <- "PPE" # xxx Now ignored because ensembles are combined - keeping here for now
@@ -125,13 +110,11 @@ if (i_s == "GLA") {
   if (ensemble_subset == "forcing" && final_year > 2100) {
     warning("ensemble_subset is set to 'forcing' so reducing final_year to 2100")
     final_year <- 2100
-    #    if (ensemble_subset == "PPE") final_year <- 2300
   }
   stopifnot(final_year %in% c(2100, 2300))
 }
-#}
 
-# Limit data size for testing
+# Set limit on data size for training GP
 target_size <- 1000 # NA to use all simulations
 
 # Long names for outputs
@@ -142,7 +125,7 @@ if (i_s == "GLA") {
 }
 
 # Sample size for unif_temps design - used for convenience when adding uncertainty
-# (Main effects sample is set in load_design_to_pred.R, and
+# (Main effects sample size is set in load_design_to_pred.R, and
 # AR6 prior sample is equal to number of GSAT projections)
 N_prior <- 2000
 
@@ -160,9 +143,6 @@ if (do_loo_validation) {
 
 # SIMULATION YEARS in dataset i.e. columns in CSV
 
-#if (dataset == "IPCC_AR6") years_sim <- 2015:2100 # no historical
-#if (dataset == "PROTECT") {
-
 # First year of simulations we want to use
 # checks later this is within CSV file header range
 if (i_s == "AIS") first_year <- 1950
@@ -172,82 +152,56 @@ if (i_s == "GLA") first_year <- 1980
 years_sim <- first_year:final_year
 
 # Timeslice frequency to predict (see below: first date is cal_start + nyr)
-nyrs = 5 # can be 2 when 2100
+nyrs = 5
 
-# Check reasonably divisible
-stopifnot(nyrs %in% c(1, 2, 5, 10)) # Maybe not 2, for FACTS?
-
-# "lhs" is deprecated - see end of code
-# but might add updated 2LM prior later
-# xxx Future: add SA and make consistent with temp_prior - done?
+# Check reasonable choice
+stopifnot(nyrs %in% c(1, 2, 5, 10))
 
 # Full list of possible emissions scenarios to look for
-# (dropped for unif_temps design if not simulated)
-scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP585")
-
+# (dropped from unif_temps design if not simulated)
+scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP534OS", "SSP585")
 
 #' ## Ice model(s)
 
-#if (dataset == "IPCC_AR6") model_list <- NA # IMAUICE1 for extreme retreat
-# Note we cannot predict AR6 AIS as basal melt prior not defined
-# xxx still true?
-
-#if (dataset == "PROTECT") {
-
-if (i_s == "GIS") {
-
-  # All models (do not change this)
-  model_list_full <- c( "CISM", "IMAUICE", "ElmerIce", "GISM" )
-
-  # Pick models to use: list or CISM only
-  if ( final_year <= 2100 ) model_list <- model_list_full
-  if ( final_year > 2100 ) model_list <- "CISM"
-
-  # If ElmerIce: change cal range later to 1992-2014 (if 2 yr timeslices)
-
-  # Require this flag for matching historical + projection retreat values
-  # Now rejects only CISM non-matching!! No wonder emulator was borked
-  # xxx later just delete this option so always select CISM retreat match
-  # xxx better to call this need_retreat_match to avoid confusing with history matching
-  need_hist_match <- TRUE
-
-  # xxx check no longer needed/true, because should only :
-  if (FALSE) {
-    if ( need_hist_match == TRUE &&
-         ( length(model_list) > 1 ||
-           ( length(model_list) == 1 && model_list != "CISM" )) ) {
-      warning("Requested need_hist_match for non-CISM model(s): will reject all runs")
-    }
-  }
-
-  # Only CISM went beyond 2100 (at all / to any great extent)
-  # xxx Should be obsolete, now we change model_list above
-  if ( final_year > 2100 && # ensemble_subset == "2300" &&
-       ( length(model_list) > 1 ||
-         (length(model_list) == 1 && model_list != "CISM") ) ) return()
-
-}
-
 if (i_s == "AIS") {
 
-  model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce" )
+  # All models (do not change!)
+  model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce" ) # XXX "BISICLES" )
 
-  # Would drop short simulations anyway but early is better for emulator inputs
+  # Would drop short simulations anyway but early on is better for emulator inputs
   if (ensemble_subset == "GCM_forced" ||
       (ensemble_subset == "all_forced" && final_year > 2200) ) {
     model_list <- c( "Kori", "PISM" )
   } else model_list <- model_list_full
 
-  # Obsolete: leave as NA
-  melt_param_select <- NA # "PICO"
-  # NA for all
-  # PICO (Kori and PISM)
-  # Burgard, Plume, ISMIP6_nonlocal, ISMIP6_nonlocal_slope (Kori only)
+}
+
+if (i_s == "GIS") {
+
+  # All models (do not change!)
+  model_list_full <- c( "CISM", "IMAUICE", "ElmerIce", "GISM" )
+
+  # Pick models to use: full list or CISM only
+  if ( final_year <= 2100 ) model_list <- model_list_full
+  if ( final_year > 2100 ) model_list <- "CISM"
+
+  # If ElmerIce: change cal range later to 1992-2014 (if 2 yr timeslices)
+
+  # Flag to require matching historical + projection retreat values in select_sims()
+  # (only CISM runs do though)
+  need_retreat_match <- TRUE
+
+  # Only CISM went beyond 2100 (at all / to any great extent)
+  if ( final_year > 2100 &&
+       ( length(model_list) > 1 ||
+         (length(model_list) == 1 && model_list != "CISM") ) ) return()
+
 }
 
 if (i_s == "GLA") {
 
-  model_list_full <- c( "GloGEM", "OGGM" )
+  # All models (do not change!)
+  model_list_full <- c( "GloGEM", "OGGM") # XXX "GO" )
 
   # Pick models to use
   model_list <- model_list_full
@@ -257,16 +211,20 @@ if (i_s == "GLA") {
 # Check model names are correct
 stopifnot( length( setdiff(model_list, model_list_full )) == 0 )
 
-#}
+# Emulator choices ------------------------------------------------------------------------
 
 #' ## Set emulator covariance function
 # Choose emulator covariance function here so can put in output name for now
 
 # Currently can choose AR6 settings (mostly linear), matern_5_2, matern_3_2,
-# or pow_exp_xx (pow_exp with alpha = 0.1, 1.0, 1.9, 2.0)
-# XXX Specify by ice sheet region later
-if ( i_s == "GIS") emulator_settings <- "pow_exp_01"
+# or pow_exp (power-exponential with alpha = 0.1, 1.0, 1.9, 2.0)
+
+# XXX Specify by ice sheet sector later if using
+
 if ( i_s == "AIS") emulator_settings <- "pow_exp_10"
+
+if ( i_s == "GIS") emulator_settings <- "pow_exp_01"
+
 if ( i_s == "GLA") {
 
   # Default: squared exponential (Gaussian: smooth)
@@ -405,20 +363,22 @@ if (do_loo_validation) print(paste("LOO years:", paste(do_loo_years, collapse = 
 #_______________
 cat("\nEMULATOR INPUTS:\n", file = logfile_build, append = TRUE)
 
-# // GSAT ------------------------------------------------------------
+# // Temps ------------------------------------------------------------
 
 # GSAT timeslices for ice_design
 # XXX consider going back earlier?
 
 temps_baseline <- 2015
+
 # Not too many, to avoid linear combinations (esp bad for fixed climate GIS)
 # Altered later in code if request shorter projections e.g. to 2100 only
 if (i_s == "AIS")  temps_list <- 2300
-if (i_s == "GIS") temps_list <- 2100 # 2100 better than 2300 (fixed GSAT after)
+if (i_s == "GIS") temps_list <- 2100 # 2100 better than 2300 (mostly fixed GSAT after)
 if (i_s == "GLA") temps_list <- 2300
 
 # Number of years to average over
-# e.g. setting 10 with temps_list = 2300 gives decadal mean 2291-2300
+# e.g. setting 10 with temps_list = 2300 and temps_baseline = 2015
+# gives decadal mean 2291-2300 relative to 2015-2024
 N_temp_yrs <- 30
 
 cat(paste("GSAT baseline first year:", temps_baseline, "\n"), file = logfile_build, append = TRUE)
@@ -695,8 +655,8 @@ if (emulator_settings == "pow_exp_20") {
 stopifnot(kernel %in% c("pow_exp", "matern_5_2", "matern_3_2"))
 
 
+# Plot: choices ------------------------------------------------------------
 #' ## Plot choices
-# Plot settings ------------------------------------------------------------
 
 # Plot all or just subset of figures
 # 0 for none, 1 for main, 2 for exhaustive
@@ -834,6 +794,9 @@ if (i_s == "GLA") {
 #}
 
 
+# ________________----
+# START ------------------------------------------------------------
+#' ## START
 
 
 #' # Load and process data
@@ -888,8 +851,10 @@ ice_data <- emulandice2::select_sims("main")
 # Calculate SLE change w.r.t. cal_start year, and tidy units
 ice_data <- emulandice2::calculate_sle_anom()
 
-# Do second selection using values of SLE change
-ice_data <- emulandice2::select_sims("history_match")
+# Do second selection for glaciers using values of SLE change
+if (i_s == "GLA") {
+  ice_data <- emulandice2::select_sims("history_match")
+}
 
 # Get corresponding forcings (match by GCM + scenario; check length)
 temps <- emulandice2::match_sims()
@@ -949,6 +914,8 @@ if (i_s == "GIS") {
 
   # Timeslices for sims selected in main analysis
   all <- all[ sims_index, paste0("y", years_em) ]
+
+  # Plot: GIS regions ----------------------------------------------------------
 
   # Open plot file for histograms
   # xxx use prefix name as for other pdfs
@@ -1082,6 +1049,8 @@ if (i_s == "AIS") {
   tot_adj <- 0.0
   tot_adj_largest <- 0.0
 
+  # Plot: AIS regions ----------------------------------------------------------
+
   # Pdf later than for GIS because adjusting fractions
   if (plot_level > 0) {
     # xxx Use prefix name - can probably move both outside i_s chunks
@@ -1127,9 +1096,9 @@ if (i_s == "AIS") {
 
       # xxx sort ypos for 2300 and 2100
       text( 0.45, 800, pos = 4, sprintf("Median: %.3f",
-                                       region_fracs[[ ss ]]), col = "darkred", cex = 0.9)
+                                        region_fracs[[ ss ]]), col = "darkred", cex = 0.9)
       text( 0.45, 400, pos = 4, sprintf("Adjusted: %.3f",
-                                       region_fracs_adj[ ss ]), col = "red", cex = 0.9)
+                                        region_fracs_adj[ ss ]), col = "red", cex = 0.9)
     }
 
     # Overwrite original fraction list with adjusted AFTER plotting histograms
@@ -1180,8 +1149,10 @@ for (tt in 1:length(temps_list_names)) {
   GSAT_lab[[temps_list_names[tt]]] <- paste0('Global mean temperature ',
                                              temps_list[tt]-N_temp_yrs+1,'-',temps_list[tt],
                                              ' rel. to ',temps_baseline,'-',temps_baseline+N_temp_yrs-1,' (degC)')
-} #  expression(paste('Global mean temperature change 2015-2100 (',degree~C,')')))
+}
 
+# One-hot encoding ---------------------------------------------------------------
+#' ## One-hot encoding of factors
 
 ice_factor_values <- list()
 
@@ -1198,9 +1169,6 @@ if ( ! TRUE %in% is.na(ice_factor_list)) {
 
     # Take first alphabetical value as reference/nominal
     ff_ref <- ff_vals[1]
-
-    # Could use this structure instead of for loop?
-    # dummy <- matrix(NA, nrow = nrow(ice_data), ncol = length(ff_vals))
 
     cat(paste("Adding dummy variables with reference value:", ff_ref, "\n"), file = logfile_build, append = TRUE)
 
@@ -1270,7 +1238,7 @@ scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"])
 
 
 #' # Plot simulations
-# Plot sims -----------------------------------------------------------------------
+# Plot: sims -----------------------------------------------------------------------
 
 cat("\nPlot simulator projections:\n", file = logfile_build, append = TRUE)
 
@@ -1286,181 +1254,150 @@ if (plot_level > 0) {
   dev.off()
 }
 
+# ________________----
+# EMULATE ------------------------------------------------------------
+
 #' # Build emulator
 # Build emulator -----------------------------------------------------------------------
 
-if (TRUE) {
+make_emu <- function(designX, responseF, r = NULL, thresh = 0.999) {
 
-  make_emu <- function(designX, responseF, r = NULL, thresh = 0.999) {
+  # I put this here because didn't work in separate script since converting to package
 
-    # PUT MAKE_EMU() HERE BECAUSE NOT WORKING WHEN IN FUNCTION
-    # ARGUMENTS:
-    #    designX <- ice_design_scaled
-    #    responseF <- as.matrix( ice_data[ , paste0("y", years_em) ] )
-    #    r <- NULL
-    #    thresh <- 0.99
+  # ARGUMENTS WHEN CALLED:
+  #    designX <- ice_design_scaled
+  #    responseF <- as.matrix( ice_data[ , paste0("y", years_em) ] )
+  #    r <- NULL
+  #    thresh <- 0.99
 
-    cat("_____________________________________\n", file = logfile_build, append = TRUE)
-    cat("make_emu: building emulator...\n", file = logfile_build, append = TRUE)
+  cat("_____________________________________\n", file = logfile_build, append = TRUE)
+  cat("make_emu: building emulator...\n", file = logfile_build, append = TRUE)
 
-    stopifnot(is.matrix(designX))
-    m <- nrow(designX)
-    d <- ncol(designX)
-    stopifnot(is.matrix(responseF), nrow(responseF) == m)
-    n <- ncol(responseF)
-    if (!is.null(r))
-      stopifnot(r == round(r), 0 < r, r <= n)
-    stopifnot(length(thresh) == 1, 0 < thresh, thresh < 1)
+  stopifnot(is.matrix(designX))
+  m <- nrow(designX)
+  d <- ncol(designX)
+  stopifnot(is.matrix(responseF), nrow(responseF) == m)
+  n <- ncol(responseF)
+  if (!is.null(r))
+    stopifnot(r == round(r), 0 < r, r <= n)
+  stopifnot(length(thresh) == 1, 0 < thresh, thresh < 1)
 
-    ## SVD
+  ## SVD
 
-    cc <- colMeans(responseF)
-    # Use sweep to centre data (subtract column means from columns of responseF)
-    # then do SVD i.e. a PCA
-    decomp <- svd(sweep(responseF, 2L, cc, "-"))
-    dd2 <- decomp$d^2
-    scree <- cumsum(dd2) / sum(dd2)
-    if (is.null(r))
-      r <- which.max(scree >= thresh) # first exceedance
-    U <- decomp$u[, 1L:r, drop=FALSE]
-    Vt <- (decomp$d * t(decomp$v))[1L:r, , drop=FALSE]
+  cc <- colMeans(responseF)
 
-    ## write a message
+  # Use sweep to centre data (subtract column means from columns of responseF)
+  # then do SVD i.e. a PCA
+  decomp <- svd(sweep(responseF, 2L, cc, "-"))
+  dd2 <- decomp$d^2
+  scree <- cumsum(dd2) / sum(dd2)
+  if (is.null(r))
+    r <- which.max(scree >= thresh) # first exceedance
+  U <- decomp$u[, 1L:r, drop=FALSE]
+  Vt <- (decomp$d * t(decomp$v))[1L:r, , drop=FALSE]
 
-    cat(sprintf("make_emu: r = %i, scree = %.1f%%\n", r, 100 * scree[r]), file = logfile_build, append = TRUE)
+  ## write a message
 
-    ## build emulators, hide rgasp output
+  cat(sprintf("make_emu: r = %i, scree = %.1f%%\n", r, 100 * scree[r]), file = logfile_build, append = TRUE)
 
-    sink(file = paste0(outdir,out_name,"_rgasp.log"))
+  ## build emulators, hide rgasp output
 
-    trendX <- designX
+  sink(file = paste0(outdir,out_name,"_rgasp.log"))
 
-    # Drop factors (dummy variable columns) from trend
-    if (include_factors) {
+  # Get all inputs
+  trendX <- designX
 
-      cat("Dropping factors from trend:\n", file = logfile_build, append = TRUE)
-      cat(paste(c(ice_dummy_list, "\n"), collapse = " "), file = logfile_build, append = TRUE)
+  # Drop factors (dummy variable columns) from trend
+  if (include_factors) {
 
-      trendX <- trendX[ , input_cont_list]
+    cat("Dropping factors from trend:\n", file = logfile_build, append = TRUE)
+    cat(paste(c(ice_dummy_list, "\n"), collapse = " "), file = logfile_build, append = TRUE)
 
-      cat("\nKeeping:\n", file = logfile_build, append = TRUE)
-      cat(paste(c(colnames(trendX), "\n"), collapse = " "), file = logfile_build, append = TRUE)
-    }
+    trendX <- trendX[ , input_cont_list]
 
-    EMU <- lapply(1L:r, function(j) {
-
-      # Default values for RobustGaSP
-      initial_values <- NA
-      max_eval <- max(30,20+5*dim(designX)[2])
-
-      # xxx Quick hack for AIS two model: use initial values from main build,
-      # only try one set of initial values, and
-      # max_eval
-      # Last value is nugget
-      if (FALSE) { # Fails: Error in construct_rgasp(model@beta_hat, model@nugget, model@R0, model@X,  :
-        # Expecting a single value: [extent=0]
-        if (i_s == "AIS" && length(model_list) == 2) {
-          max_eval <- 30
-          if (j == 1) {
-            # inverse ln of 1st iteration values in rgasp.log (just ln for last: nugget)
-            iv <- c(-0.348583597,-5.982693695,-2.879534918,-4.512419937,-4.100360431,-5.980538323,-7.745731975,-3.817967239,-3.971741429,-3.447429356,-4.819408604,-4.751369624,-7.657114537,-2.741552028,-1.764697748,-1.334600197,-3.466662661,-2.175281468,-2.500552775,-2.775645919,-1.764697748,-6.999510216)
-          }
-          if (j == 2) {
-            # 1st iteration values
-            #iv <- c(0.749065893,-5.528651007,-2.208472526,-5.046248868,-4.688992818,-6.318759804,-13.21427999,-3.498131091,-2.737487313,-3.078379433,-3.479271075,-3.19315137,-11.56413081,-2.324335822,-1.264418775,-0.108093577,-2.224375953,-0.976333537,-3.005910796,-2.454771273,-1.264418775,-22.83327546)
-            # 2nd iteration values
-            iv <- c(-0.334440889,-5.578491701,-2.382315444,-5.018006063,-4.733133229,-6.633783194,-13.21427999,-3.731799087,-3.701152827,-3.514179281,-3.754871528,-3.559593039,-11.56413081,-2.466600952,-1.34296532,-0.701867547,-2.294487597,-1.277426312,-3.465961502,-3.231161644,-1.34296532,-5.67155907)
-          }
-          # Add a bit of noise for 2nd iteration
-          initial_values <- rbind(iv, iv + runif(length(iv), 0, 1e-4))
-        }
-      } # FALSE
-      #warning(paste0("Number of NAs in design:", length(designX[ is.na(designX) ])))
-      #U_j = U[, j]
-      #warning(paste0("Number of NAs in response:", length(U_j[ is.na(U_j) ])))
-      #warning(paste0("Number of NAs in trend:", length(trendX[ is.na(trendX) ])))
-
-      RobustGaSP::rgasp(design = designX, response = U[, j], trend = cbind(1, trendX),
-                        nugget.est = TRUE , lower_bound = lower_bound,
-                        kernel_type = kernel, alpha = rep(alpha, dim(as.matrix(designX))[2]))#,
-      #                      max_eval = max_eval, initial_values = initial_values)
-    })
-
-    sink()
-
-    ## predict method returns a list
-
-    pred_EMU <- function(designXout) {
-
-      trendXout <- designXout
-
-      # Drop any factors from trend
-      if (include_factors) {
-        tt <- which( input_cont_list %in% colnames(ice_design), arr.ind = TRUE )
-        trendXout <- trendXout[ , tt, drop = FALSE]
-      }
-
-      lapply(EMU, function(emu) {
-        RobustGaSP::predict(emu, testing_input = designXout,
-                            testing_trend = cbind(1, trendXout))[c("mean", "sd")]
-      })
-    }
-
-    ## return a function
-
-    robj <- function(designXout, type = c("mean", "sd", "var", "all")) {
-
-      type <- match.arg(type)
-      if (!is.matrix(designXout) && length(designXout) == d) {
-        dim(designXout) <- c(1L, d)
-      } else {
-        stopifnot(is.matrix(designXout), ncol(designXout) == d)
-      }
-      m_out <- nrow(designXout)
-      pplist <- pred_EMU(designXout) # r-list
-
-      ## compute the mean
-
-      mu <- sapply(pplist, "[[", "mean") # m_out x r
-      dim(mu) <- c(m_out, r)
-      mx <- sweep(mu %*% Vt, 2L, cc, "+") # m_out x n
-      if (type == "mean")
-        return(list(mean = mx))
-
-      ## compute the sd
-
-      sdu <- sapply(pplist, "[[", "sd") # m_out x r
-      dim(sdu) <- c(m_out, r)
-      #if (type == "sd") {
-      sdx <- lapply(1L:m_out, function(i) {
-        sqrt(colSums((sdu[i, ] * Vt)^2)) # n vector
-      })
-      sdx <- do.call("rbind", sdx) #  m_out x n
-      if (type == "sd") return(list(mean = mx, sd = sdx))
-      #}
-
-      ## compute the variance; TLE changed to return sd too
-
-
-      Sx <- lapply(1L:m_out, function(i) {
-        as.vector(crossprod(sdu[i, ] * Vt)) # n*n vector
-      })
-      Sx <- do.call("cbind", Sx) # n*n x m_out
-      dim(Sx) <- c(n, n, m_out)
-      Sx <- aperm(Sx, c(3, 1, 2)) # I wonder who wrote aperm :)
-      return(list(mean = mx, sd = sdx, var = Sx))
-    }
-
-    ## class and return
-
-    cat("make_emu: end of emulator build\n",file = logfile_build, append = TRUE)
-    cat("_____________________________________\n",file = logfile_build, append = TRUE)
-
-    #    emu_mv <- structure(robj, class = "emu")
-    structure(robj, class = "emu")
-
+    cat("\nKeeping:\n", file = logfile_build, append = TRUE)
+    cat(paste(c(colnames(trendX), "\n"), collapse = " "), file = logfile_build, append = TRUE)
   }
+
+  EMU <- lapply(1L:r, function(j) {
+
+    RobustGaSP::rgasp(design = designX, response = U[, j], trend = cbind(1, trendX),
+                      nugget.est = TRUE , lower_bound = lower_bound,
+                      kernel_type = kernel, alpha = rep(alpha, dim(as.matrix(designX))[2]))
+  })
+
+  sink()
+
+  ## predict method returns a list
+
+  pred_EMU <- function(designXout) {
+
+    trendXout <- designXout
+
+    # Drop any factors from trend
+    if (include_factors) {
+      tt <- which( input_cont_list %in% colnames(ice_design), arr.ind = TRUE )
+      trendXout <- trendXout[ , tt, drop = FALSE]
+    }
+
+    lapply(EMU, function(emu) {
+      RobustGaSP::predict(emu, testing_input = designXout,
+                          testing_trend = cbind(1, trendXout))[c("mean", "sd")]
+    })
+  }
+
+  ## return a function
+
+  robj <- function(designXout, type = c("mean", "sd", "var", "all")) {
+
+    type <- match.arg(type)
+    if (!is.matrix(designXout) && length(designXout) == d) {
+      dim(designXout) <- c(1L, d)
+    } else {
+      stopifnot(is.matrix(designXout), ncol(designXout) == d)
+    }
+    m_out <- nrow(designXout)
+    pplist <- pred_EMU(designXout) # r-list
+
+    ## compute the mean
+
+    mu <- sapply(pplist, "[[", "mean") # m_out x r
+    dim(mu) <- c(m_out, r)
+    mx <- sweep(mu %*% Vt, 2L, cc, "+") # m_out x n
+    if (type == "mean")
+      return(list(mean = mx))
+
+    ## compute the sd
+
+    sdu <- sapply(pplist, "[[", "sd") # m_out x r
+    dim(sdu) <- c(m_out, r)
+
+    sdx <- lapply(1L:m_out, function(i) {
+      sqrt(colSums((sdu[i, ] * Vt)^2)) # n vector
+    })
+    sdx <- do.call("rbind", sdx) #  m_out x n
+    if (type == "sd") return(list(mean = mx, sd = sdx))
+
+    ## compute the variance; TLE changed to return sd too
+
+    Sx <- lapply(1L:m_out, function(i) {
+      as.vector(crossprod(sdu[i, ] * Vt)) # n*n vector
+    })
+    Sx <- do.call("cbind", Sx) # n*n x m_out
+    dim(Sx) <- c(n, n, m_out)
+    Sx <- aperm(Sx, c(3, 1, 2)) # I wonder who wrote aperm :)
+    return(list(mean = mx, sd = sdx, var = Sx))
+  }
+
+  ## class and return
+
+  cat("make_emu: end of emulator build\n",file = logfile_build, append = TRUE)
+  cat("_____________________________________\n",file = logfile_build, append = TRUE)
+
+  structure(robj, class = "emu")
+
 }
+
 
 # END MAKE_EMU()
 
@@ -1472,7 +1409,7 @@ if (TRUE) {
 # Could use this for now if exists and unchanged: if ( ! exists("emu_mv") )
 
 # FUNCTION NOT WORKING SINCE A PACKAGE - SEE CODE ABOVE INSTEAD
-#if (FALSE) {
+# if (FALSE) {
 
 # Build emulator for timeslices every nyrs
 # Note this call is repeated in do_LOO.R
@@ -1488,8 +1425,11 @@ if ( ! exists("emu_mv") ) {
 #} # don't build emu_mv from function make_emu()
 
 
+# ________________----
+# TEST ------------------------------------------------------------
+
 #' # Predict for SA designs
-# Design: ME -----------------------------------------------------------------------
+# Design: main effects -----------------------------------------------------------------------
 
 #' ## Main effects
 # Main effects (i.e. one-at-a-time design for sensitivity analysis)
@@ -1512,7 +1452,7 @@ for (input in names( design_sa )) {
 
 #' ## Uniform temperature prior
 
-# Plot: SA ----------------------------------------------------------------------
+# Design: uniform ----------------------------------------------------------------------
 
 # Design "unif_temps" makes projections using uniform priors for GSAT with same ranges as sims
 # a better comparison than using FaIR projected distributions for each SSP
@@ -1531,7 +1471,7 @@ for (scen in scenario_list) {
   myem[[scen]] <- emulandice2::emulator_predict( design_pred_scaled )
 }
 
-# Add uncertainty ----------------------------------------------------------------------
+# Sample emu uncertainty ----------------------------------------------------------------------
 projections <- list()
 
 # Want to see unif_temps final projections (samples with uncertainty) for validation
@@ -1539,13 +1479,15 @@ for (scen in scenario_list) {
   projections[[scen]] <- emulandice2::emulator_uncertainty(myem[[scen]])
 }
 
+# Plot: SA -----------------------------------------------------
+
 # Plot sensitivity analysis
 if (plot_level > 0) {
   pdf( file = paste0( outdir, out_name, "_SA.pdf"),
        width = 9, height = 5)
-  emulandice2::plot_scatter("prior", "main_effects",plot_level)
-  emulandice2::plot_scatter("prior", "unif_temps",plot_level)
-  emulandice2::plot_scatter("posterior", "unif_temps",plot_level) # overkill?
+  emulandice2::plot_scatter("prior", "main_effects", plot_level)
+  emulandice2::plot_scatter("prior", "unif_temps", plot_level)
+  emulandice2::plot_scatter("posterior", "unif_temps", plot_level) # overkill?
   dev.off()
 }
 
@@ -1554,7 +1496,6 @@ if (plot_level > 0) {
 
 # Validate ---------------------------------------------------------------------
 # Builds LOO multivariate emulators and keeps results for requested timeslices
-
 if (do_loo_validation) {
 
   cat("\nLEAVE ONE OUT VALIDATION\n", file = logfile_build, append = TRUE)
@@ -1574,7 +1515,7 @@ if (do_loo_validation) {
 
     yind <- paste0( "y", yy)
 
-    # Run LOO prediction (in do_loo.R)
+    # Get LOO prediction (in do_loo.R)
     loo_mean[[yind]] <- loo_valid_all$mean[ , yind]
     loo_sd[[yind]] <- loo_valid_all$sd[ , yind]
 
@@ -1587,7 +1528,6 @@ if (do_loo_validation) {
       ice_data[ , yind] < (loo_mean[[yind]]  - 2*loo_sd[[yind]])
 
     # Fraction that missed
-    # frac_right <- 1 - (length(ice_data[ wrong[[ yind ]][N_k_index] , yind]) / N_k_subset)
     frac_right <- 1 - ( length(which(wrong[[yind]][N_k_index] == TRUE)) / N_k_subset )
 
     # xxx Could save in list for plot_loo, or output summary there - duplication
@@ -1611,6 +1551,7 @@ if (do_loo_validation) {
 
   } # years
 
+  # Plot: LOO-------
   # Plot LOO results
   pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
        width = 9, height = 5)
