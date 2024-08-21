@@ -374,7 +374,7 @@ temps_baseline <- 2015
 # Altered later in code if request shorter projections e.g. to 2100 only
 if (i_s == "AIS")  temps_list <- 2300
 if (i_s == "GIS") temps_list <- 2100 # 2100 better than 2300 (mostly fixed GSAT after)
-if (i_s == "GLA") temps_list <- 2300
+if (i_s == "GLA") temps_list <- c(2100, 2300)
 
 # Number of years to average over
 # e.g. setting 10 with temps_list = 2300 and temps_baseline = 2015
@@ -660,7 +660,7 @@ stopifnot(kernel %in% c("pow_exp", "matern_5_2", "matern_3_2"))
 
 # Plot all or just subset of figures
 # 0 for none, 1 for main, 2 for exhaustive
-plot_level <- 2
+plot_level <- 1
 stopifnot(plot_level %in% c(0,1,2)) # using plot_level = 3 to distinguish main.R calls
 
 # Quantiles to output [to text?]

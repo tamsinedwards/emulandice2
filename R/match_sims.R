@@ -134,14 +134,16 @@ match_sims <- function() {
         }
       } else {
 
-        for ( tt in temps_list) {
-          temps_period <- tt - N_temp_yrs:1 + 1
-          temps[ ss, ] <- mean(unlist(climate_exp[ , paste0( "y", temps_period) ]))
+        for ( tt in 1:length(temps_list)) {
+          temps_period <- temps_list[tt] - N_temp_yrs:1 + 1
+          temps[ ss, tt] <- mean(unlist(climate_exp[ , paste0( "y", temps_period) ]))
+
           if (ss == 1 ) {
             cat( paste("GSAT: forcing mean period", paste(range(temps_period), collapse = "-"), "\n"),
                  file = logfile_build, append = TRUE )
           }
         }
+
 
       }
 
