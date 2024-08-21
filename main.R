@@ -130,7 +130,7 @@ scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper
 set.seed(seed)
 
 # Plots: 0 = none, 1 = main, 2 = nearly all, 3 = replot SIMS.pdf with model error
-plot_level <- 0
+plot_level <- 2
 
 # Number of 2LM projections of GSAT expected per SSP
 # (and therefore total number of samples for book-keeping by GSAT value)

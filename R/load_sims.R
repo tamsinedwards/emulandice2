@@ -11,7 +11,7 @@
 #'
 #' @export
 
-load_sims <- function(variable, source = NA) { # dataset
+load_sims <- function(variable, source = NA, region = NA) { # dataset
 
 #  stopifnot(dataset %in% c("IPCC_AR6", "PROTECT"))
   stopifnot(variable %in% c("climate","ice"))
@@ -37,7 +37,13 @@ load_sims <- function(variable, source = NA) { # dataset
     if (variable == "ice") {
       if (source == "GIS") data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240210.csv") # 240317 has slc not sle
       if (source == "AIS") data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240306.csv")
-      if (source == "GLA") data_file <- paste0( inputs_preprocess, "/GLA/SLE_SIMULATIONS_GLA_v2_240317.csv")
+      if (source == "GLA") {
+        # All regions in one file when not many runs
+        # data_file <- paste0( inputs_preprocess, "/GLA/SLE_SIMULATIONS_GLA_v2_240317.csv")
+
+        data_file <- paste0( inputs_preprocess, "/GLA/SLE_SIMULATIONS_GLA_",region,"_240821.csv")
+
+      }
     }
 
 #  }

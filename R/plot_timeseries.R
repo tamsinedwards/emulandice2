@@ -116,8 +116,6 @@ plot_timeseries <- function(data_type, plot_level = 0) {
 
             }
 
-            #if (i_s %in% c( "GIS", "AIS")) { # "GrIS",
-
             # Observations last to be clearer:
             # Offset so mean in cal_start is zero
 

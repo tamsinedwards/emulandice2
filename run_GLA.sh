@@ -30,7 +30,7 @@ model_list=GloGEM_OGGM
 now=$(date +'%y%m%d')
 outdir="$results_dir"/"$now"_GLA_ALL_"$final_year"
 
-for region in $(seq -f "%02g" 1 19) # if running only one region, then zero-pad!
+for region in 03 # $(seq -f "%02g" 1 19) # if running only one region, then zero-pad!
 do
 
   echo
@@ -50,7 +50,7 @@ do
   echo
   echo "run GLA: predict for region RGI: $region"
 
-  for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp585"
+  for ssp in "ssp534-over" "ssp119" "ssp126" "ssp245" "ssp370" "ssp585"
   do
 
   echo "Scenario:" $ssp
