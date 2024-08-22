@@ -42,7 +42,7 @@ load_design_to_pred <- function(design_name) {
   for ( pp in ice_cont_list ) prior_range[[pp]] <- c(NA, NA)
 
   # SET EMPIRICAL PRIOR FOR Greenland
-  if (i_s == "GIS") { # %in% c("GrIS", "GIS")
+  if (i_s == "GIS") {
 
     if ("retreat" %in% ice_param_list) {
 
@@ -174,7 +174,7 @@ load_design_to_pred <- function(design_name) {
       if (dd %in% ice_cont_list) {
 
         # Empirical prior
-        if (i_s == "GIS" && dd == "retreat") { # %in% c("GrIS","GIS")
+        if (i_s == "GIS" && dd == "retreat") {
           nom[[ dd ]] <- -0.17
         } else {
           # Uniform prior
@@ -275,7 +275,7 @@ load_design_to_pred <- function(design_name) {
       # Continuous parameters: sample independently
       for (pp in ice_cont_list) {
 
-        if (i_s == "GIS" && pp == "retreat") { # %in% c("GrIS", "GIS")
+        if (i_s == "GIS" && pp == "retreat") {
           # Empirical
           samp <- sample( unlist(retreat_prior), N_prior, replace = TRUE )
         } else {
@@ -415,7 +415,7 @@ load_design_to_pred <- function(design_name) {
       # Continuous parameters
       for (pp in ice_cont_list) {
 
-        if (i_s == "GIS" && pp == "retreat") { # %in% c("GrIS", "GIS")
+        if (i_s == "GIS" && pp == "retreat") {
           # Empirical
           samp <- sample( unlist(retreat_prior), N_temp, replace = TRUE )
         } else {

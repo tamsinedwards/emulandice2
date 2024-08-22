@@ -151,6 +151,9 @@ cat(sprintf("\nemulandice2: %s %s\n\n", i_s, reg), file = logfile_results)
 
 cat(sprintf("\nLoaded emulator file: %s\n", emu_file), file = logfile_results, append = TRUE)
 
+# Quantiles to output
+q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
+
 #' # Priors are default or custom
 # Priors -----------------------------------------------------------------------
 

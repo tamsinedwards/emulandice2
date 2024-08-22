@@ -19,20 +19,11 @@ get_inputs <- function(param_list) {
   cat("\nRequested inputs:\n",file = logfile_build, append = TRUE)
   cat( paste(c(param_list, "\n")), file = logfile_build, append = TRUE)
 
-  # xxx Probably need to adapt this for AR6 glaciers? (as no ice_param)
   ice_param <- ice_data[ param_list ]
-
-  #==========================================================================
-  # RENAME INPUTS
-
-  # AR6: rename GIS melt to proper parameter name
-#  if (dataset == "IPCC_AR6" && i_s == "GrIS") names(ice_param) <- "retreat"
 
   #==========================================================================
   # IMPUTE MISSING VALUES
   # XXX CHANGE THIS TO GENERIC IMPUTING USING JONTY RECOMMENDED METHOD
-
-#  if (dataset == "PROTECT") {
 
     # Glacier forcing ensemble has NAs for all model inputs
     if (i_s == "GLA") {
@@ -56,7 +47,6 @@ get_inputs <- function(param_list) {
       }
     }
 
-#  }
 
   cat("_____________________________________\n",file = logfile_build, append = TRUE)
 

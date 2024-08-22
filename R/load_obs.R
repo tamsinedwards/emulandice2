@@ -41,7 +41,6 @@ load_obs <- function() {
 
   } else {
 
-    # %in% c("GrIS","GIS"))
   if (i_s == "GIS") obs_file <- read.csv(paste0(inputs_ext,"/GIS/IMBIE/imbie_greenland_2021_mm.csv"))
   if (i_s == "AIS") obs_file <- read.csv(paste0(inputs_ext,"/AIS/IMBIE/imbie_antarctica_2021_mm.csv"))
 

@@ -118,7 +118,7 @@ if (i_s == "GLA") {
 target_size <- 1000 # NA to use all simulations
 
 # Long names for outputs
-if (i_s == "GIS") ice_name <- "Greenland"  # %in% c("GrIS", "GIS"))
+if (i_s == "GIS") ice_name <- "Greenland"
 if (i_s == "AIS") ice_name <- "Antarctica"
 if (i_s == "GLA") {
   ice_name <- read.csv(paste0(inputs_ext,"/GLA/regionnames.txt"), header = FALSE)[reg_num,1]
@@ -240,7 +240,7 @@ if ( i_s == "GLA") {
   if (reg_num %in% c(1, 4, 5, 7, 19)) emulator_settings <- "pow_exp_01"
 
 }
-stopifnot(emulator_settings %in% c("IPCC_AR6", "matern_5_2", "matern_3_2",
+stopifnot(emulator_settings %in% c("matern_5_2", "matern_3_2",
                                    "pow_exp_01", "pow_exp_10",
                                    "pow_exp_19", "pow_exp_20"))
 
@@ -586,9 +586,6 @@ stopifnot(kernel %in% c("pow_exp", "matern_5_2", "matern_3_2"))
 plot_level <- 1
 stopifnot(plot_level %in% c(0,1,2)) # using plot_level = 3 to distinguish main.R calls
 
-# Quantiles to output [to text?]
-q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
-
 # Sub-sample to plot; exclude any dates not predicted by emulator
 yy_plot <- c(as.character(cal_end),"2100", "2150", "2200", "2300")
 yy_plot <- yy_plot[ yy_plot %in% years_em ]
@@ -618,7 +615,7 @@ if (i_s == "AIS") {
   sle_lim[["2300"]] <- c(-300, 1000); sle_inc[["2300"]] <- 20
 }
 
-if (i_s == "GIS") {  # %in% c("GrIS", "GIS")) {
+if (i_s == "GIS") {
   sle_lim[[as.character(cal_end)]] <- c(-1, 2); sle_inc[[as.character(cal_end)]] <- 0.1
   sle_lim[["2050"]] <- c(-1, 10); sle_inc[["2050"]] <- 0.5
   sle_lim[["2100"]] <- c(-20, 40); sle_inc[["2100"]] <- 1
@@ -713,8 +710,6 @@ AR6_rgb_light[["SSP534-over"]] <- rgb(146, 57, 122, maxColorValue = 255, alpha =
 # SL simulations are up with glacier cap
 
 # Observations
-#if (dataset == "IPCC_AR6") ylim_obs <- c(-1,1.5)
-#if (dataset == "PROTECT") {
 if (i_s == "GIS") ylim_obs <- c(-1.5,2)
 if (i_s == "AIS") ylim_obs <- c(-10,12)
 
@@ -724,7 +719,6 @@ if (i_s == "GLA") {
   ylim_obs <- c(-1.5,2)
   if (reg %in% c("RGI12", "RGI18")) ylim_obs <- c(-0.01,0.03)
 }
-#}
 
 
 # ________________----

@@ -41,17 +41,9 @@ select_sims <- function(select_type) {
 
     #__________________________________________________
     # GREENLAND SELECTIONS
-    if (i_s == "GIS") { # %in% c("GIS","GrIS")) {
-
-      # Exclude ISMIP6 open melt runs for now
-      # xxx Remove line and replace with dummy variable in emulator
-      #if ( dataset == "IPCC_AR6" && i_s == "GrIS") {
-      #  ice_data <- ice_data[ !is.na(ice_data$melt), ]
-      #  cat( paste("After excluding ISMIP6 open melt:", dim(ice_data)[1], "\n"), file = logfile_build, append = TRUE)
-      #}
+    if (i_s == "GIS") {
 
       # Exclude control runs from GIS
-      # xxx add "if PROTECT"?
       ice_data <- ice_data [ ice_data$scenario != "ctrl", ]
       cat( paste("After removing GIS control simulations:", dim(ice_data)[1],"\n"),
            file = logfile_build, append = TRUE)
@@ -74,7 +66,7 @@ select_sims <- function(select_type) {
 
     # ANTARCTIC SELECTIONS
 
-    if ( i_s == "AIS") { # dataset == "PROTECT" &&
+    if ( i_s == "AIS") {
 
       # Faster if drop big GCM-forced ensembles...
       if (ensemble_subset == "RCM_forced") {
