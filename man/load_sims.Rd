@@ -4,12 +4,14 @@
 \alias{load_sims}
 \title{load_obs: climate forcings and land ice projections.}
 \usage{
-load_sims(variable, source = NA)
+load_sims(variable, source = NA, region = NA)
 }
 \arguments{
 \item{variable}{Variable: "climate" or "ice}
 
 \item{source}{Ice source, i.e. value of i_s, if variable is ice}
+
+\item{region}{Region - currently only used for GLA}
 }
 \value{
 `load_sims()` returns CSV of dataset

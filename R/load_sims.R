@@ -6,6 +6,7 @@
 # @param dataset Dataset: "PROTECT" or "IPCC_AR6" - obsolete
 #' @param variable Variable: "climate" or "ice
 #' @param source Ice source, i.e. value of i_s, if variable is ice
+#' @param region Region - currently only used for GLA
 #'
 #' @returns `load_sims()` returns CSV of dataset
 #'

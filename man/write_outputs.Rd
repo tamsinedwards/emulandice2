@@ -7,8 +7,7 @@
 write_outputs(write_mean)
 }
 \arguments{
-\item{write_mean}{TRUE/FALSE to write mean projections, as well as the
-final/full projections with emulator uncertainties.}
+\item{write_csv}{TRUE/FALSE to write projections to CSV}
 }
 \description{
 Write projections to CSV: just final (i.e. with emulator

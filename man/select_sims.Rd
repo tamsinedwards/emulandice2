@@ -4,7 +4,10 @@
 \alias{select_sims}
 \title{select_sims: select land ice simulations}
 \usage{
-select_sims()
+select_sims(select_type)
+}
+\arguments{
+\item{select_type}{Type of selection: main or history_match}
 }
 \value{
 select_sims returns a matrix ice_data which is a subset of the original.
