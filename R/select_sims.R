@@ -106,13 +106,12 @@ select_sims <- function(select_type) {
     #__________________________________________________
     # GLACIER SELECTIONS
 
-    if ( i_s == "GLA" ) {
+    if ( i_s == "GLA" && !is.na(complete_thresh) ) {
 
       # Excluding using data quality flag "complete":
 
-      # Index to keep: only filter for OGGM as I don't have info for GloGEM yet
-      complete_sel <- (ice_data$complete >= complete_thresh & ice_data$model == "OGGM") |
-        ice_data$model %in% model_list[ model_list != "OGGM"]
+      # Index to keep (GloGEM pre-filtered so set to 1)
+      complete_sel <- ice_data$complete >= complete_thresh
 
       # Restrict dataset
       ice_data <- ice_data[ complete_sel , ]

@@ -208,7 +208,7 @@ if (i_s == "GLA") {
 
   # Fraction of glaciers that must have completed (guidance from Fabien Maussion)
   # Currently only applied to OGGM; XXX add GO model to select_sims()
-  complete_thresh <- 0.8
+  complete_thresh <- 0.8 # NA to not use
 
 }
 
