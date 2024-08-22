@@ -536,14 +536,13 @@ cat(paste("\nContinuous inputs:", paste(ice_cont_list, collapse = " "), "\n"), f
 # assumes always have at least 1 continuous
 # but factor might be NA
 # Save whether any factors for other uses
-if ( ! TRUE %in% is.na(ice_factor_list)) {
-  include_factors <- TRUE
-  ice_param_list <- c(ice_cont_list, ice_factor_list)
-} else {
+if (anyNA(ice_factor_list)) {
   include_factors <- FALSE
   ice_param_list <- ice_cont_list
+} else {
+  include_factors <- TRUE
+  ice_param_list <- c(ice_cont_list, ice_factor_list)
 }
-
 
 if (include_factors) {
   cat(paste("Factors:", paste(ice_factor_list, collapse = " "), "\n"), file = logfile_build, append = TRUE)
@@ -907,8 +906,6 @@ if (i_s %in% c("AIS","GIS")) {
     # All simulations (to construct index)
     all <- emulandice2::load_sims(variable = "ice", source = i_s)
 
-    # Drop Phase 1 before getting num. simulations because none in regional files
-    all <- all[ all$Phase != 1 | is.na(all$Phase), ]
     nrows_all <- dim(all)[1]
 
     # Timeslices for sims selected in main analysis
@@ -1062,7 +1059,7 @@ for ( pp in ice_param_list ) {
 
 # Check for NAs in columns we plan to use to emulate, otherwise fail
 cols_to_check <- ice_data[ , ice_param_list ]
-if (length(cols_to_check[ is.na(cols_to_check) ]) > 0) stop("NAs found in ice_data columns to use as inputs in emulation: please drop/fix")
+if (anyNA(cols_to_check)) stop("NAs found in ice_data columns to use as inputs in emulation: please drop/fix")
 
 # COMBINE CLIMATE FORCING AND CONTINUUOUS ICE MODEL INPUTS INTO DESIGN MATRIX
 ice_design <- as.matrix( data.frame(temps, ice_data[ ice_cont_list ]) )
@@ -1086,7 +1083,7 @@ for (tt in 1:length(temps_list_names)) {
 ice_factor_values <- list()
 
 # ADD FACTOR COLUMNS
-if ( ! TRUE %in% is.na(ice_factor_list)) {
+if ( include_factors ) {
 
   # Adding factors
   for ( ff in ice_factor_list ) {
@@ -1193,7 +1190,7 @@ if (plot_level > 0) {
 if ( ! exists("emu_mv") ) {
   #show(system.time(
   emu_mv <- emulandice2::make_emu( ice_design_scaled,
-                      as.matrix( ice_data[ , paste0("y", years_em) ] ))
+                                   as.matrix( ice_data[ , paste0("y", years_em) ] ))
   #))
 }
 
