@@ -76,16 +76,6 @@ select_sims <- function(select_type) {
 
     if ( i_s == "AIS") { # dataset == "PROTECT" &&
 
-      # Drop Phase 1 Kori
-      if ( "Kori" %in% model_list && ensemble_subset %in% c("GCM_forced", "all_forced")) {
-
-        # Only Kori has Phase = 1 set
-        ice_data <- ice_data[ ice_data$Phase != 1 | is.na(ice_data$Phase), ]
-        cat( paste("After dropping Kori Phase 1:", dim(ice_data)[1], "\n"),
-             file = logfile_build, append = TRUE)
-
-      }
-
       # Faster if drop big GCM-forced ensembles...
       if (ensemble_subset == "RCM_forced") {
         ice_data <- ice_data[ ice_data$forcing_type == "RCM", ]

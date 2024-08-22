@@ -239,12 +239,12 @@ for (scen in scenario_list) {
 # GLACIER CAP: MEAN PROJECTIONS
 for (scen in scenario_list) {
   if (i_s == "GLA" &&
-      max( myem[[scen]]$mean ) > max_glaciers[[reg]] ) {
+      max( myem[[scen]]$mean ) > glacier_cap ) {
     cat( sprintf("\nCapping %s mean %s projections at %.3f cm SLE\n",
-                 reg, scen, max_glaciers[[reg]]), file = logfile_results, append = TRUE)
+                 reg, scen, glacier_cap), file = logfile_results, append = TRUE)
     cat( sprintf("Initial range: %.3f - %.3f cm SLE\n", min( myem[[scen]]$mean ),
                  max( myem[[scen]]$mean )), file = logfile_results, append = TRUE)
-    myem[[scen]]$mean[ myem[[scen]]$mean > max_glaciers[[reg]] ] <- max_glaciers[[reg]]
+    myem[[scen]]$mean[ myem[[scen]]$mean > glacier_cap ] <- glacier_cap
     cat( sprintf("Final range: %.3f - %.3f cm SLE\n", min( myem[[scen]]$mean ),
                  max( myem[[scen]]$mean)), file = logfile_results, append = TRUE)
   }
@@ -264,15 +264,15 @@ for (scen in scenario_list) {
 
   # GLACIER CAP: FINAL PROJECTIONS
   if (i_s == "GLA" &&
-      max( projections[[ scen ]] ) > max_glaciers[[reg]] ) {
+      max( projections[[ scen ]] ) > glacier_cap ) {
     cat(sprintf("\nCapping %s final %s projections at %.3f cm SLE\n", reg, scen,
-                max_glaciers[[reg]]), file = logfile_results, append = TRUE)
+                glacier_cap), file = logfile_results, append = TRUE)
 
     cat( sprintf("Initial range: %.3f - %.3f cm SLE\n",
                  min( projections[[ scen ]]  ),
                  max( projections[[ scen ]] )), file = logfile_results, append = TRUE)
 
-    projections[[ scen ]][ projections[[ scen ]] > max_glaciers[[reg]] ] <- max_glaciers[[reg]]
+    projections[[ scen ]][ projections[[ scen ]] > glacier_cap ] <- glacier_cap
     cat( sprintf("Final range: %.3f - %.3f cm SLE\n", min( projections[[ scen ]]  ),
                  max( projections[[ scen ]]  )), file = logfile_results, append = TRUE)
   }

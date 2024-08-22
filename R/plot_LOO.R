@@ -37,8 +37,8 @@ plot_loo <- function() {
           main = paste("Leave one out validation:", i_s, yy))
     abline ( a = 0, b = 1 )
     if (i_s == "GLA") {
-      abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
-      abline( v = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
+      abline( h = glacier_cap, col = "darkred", lwd = 0.5, lty = 5)
+      abline( v = glacier_cap, col = "darkred", lwd = 0.5, lty = 5)
     }
 
     # +/- 2 s.d. error bars
@@ -75,7 +75,7 @@ plot_loo <- function() {
             main = paste("LOO ordered by input:",yy))
       abline( h = 0 )
       if (i_s == "GLA") {
-        abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
+        abline( h = glacier_cap, col = "darkred", lwd = 0.5, lty = 5)
       }
 
       # +/- 2 s.d. error bars

@@ -41,7 +41,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
              ylab = paste("Sea level contribution from",cal_start,"-",yy,"(cm)"))
         abline( h = 0 )
         if (i_s == "GLA") {
-          abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
+          abline( h = glacier_cap, col = "darkred", lwd = 0.5, lty = 5)
         }
 
         # Plot observations
@@ -159,7 +159,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
              ylab = paste("Sea level contribution from",cal_start,"-",yy,"(cm)"))
         abline( h = 0, lwd = 0.2, col = "darkgrey" )
         if (i_s == "GLA") {
-          abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
+          abline( h = glacier_cap, col = "darkred", lwd = 0.5, lty = 5)
         }
 
         # Observations
@@ -441,7 +441,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
               ylim = sle_lim[[yy]] )
         abline( h = 0 )
         if (i_s == "GLA") {
-          abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
+          abline( h = glacier_cap, col = "darkred", lwd = 0.5, lty = 5)
         }
 
         polygon( c( design_sa[[gg]][,gg], rev( design_sa[[gg]][,gg] ) ),
@@ -484,7 +484,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
               xlab = pp, ylim = sle_lim[[yy]])
         abline( h = 0 )
         if (i_s == "GLA") {
-          abline( h = max_glaciers[[reg]], col = "darkred", lwd = 0.5, lty = 5)
+          abline( h = glacier_cap, col = "darkred", lwd = 0.5, lty = 5)
         }
 
         polygon( c( design_sa[[pp]][,pp],

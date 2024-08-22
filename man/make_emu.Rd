@@ -7,7 +7,7 @@
 make_emu(designX, responseF, r = NULL, thresh = 0.999)
 }
 \value{
-`make_emu()` returns emulator object to use.
+`make_emu()` returns an emulator object to use.
 }
 \description{
 Build emulators of principal components with RobustGaSP.

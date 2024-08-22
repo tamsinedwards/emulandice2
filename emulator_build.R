@@ -133,7 +133,9 @@ N_prior <- 2000
 do_loo_validation <- FALSE
 N_k <- 10 # for every N_k-th simulation; NA for full LOO
 
+print("***********************************************************************")
 print("Hello! Welcome to emulandice2: build")
+print("***********************************************************************")
 
 print(paste("Building an emulator for",ice_name,"region",reg,"..."))
 if (do_loo_validation) {
@@ -212,7 +214,7 @@ if (i_s == "GLA") {
 
 }
 
-# Check model names are correct
+# Check selected model names are correct
 stopifnot( length( setdiff(model_list, model_list_full )) == 0 )
 
 # Emulator choices ------------------------------------------------------------------------
@@ -260,84 +262,40 @@ cat(paste("\nDate range of simulations to be used:",
     file = logfile_build, append = TRUE)
 cat(paste("\nEmulator covariance:",emulator_settings,"\n"), file = logfile_build, append = TRUE)
 
-
 #' ## Glacier maximum contributions
-# Glacier caps --------
+# Get glacier cap --------
 
-# GLACIER CAPS: mm SLE for each region from Farinotti et al.
-# as in emulandice v1
-max_glaciers <- list()
-max_glaciers[["RGI01"]] <- 43.3
-max_glaciers[["RGI02"]] <- 2.6
-max_glaciers[["RGI03"]] <- 64.8
-max_glaciers[["RGI04"]] <- 20.5
-max_glaciers[["RGI05"]] <- 33.6
-max_glaciers[["RGI06"]] <- 9.1
-max_glaciers[["RGI07"]] <- 17.3
-max_glaciers[["RGI08"]] <- 0.7
-max_glaciers[["RGI09"]] <- 32.0
-max_glaciers[["RGI10"]] <- 0.3
-max_glaciers[["RGI11"]] <- 0.3
-max_glaciers[["RGI12"]] <- 0.2
-max_glaciers[["RGI13"]] <- 7.9
-max_glaciers[["RGI14"]] <- 6.9
-max_glaciers[["RGI15"]] <- 2.1
-max_glaciers[["RGI16"]] <- 0.2
-max_glaciers[["RGI17"]] <- 12.8
-max_glaciers[["RGI18"]] <- 0.2
-max_glaciers[["RGI19"]] <- 69.4
+glacier_cap <- emulandice2::get_glacier_cap(reg)
 
-# Convert mm to cm
-for (rr in names(max_glaciers)) {
-  max_glaciers[[rr]] <- max_glaciers[[rr]]/10.0
-}
+# Calibration dates --------
+#' ## Baseline and calibration dates
 
-#' ## Baseline and calibration choices
-
-# AR6: 2015 is always start of simulations (no historical)
-#
-# PROTECT: Earliest Greenland = 1960, Antarctic = 1950, glaciers = 1980
-# xxx Do more neatly...!!
-# xxx Note cal_start MUST be same as baseline in current code (and makes sense)
-
-# Latest for IMBIE is 2020
-# Default 2014 because projections start in 2015
-# xxx urgh
-# %in% c("GrIS", "GIS")
-if (i_s == "GIS") cal_end <- 2020 # 2015 # 2014 for 2100 2 yr; but 2015 for ElmerIce or 2300 (or 2020?)
+# Ice sheets: Otosaka et al. (2023) IMBIE is 1992-2020
+# Glaciers: Hugonnet et al. (2021) is 2000-2020
 if (i_s == "AIS") cal_end <- 2020
+if (i_s == "GIS") cal_end <- 2020 # 2015 # 2014 for 2100 2 yr; but 2015 for ElmerIce or 2300 (or 2020?)
 if (i_s == "GLA") cal_end <- 2020 # because OGGM fails if too early xxx obsolete?
 
-# End of IMBIE GIS and Hugonnet; also encroaches onto SSPs; xxx change for AIS?
-stopifnot(cal_end <= 2020)
-
 # Start of calibration period
-# xxx Tidy up / finalise
+# xxx Note cal_start MUST be same as baseline in current code (and makes sense)
 
-#if (dataset == "IPCC_AR6") cal_start = 2015
-#if (dataset == "PROTECT") {
+# PROTECT: Earliest Greenland = 1960, Antarctic = 1950, glaciers = 1980
+
+# XXX Implement different baselines for 2100/50 and 2300?
+
+# Antarctica
+if (i_s == "AIS") cal_start = 2000
 
 # Greenland
-# Default start 1992 if nyrs for 2100; but 1995 for 2300
-# Earliest Elmer/Ice is 1995; earliest GISM HOM is 2015
-# %in% c("GrIS", "GIS"))
-if (i_s == "GIS") cal_start = 2000 # 2000 for FACTS or nyrs = 10; sort for calib from 1992
-
-# Antarctica: to hit 2100 with 5 yr timeslices
-if (i_s == "AIS") cal_start = 2000 # xxx for FACTS; sort for calib from 1992
+if (i_s == "GIS") cal_start = 2000 # xxx change to 1995 when decoupled baseline
 
 # Glaciers: 2000 for most runs, but 2005 for OGGM PPE
-if (i_s == "GLA") {
-  cal_start = 2000
-  #if ( "OGGM" %in% model_list && ensemble_subset == "PPE") cal_start = 2005 # xxx replace when new dataset
-}
+if (i_s == "GLA") cal_start = 2000
 
-# Earliest date possible for ice sheets (IMBIE) = 1992
-# Glaciers (Hugonnet et al.) = 2000
+# Check for current data ranges - change if updating data
+stopifnot(cal_end <= 2020)
 stopifnot( cal_start >= 1992
            || (i_s == "GLA" && cal_start >= 2000 ) )
-
-#}
 
 # Construct emulated time series
 proj_start <- cal_start + nyrs
@@ -374,10 +332,10 @@ cat("\nEMULATOR INPUTS:\n", file = logfile_build, append = TRUE)
 
 temps_baseline <- 2015
 
-# Not too many, to avoid linear combinations (esp bad for fixed climate GIS)
+# Not too many, to avoid linear combinations (esp bad for fixed climate GIS) or overfitting
 # Altered later in code if request shorter projections e.g. to 2100 only
 if (i_s == "AIS")  temps_list <- 2300
-if (i_s == "GIS") temps_list <- 2100 # 2100 better than 2300 (mostly fixed GSAT after)
+if (i_s == "GIS") temps_list <- 2100 # 2100 is better than 2300 (mostly fixed GSAT after)
 if (i_s == "GLA") temps_list <- c(2100, 2300)
 
 # Number of years to average over
@@ -399,43 +357,12 @@ cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append =
 
 # Ice model parameters for ice_design
 
-# AR6: Greenland retreat; Antarctic heat flux; glaciers none
-# XXX Add melt0 for GIS
-#if (dataset == "IPCC_AR6") ice_param_list <- "melt" # For GrIS and AIS
-
-# PROTECT
-# Continuous and categorical (factor) model inputs
-if (i_s == "GIS") {
-
-  # Individual model lists
-  # None for GISM
-  ice_factor_list_model <- list()
-  ice_factor_list_model[["CISM"]] <- c("thermodyn", "RCM_init", "init_yrs", "elev_feedback")
-  ice_factor_list_model[["IMAUICE"]] <- c("sliding") # xxx not SP_climate because has missing
-  ice_factor_list_model[["ElmerIce"]] <- c("sliding")
-
-  # Combined model lists
-  # Continuous parameters
-  # xxx Make init_yrs continuous too?
-  # xxx Ignoring retreat_hist for now
-  ice_cont_list <- c("retreat", "resolution")
-
-  # Factors
-  # Ignore model_variant as this (sub-name) should be accounted for by other inputs
-  ice_factor_list <- "RCM"
-  for (mm in model_list) {
-    if (length(ice_factor_list_model[[mm]]) > 0) ice_factor_list <- c(ice_factor_list, ice_factor_list_model[[mm]])
-  }
-
-  # Drop duplicates
-  ice_factor_list <- unique( ice_factor_list )
-
-  # Add model input
-  if (length(model_list) > 1) ice_factor_list <- c(ice_factor_list, "model")
-
-}
 
 if (i_s == "AIS") {
+
+  # XXX Drop phase, PDD_sd from file; also init method if correlated model
+  # (or add PD12 Kori GCM and look at PISM RCM doc)
+  # xxx Double-check heat_flux names translation from GCM to RCM ensembles
 
   ice_cont_list_model <- list()
   ice_factor_list_model <- list()
@@ -449,14 +376,10 @@ if (i_s == "AIS") {
   if ( ensemble_subset %in% c("GCM_forced", "all_forced") ) {
     ice_cont_list_model[["Kori"]] <- c(ice_cont_list_model[["Kori"]],
                                        "lapse_rate", "PDD_ice", "PDD_snow", "refreeze")
-    # "PDD_sd" # Only perturbed in Phase 1 which is now dropped
-    # in select_sims() because basins were not saved (and saves compute time)
+
 
     ice_factor_list_model[["Kori"]] <- c( ice_factor_list_model[["Kori"]],
                                           "init_atmos", "init_ocean")
-    # Note Phase factor accounts for model version
-    # but it doesn't makes sense to combine Phase 2 vs 3 across models
-    # so absorb into RCM-forced vs GCM-forced instead
 
   }
 
@@ -541,8 +464,38 @@ if (i_s == "AIS") {
   # Add model switch and GCM vs RCM-forced factor:
   if ( length(model_list) > 1 ) ice_factor_list <- c(ice_factor_list, "model")
 
-  # xxx Add init_method if complete for models (add PD12 Kori GCM and look at PISM RCM doc)
-  # xxx Double-check heat_flux names translation from GCM to RCM ensembles
+}
+
+# Continuous and categorical (factor) model inputs
+if (i_s == "GIS") {
+
+  # xxx Drop SP_climate column - not used and has missing
+  # xxx Ignoring retreat_hist for now
+
+  # Individual model lists
+  # No factors for GISM
+  # xxx Make init_yrs continuous?
+  ice_factor_list_model <- list()
+  ice_factor_list_model[["CISM"]] <- c("thermodyn", "RCM_init", "init_yrs", "elev_feedback")
+  ice_factor_list_model[["IMAUICE"]] <- c("sliding")
+  ice_factor_list_model[["ElmerIce"]] <- c("sliding")
+
+  # Combined model lists
+  # Continuous parameters
+  ice_cont_list <- c("retreat", "resolution")
+
+  # Factors
+  # Ignore model_variant as this (sub-name) should be accounted for by other inputs
+  ice_factor_list <- "RCM"
+  for (mm in model_list) {
+    if (length(ice_factor_list_model[[mm]]) > 0) ice_factor_list <- c(ice_factor_list, ice_factor_list_model[[mm]])
+  }
+
+  # Drop duplicates
+  ice_factor_list <- unique( ice_factor_list )
+
+  # Add model input
+  if (length(model_list) > 1) ice_factor_list <- c(ice_factor_list, "model")
 
 }
 
@@ -598,61 +551,27 @@ if (include_factors) {
 
 #' ## Emulator details
 
-# IPCC AR6 emulator, emulandice v1
-if ( emulator_settings == "IPCC_AR6") {
+# Could set to FALSE if want to check for inert inputs
+lower_bound <- TRUE # RobustGaSP default
+alpha = NA
 
-  # Most were power exponential
-  kernel <- "pow_exp"
+if (emulator_settings == "matern_5_2") kernel <- "matern_5_2"
+if (emulator_settings == "matern_3_2") kernel <- "matern_3_2"
 
-  if ( reg == "RGI12") kernel <- "matern_3_2"
-  if ( reg %in% c("RGI17", "RGI19") ) kernel <- "matern_5_2"
-  lower_bound = FALSE # xxx FALSE was just to make it run so maybe ditch?
-
-  # Most emulators were power exponential
-  if (kernel == "pow_exp") {
-
-    # 0.1: covariance has small effect; approaches linear regression
-    # 1.9: close to squared exponential
-    alpha = 0.1
-    if (reg %in% paste0("RGI",c("01","06","08","09","10","11"))) alpha = 1.0
-    if (reg %in% paste0("RGI",c("02","03","14"))) alpha = 1.9 # default
-  } else alpha = NA
-}
-
-# Default in RG is to bound;
-# Set to FALSE in AR6 because warning when searching
-# "NA/Inf replaced by maximum positive value"
-# and to check for inert inputs
-
-if (emulator_settings == "matern_5_2") {
-  kernel <- "matern_5_2"
-  lower_bound <- TRUE # default = TRUE
-  alpha = NA
-}
-
-if (emulator_settings == "matern_3_2") {
-  kernel <- "matern_3_2"
-  lower_bound <- TRUE # default = TRUE
-  alpha = NA
-}
 if (emulator_settings == "pow_exp_01") {
   kernel <- "pow_exp"
-  lower_bound <- TRUE # default = TRUE
   alpha = 0.1
 }
 if (emulator_settings == "pow_exp_10") {
   kernel <- "pow_exp"
-  lower_bound <- TRUE # default = TRUE
   alpha = 1.0
 }
 if (emulator_settings == "pow_exp_19") {
   kernel <- "pow_exp"
-  lower_bound <- TRUE # default = TRUE
   alpha = 1.9 # default for pow_exp
 }
 if (emulator_settings == "pow_exp_20") {
   kernel <- "pow_exp"
-  lower_bound <- TRUE # default = TRUE
   alpha = 2.0
 }
 
@@ -714,41 +633,41 @@ if (i_s == "GLA") {
 
   # Large regions (>1cm)
   # Checked with region 17; special limits for other large regions below
-  if (max_glaciers[[reg]] >= 1.0) {
+  if (glacier_cap >= 1.0) {
     sle_lim[[as.character(cal_end)]] <- c(-1, 2); sle_inc[[as.character(cal_end)]] <- 0.1
-    sle_lim[["2050"]] <- c(-1, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.1
-    sle_lim[["2100"]] <- c(-2, 1.5*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.1
-    sle_lim[["2150"]] <- c(-3, 2*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.1
-    sle_lim[["2200"]] <- c(-5, 2*max_glaciers[[reg]]); sle_inc[["2200"]] <- 0.1
-    sle_lim[["2300"]] <- c(-5, 2*max_glaciers[[reg]]); sle_inc[["2300"]] <- 0.1
+    sle_lim[["2050"]] <- c(-1, glacier_cap); sle_inc[["2050"]] <- 0.1
+    sle_lim[["2100"]] <- c(-2, 1.5*glacier_cap); sle_inc[["2100"]] <- 0.1
+    sle_lim[["2150"]] <- c(-3, 2*glacier_cap); sle_inc[["2150"]] <- 0.1
+    sle_lim[["2200"]] <- c(-5, 2*glacier_cap); sle_inc[["2200"]] <- 0.1
+    sle_lim[["2300"]] <- c(-5, 2*glacier_cap); sle_inc[["2300"]] <- 0.1
   }
 
   # Adjust lower end for dinky glacier regions (< 1cm)
-  if (max_glaciers[[reg]] < 1.0) {
+  if (glacier_cap < 1.0) {
     sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
-    sle_lim[["2050"]] <- c(-0.005, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.1
-    sle_lim[["2100"]] <- c(-0.005, 1.1*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.1
-    sle_lim[["2150"]] <- c(-0.005, 1.3*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.1
-    sle_lim[["2200"]] <- c(-0.01, 1.4*max_glaciers[[reg]]); sle_inc[["2200"]] <- 0.1
-    sle_lim[["2300"]] <- c(-0.01, 1.5*max_glaciers[[reg]]); sle_inc[["2300"]] <- 0.1
+    sle_lim[["2050"]] <- c(-0.005, glacier_cap); sle_inc[["2050"]] <- 0.1
+    sle_lim[["2100"]] <- c(-0.005, 1.1*glacier_cap); sle_inc[["2100"]] <- 0.1
+    sle_lim[["2150"]] <- c(-0.005, 1.3*glacier_cap); sle_inc[["2150"]] <- 0.1
+    sle_lim[["2200"]] <- c(-0.01, 1.4*glacier_cap); sle_inc[["2200"]] <- 0.1
+    sle_lim[["2300"]] <- c(-0.01, 1.5*glacier_cap); sle_inc[["2300"]] <- 0.1
   }
 
   # Specific region over-rides
   if (reg == "RGI01") {
     sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
-    sle_lim[["2050"]] <- c(-10, 1.5*max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.5
-    sle_lim[["2100"]] <- c(-10, 1.5*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.5
-    sle_lim[["2150"]] <- c(-15, 2*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.5
-    sle_lim[["2200"]] <- c(-25, 2*max_glaciers[[reg]]); sle_inc[["2200"]] <- 1
-    sle_lim[["2300"]] <- c(-70, 2*max_glaciers[[reg]]); sle_inc[["2300"]] <- 1
+    sle_lim[["2050"]] <- c(-10, 1.5*glacier_cap); sle_inc[["2050"]] <- 0.5
+    sle_lim[["2100"]] <- c(-10, 1.5*glacier_cap); sle_inc[["2100"]] <- 0.5
+    sle_lim[["2150"]] <- c(-15, 2*glacier_cap); sle_inc[["2150"]] <- 0.5
+    sle_lim[["2200"]] <- c(-25, 2*glacier_cap); sle_inc[["2200"]] <- 1
+    sle_lim[["2300"]] <- c(-70, 2*glacier_cap); sle_inc[["2300"]] <- 1
   }
   if (reg == "RGI19") {
     sle_lim[[as.character(cal_end)]] <- c(-0.1, 1); sle_inc[[as.character(cal_end)]] <- 0.1
-    sle_lim[["2050"]] <- c(-10, max_glaciers[[reg]]); sle_inc[["2050"]] <- 0.5
-    sle_lim[["2100"]] <- c(-20, 1.1*max_glaciers[[reg]]); sle_inc[["2100"]] <- 0.5
-    sle_lim[["2150"]] <- c(-25, 1.3*max_glaciers[[reg]]); sle_inc[["2150"]] <- 0.5
-    sle_lim[["2200"]] <- c(-35, 1.4*max_glaciers[[reg]]); sle_inc[["2200"]] <- 1
-    sle_lim[["2300"]] <- c(-50, 1.5*max_glaciers[[reg]]); sle_inc[["2300"]] <- 1
+    sle_lim[["2050"]] <- c(-10, glacier_cap); sle_inc[["2050"]] <- 0.5
+    sle_lim[["2100"]] <- c(-20, 1.1*glacier_cap); sle_inc[["2100"]] <- 0.5
+    sle_lim[["2150"]] <- c(-25, 1.3*glacier_cap); sle_inc[["2150"]] <- 0.5
+    sle_lim[["2200"]] <- c(-35, 1.4*glacier_cap); sle_inc[["2200"]] <- 1
+    sle_lim[["2300"]] <- c(-50, 1.5*glacier_cap); sle_inc[["2300"]] <- 1
   }
 }
 
@@ -791,7 +710,7 @@ AR6_rgb_light[["SSP534-over"]] <- rgb(146, 57, 122, maxColorValue = 255, alpha =
 
 # PLOT RANGES
 
-# SL simulations are up with max_glaciers
+# SL simulations are up with glacier cap
 
 # Observations
 #if (dataset == "IPCC_AR6") ylim_obs <- c(-1,1.5)
