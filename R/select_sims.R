@@ -92,8 +92,8 @@ select_sims <- function(select_type) {
 
       # Excluding using data quality flag "complete":
 
-      # Index to keep (GloGEM pre-filtered so set to 1)
-      complete_sel <- ice_data$complete >= complete_thresh
+      # Index to keep (GloGEM is NA so don't test)
+      complete_sel <- ice_data$complete >= complete_thresh | is.na(ice_data$complete)
 
       # Restrict dataset
       ice_data <- ice_data[ complete_sel , ]

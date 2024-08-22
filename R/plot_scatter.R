@@ -364,7 +364,6 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
                     col = AR6_rgb_light[[scen]])
 
             # xxx Note this excludes RCPs!
-            # xxx was ice_param
             points( unlist(ice_design[,pp])[ice_data$scenario == scen], ice_data[ ice_data$scenario == scen, paste0("y", yy) ],
                     pch = 16, col = AR6_rgb[[scen]], cex = 0.7)
 
@@ -384,7 +383,6 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
             abline( h = 0 )
 
             # xxx Note this excludes any RCPs!!
-            # was ice_param
             points( unlist(ice_design[,pp])[ice_data$scenario == scen], ice_data[ ice_data$scenario == scen, paste0("y", yy) ],
                     pch = 16, col = AR6_rgb[[scen]], cex = 0.8 )
 

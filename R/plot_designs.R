@@ -225,7 +225,7 @@ plot_designs <- function(data_type, plot_level = 0) {
 
         for (pp in ice_cont_list) {
 
-          plot( unlist(ice_param[,pp]), ice_data[ , paste0("y", yy) ], type = "n",
+          plot( unlist(ice_design[,pp]), ice_data[ , paste0("y", yy) ], type = "n",
                 main = paste0("Sea level contribution at ",yy," vs ", pp), xlab = pp,
                 ylab = paste("Sea level contribution at",yy,"(cm SLE)") )
 
@@ -234,10 +234,10 @@ plot_designs <- function(data_type, plot_level = 0) {
           for (scen in scenario_list) {
             if ( length(ice_data[ ice_data$scenario == scen, paste0("y", yy) ]) > 0 ) {
 
-              points( unlist(ice_param[,pp])[ ice_data$scenario == scen ],
+              points( unlist(ice_design[,pp])[ ice_data$scenario == scen ],
                       ice_data[ ice_data$scenario == scen, paste0("y", yy) ],
                       pch = 20, cex = 0.8, col = AR6_rgb[[scen]] )
-              text( min(unlist(ice_param[,pp])), leg_y, cex = 0.7,
+              text( min(unlist(ice_design[,pp])), leg_y, cex = 0.7,
                     scen, pos = 4, col = AR6_rgb[[scen]] )
               leg_y <- leg_y - 0.1 * leg_y
             }
@@ -265,7 +265,7 @@ plot_designs <- function(data_type, plot_level = 0) {
 
       # PLOT: ice model parameter(s) xxx currently just continuous
       for (pp in ice_cont_list) {
-        hist(unlist(ice_param[,pp]), col = "darkgrey", breaks = 40, # cex.axis = 1.5, cex.lab = 1.2,
+        hist(unlist(ice_design[,pp]), col = "darkgrey", breaks = 40, # cex.axis = 1.5, cex.lab = 1.2,
              main = paste0("Ensemble distribution: ",pp), xlab = pp)
       }
     } # plot level

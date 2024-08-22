@@ -782,6 +782,8 @@ ice_data <- emulandice2::calculate_sle_anom()
 if (i_s == "GLA") {
   ice_data <- emulandice2::select_sims("history_match")
 }
+#print(dim(ice_data))
+#print(ice_data[653:656,])
 
 # Get corresponding forcings (match by GCM + scenario; check length)
 temps <- emulandice2::match_sims()
@@ -1062,12 +1064,8 @@ for ( pp in ice_param_list ) {
 cols_to_check <- ice_data[ , ice_param_list ]
 if (length(cols_to_check[ is.na(cols_to_check) ]) > 0) stop("NAs found in ice_data columns to use as inputs in emulation: please drop/fix")
 
-# Select continuous model inputs and impute missing values
-ice_param <- emulandice2::get_inputs(ice_cont_list)
-
-# COMBINE CLIMATE FORCING AND ICE MODEL INPUTS INTO DESIGN MATRIX
-ice_design <- as.matrix( data.frame(temps, ice_param) )
-
+# COMBINE CLIMATE FORCING AND CONTINUUOUS ICE MODEL INPUTS INTO DESIGN MATRIX
+ice_design <- as.matrix( data.frame(temps, ice_data[ ice_cont_list ]) )
 
 # Add climate col name(s0)
 # xxx Can use this elsewhere! e.g. plot_design.R instead of reconstructing
@@ -1188,13 +1186,7 @@ if (plot_level > 0) {
 
 #_______________________________________________________________________________
 
-# Settings are hard-coded at the top
-# Writes emu obj from .RData workspace file later for running in FACTS
-
-# Could use this for now if exists and unchanged: if ( ! exists("emu_mv") )
-
-# FUNCTION NOT WORKING SINCE A PACKAGE - SEE CODE ABOVE INSTEAD
-# if (FALSE) {
+# Writes emu obj into .RData workspace file later for running in FACTS
 
 # Build emulator for timeslices every nyrs
 # Note this call is repeated in do_LOO.R
@@ -1203,11 +1195,8 @@ if ( ! exists("emu_mv") ) {
   emu_mv <- emulandice2::make_emu( ice_design_scaled,
                       as.matrix( ice_data[ , paste0("y", years_em) ] ))
   #))
-} else {
-  message("Not rebuilding emulator! Use only for testing code or slow build emulators")
 }
 
-#} # don't build emu_mv from function make_emu()
 
 
 # ________________----
