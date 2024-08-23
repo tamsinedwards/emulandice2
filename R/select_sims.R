@@ -107,16 +107,16 @@ select_sims <- function(select_type) {
     #__________________________________________________
     # Subset simulations for testing
 
-    if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
+  #  if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
 
       # Randomly sample
-      sel_index <- sort(sample(nrow(ice_data), target_size))
+  #    sel_index <- sort(sample(nrow(ice_data), target_size))
 
-      ice_data <- ice_data[ sel_index, ]
-      cat( paste("After randomly selecting",target_size,"simulations to limit size:", dim(ice_data)[1], "\n"),
-           file = logfile_build, append = TRUE)
+#      ice_data <- ice_data[ sel_index, ]
+#      cat( paste("After randomly selecting",target_size,"simulations to limit size:", dim(ice_data)[1], "\n"),
+ #          file = logfile_build, append = TRUE)
 
-    }
+#    }
 
 
 } # select_type == main

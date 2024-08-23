@@ -16,8 +16,6 @@
 
 make_emu <- function(designX, responseF, r = NULL, thresh = 0.999) {
 
-  # I put this here because didn't work in separate script since converting to package
-
   # ARGUMENTS WHEN CALLED:
   #    designX <- ice_design_scaled
   #    responseF <- as.matrix( ice_data[ , paste0("y", years_em) ] )

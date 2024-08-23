@@ -63,7 +63,7 @@ match_sims <- function() {
 
           cat( paste("\n",ss,": forcing data missing in 2100 for",
                      ice_data[ ss,"scenario"],
-                     ice_data[ ss, "GCM" ],"- imputing with 2099 value"),
+                     ice_data[ ss, "GCM" ],"- imputing with 2099 value\n"),
                file = logfile_build, append = TRUE )
 
           climate_exp[ , "y2100" ] <- climate_exp[ , "y2099" ]
@@ -87,7 +87,7 @@ match_sims <- function() {
 
           cat( paste("\n",ss,": forcing data missing in 2300 for",
                      ice_data[ ss,"scenario"],
-                     ice_data[ ss, "GCM" ],"- imputing with 2299 value"),
+                     ice_data[ ss, "GCM" ],"- imputing with 2299 value\n"),
                file = logfile_build, append = TRUE )
 
           climate_exp[ , "y2300" ] <- climate_exp[ , "y2299" ]

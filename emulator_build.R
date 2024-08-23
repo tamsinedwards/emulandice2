@@ -115,7 +115,7 @@ if (i_s == "GLA") {
 }
 
 # Set limit on data size for training GP
-target_size <- 1000 # NA to use all simulations
+target_size <- 200
 
 # Long names for outputs
 if (i_s == "GIS") ice_name <- "Greenland"
@@ -781,8 +781,6 @@ ice_data <- emulandice2::calculate_sle_anom()
 if (i_s == "GLA") {
   ice_data <- emulandice2::select_sims("history_match")
 }
-#print(dim(ice_data))
-#print(ice_data[653:656,])
 
 # Get corresponding forcings (match by GCM + scenario; check length)
 temps <- emulandice2::match_sims()
@@ -804,8 +802,6 @@ cat(paste("\nFINAL DATA SELECTION: using", N_sims, "ice simulations for",
 
 # Check some simulations found!
 stopifnot(N_sims > 0)
-
-print("After selection:")
 
 # Ice sheet regions ------------------------------------------------------------
 
@@ -1181,19 +1177,75 @@ if (plot_level > 0) {
 }
 
 
-#_______________________________________________________________________________
+# ________________----
+# BUILD EMULATOR  ------------------------------------------------------------
 
-# Writes emu obj into .RData workspace file later for running in FACTS
-
-# Build emulator for timeslices every nyrs
-# Note this call is repeated in do_LOO.R
-if ( ! exists("emu_mv") ) {
-  #show(system.time(
-  emu_mv <- emulandice2::make_emu( ice_design_scaled,
-                                   as.matrix( ice_data[ , paste0("y", years_em) ] ))
-  #))
+make_factor <- function(x) {
+  x[is.na(x)] <- "NA"
+  factor(x)
 }
 
+# Get dataset inputs outputs
+X <- ice_design_scaled
+Y <- ice_data[ , paste0("y", years_em) ]
+
+# If large dataset, get subset for training
+# Samples a balance of factor levels, not just random
+if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
+
+  cat( paste("Selecting",target_size,"simulations for training\n"),
+       file = logfile_build, append = TRUE)
+
+  # Start with original dataset inputs
+  # (i.e. factors as levels, not dummy; includes GCM which is good for non-linearity with GSAT)
+  Xraw <- ice_data[, ice_param_list_full]
+
+  # Make into nice data frame with factors
+  Xraw <- lapply(Xraw, function(x) {
+    if(is.character(x)) {
+      make_factor(x)
+    } else {
+      x
+    }}) |> as.data.frame()
+
+  # Add any numeric factors by hand
+  # use factor_list
+  # X$blah <- make_factor(X$blah)
+
+  # Output factprs
+  cat("** Factors being used for ordering:\n", file = logfile_build, append = TRUE)
+  for (j in which(sapply(Xraw, is.factor))) {
+    cat(paste0("\t", names(Xraw)[j], ":\n"))
+    cat(paste0("\t", paste(levels(Xraw[[j]]), collapse = ", "), "\n"))
+  }
+
+  ## Reorder dataset to make sure factor levels well-sampled at start of list
+  # (simple random if no factors)
+  oo <- reorder_rows(Xraw, frontLoad = TRUE)
+
+  # Select first N_subset of rows
+  train <- oo[1:target_size]
+
+  # Apply selection to raw design (just for checking), and inputs and outputs
+  Xraw <- Xraw[ train, ]
+  X <- X[ train, ]
+  Y <- Y[ train, ]
+
+  cat("** Factors present in training subset:\n", file = logfile_build, append = TRUE)
+  for (j in which(sapply(Xraw, is.factor))) {
+    cat(paste0("\t", names(Xraw)[j], ":\n"))
+    cat(paste0("\t", paste(levels(Xraw[[j]]), collapse = ", "), "\n"))
+  }
+
+}
+
+
+# Build emulator
+# Writes emu obj into .RData workspace file later for running in FACTS
+# Note this call is repeated in do_LOO.R
+
+#show(system.time( try(
+emu_mv <- emulandice2::make_emu( as.matrix(X), as.matrix(Y) ) #) )
 
 
 # ________________----
@@ -1330,6 +1382,67 @@ if (do_loo_validation) {
   dev.off()
 
 } # do_loo_validation
+
+
+
+# Come back to the left-out runs
+if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
+
+  test_set <- oo[-(1:target_size)]
+
+  # Predict for all the original design points not in the training set
+  emu_test <- emulandice2::emulator_predict( ice_design_scaled[ test_set, ] )
+  yind <- "y2300"
+  yy <- "2300"
+
+  wrong <- list()
+
+  # Make lists again? or just plot and ditch?
+  test_mean <- emu_test$mean[ , yind]
+  test_sd <- emu_test$sd[ , yind]
+
+  wrong[[ yind ]] <- ice_data[ test_set, yind] > ( test_mean + 2*test_sd ) |
+    ice_data[ test_set, yind] < ( test_mean  - 2*test_sd )
+  ww <- wrong[[yind]]
+
+  frac_right <- 1 - ( length(which(wrong[[yind]][test_set] == TRUE)) / length(test_set) )
+
+  cat(sprintf("\nTRAIN AND TEST VALIDATION (N = %i):", length(test_set)),
+      file = logfile_build, append = TRUE)
+  cat(sprintf("Number within emulator 95%% intervals: %.2f%%\n",
+              frac_right*100.0), file = logfile_build, append = TRUE)
+
+  pdf( file = paste0( outdir, out_name, "_test.pdf"),
+       width = 5, height = 5)
+
+  plot( ice_data[ test_set, yind], test_mean,
+        pch = 20, col = grey(0.8, alpha = 0.5),
+        xlim = c(sle_lim[[yy]][1], sle_lim[[yy]][2] * 1.6),
+        ylim = c(sle_lim[[yy]][1], sle_lim[[yy]][2] * 1.6),
+        xaxs = "i", yaxs = "i",
+        xlab = paste("Simulated sea level contribution at",yy,"(cm SLE)"),
+        ylab = paste("Emulated sea level contribution at",yy,"(cm SLE)"),
+        main = paste("Test set validation:", ice_name, yy))
+  abline ( a = 0, b = 1 )
+
+  # +/- 2 s.d. error bars
+  arrows( ice_data[ test_set, yind], test_mean - 2*test_sd,
+          ice_data[ test_set, yind], test_mean + 2*test_sd,
+          code = 3, angle = 90, lwd = 0.4, length = 0.02 )
+
+  test_data <- ice_data[ test_set, ]
+  # Replot over in red for those that missed
+  points( test_data[ ww, yind], test_mean[ww],
+          pch = 20, col = "red")
+  arrows( test_data[ ww, yind],
+          test_mean[ww] - 2*test_sd[ww],
+          test_data[ ww, yind],
+          test_mean[ww] + 2*test_sd[ww],
+          code = 3, angle = 90, lwd = 0.6, length = 0.02, col = "red" )
+
+  dev.off()
+}
+
 
 #' # Save emulator build file
 

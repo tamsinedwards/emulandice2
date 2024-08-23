@@ -34,7 +34,7 @@ get_glacier_cap <- function(region) {
   if (reg == "RGI19") max_glacier <- 69.4
 
   cat("_____________________________________\n", file = logfile_build, append = TRUE)
-  cat(sprintf("get_glacier_cap: glacier region cannot contribute more than %.1f mm SLE\n", max_glacier),
+  cat(sprintf("get_glacier_cap: glacier region cannot contribute more than %.1f mm SLE\n\n", max_glacier),
       file = logfile_build, append = TRUE)
 
   # Return in cm
