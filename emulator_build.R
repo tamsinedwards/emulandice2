@@ -210,7 +210,7 @@ if (i_s == "GLA") {
 
   # Fraction of glaciers that must have completed (guidance from Fabien Maussion)
   # Currently only applied to OGGM; XXX add GO model to select_sims()
-  complete_thresh <- 0.8 # NA to not use
+  complete_thresh <- 0.95 # NA to not use
 
 }
 
@@ -778,8 +778,10 @@ ice_data <- emulandice2::select_sims("main")
 ice_data <- emulandice2::calculate_sle_anom()
 
 # Do second selection for glaciers using values of SLE change
+if (FALSE) {
 if (i_s == "GLA") {
   ice_data <- emulandice2::select_sims("history_match")
+}
 }
 
 # Get corresponding forcings (match by GCM + scenario; check length)
