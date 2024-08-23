@@ -115,7 +115,7 @@ if (i_s == "GLA") {
 }
 
 # Set limit on data size for training GP
-target_size <- 200
+target_size <- 1000
 
 # Long names for outputs
 if (i_s == "GIS") ice_name <- "Greenland"
@@ -1191,7 +1191,7 @@ Y <- ice_data[ , paste0("y", years_em) ]
 
 # If large dataset, get subset for training
 # Samples a balance of factor levels, not just random
-if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
+if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
 
   cat( paste("Selecting",target_size,"simulations for training\n"),
        file = logfile_build, append = TRUE)
@@ -1208,15 +1208,16 @@ if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
       x
     }}) |> as.data.frame()
 
-  # Add any numeric factors by hand
-  # use factor_list
-  # X$blah <- make_factor(X$blah)
+  # Run through factor list to pick up any numeric or T/F factors
+  for (cc in colnames(Xraw)) {
+    if (cc %in% ice_factor_list & !is.factor(Xraw[, cc])) Xraw[, cc] <- make_factor(Xraw[, cc])
+  }
 
-  # Output factprs
-  cat("** Factors being used for ordering:\n", file = logfile_build, append = TRUE)
+  # Output factors
+  cat("\n** Factor levels being used for ordering:\n", file = logfile_build, append = TRUE)
   for (j in which(sapply(Xraw, is.factor))) {
-    cat(paste0("\t", names(Xraw)[j], ":\n"))
-    cat(paste0("\t", paste(levels(Xraw[[j]]), collapse = ", "), "\n"))
+    cat(paste0("\t", names(Xraw)[j], ":\n"), file = logfile_build, append = TRUE)
+    cat(paste0("\t", paste(levels(Xraw[[j]]), collapse = ", "), "\n"), file = logfile_build, append = TRUE)
   }
 
   ## Reorder dataset to make sure factor levels well-sampled at start of list
@@ -1231,10 +1232,10 @@ if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
   X <- X[ train, ]
   Y <- Y[ train, ]
 
-  cat("** Factors present in training subset:\n", file = logfile_build, append = TRUE)
+  cat("\n** Factor levels present in training subset:\n", file = logfile_build, append = TRUE)
   for (j in which(sapply(Xraw, is.factor))) {
-    cat(paste0("\t", names(Xraw)[j], ":\n"))
-    cat(paste0("\t", paste(levels(Xraw[[j]]), collapse = ", "), "\n"))
+    cat(paste0("\t", names(Xraw)[j], ":\n"), file = logfile_build, append = TRUE)
+    cat(paste0("\t", paste(levels(Xraw[[j]]), collapse = ", "), "\n"), file = logfile_build, append = TRUE)
   }
 
 }
@@ -1384,25 +1385,33 @@ if (do_loo_validation) {
 } # do_loo_validation
 
 
+# Plot validation results
+if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
 
-# Come back to the left-out runs
-if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
-
+  # Get index of all rows except training data
   test_set <- oo[-(1:target_size)]
+
+  # Get test dataset
+  test_data <- ice_data[ test_set, ]
 
   # Predict for all the original design points not in the training set
   emu_test <- emulandice2::emulator_predict( ice_design_scaled[ test_set, ] )
-  yind <- "y2300"
-  yy <- "2300"
+
+  # Use final year requested for LOO validation for now
+  yy <- as.character(do_loo_years[length(do_loo_years)])
+  yind <- paste0("y", yy)
 
   wrong <- list()
 
-  # Make lists again? or just plot and ditch?
+  # XXX Make lists again? or just plot and ditch?
   test_mean <- emu_test$mean[ , yind]
   test_sd <- emu_test$sd[ , yind]
 
-  wrong[[ yind ]] <- ice_data[ test_set, yind] > ( test_mean + 2*test_sd ) |
-    ice_data[ test_set, yind] < ( test_mean  - 2*test_sd )
+  yrange <- range(c(test_mean - 4*test_sd, test_mean + 4*test_sd), na.rm = TRUE)
+
+  # Misses
+  wrong[[ yind ]] <- test_data[ , yind] > ( test_mean + 2*test_sd ) |
+    test_data[ , yind] < ( test_mean  - 2*test_sd )
   ww <- wrong[[yind]]
 
   frac_right <- 1 - ( length(which(wrong[[yind]][test_set] == TRUE)) / length(test_set) )
@@ -1412,25 +1421,27 @@ if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
   cat(sprintf("Number within emulator 95%% intervals: %.2f%%\n",
               frac_right*100.0), file = logfile_build, append = TRUE)
 
-  pdf( file = paste0( outdir, out_name, "_test.pdf"),
+  pdf( file = paste0( outdir, out_name, "_test_", yy, ".pdf"),
        width = 5, height = 5)
 
-  plot( ice_data[ test_set, yind], test_mean,
-        pch = 20, col = grey(0.8, alpha = 0.5),
-        xlim = c(sle_lim[[yy]][1], sle_lim[[yy]][2] * 1.6),
-        ylim = c(sle_lim[[yy]][1], sle_lim[[yy]][2] * 1.6),
+  plot( test_data[ , yind], test_mean,
+        pch = 20,
+        xlim = yrange, ylim = yrange, cex = 0.8,
         xaxs = "i", yaxs = "i",
         xlab = paste("Simulated sea level contribution at",yy,"(cm SLE)"),
         ylab = paste("Emulated sea level contribution at",yy,"(cm SLE)"),
-        main = paste("Test set validation:", ice_name, yy))
+        main = paste0("Test set validation (N = ", length(test_set), ")") )
   abline ( a = 0, b = 1 )
+  if (i_s == "GLA") {
+    abline( h = glacier_cap, col = "lightgrey", lwd = 0.5, lty = 5)
+    abline( v = glacier_cap, col = "lightgrey", lwd = 0.5, lty = 5)
+  }
 
   # +/- 2 s.d. error bars
-  arrows( ice_data[ test_set, yind], test_mean - 2*test_sd,
-          ice_data[ test_set, yind], test_mean + 2*test_sd,
+  arrows( test_data[ , yind], test_mean - 2*test_sd,
+          test_data[ , yind], test_mean + 2*test_sd,
           code = 3, angle = 90, lwd = 0.4, length = 0.02 )
 
-  test_data <- ice_data[ test_set, ]
   # Replot over in red for those that missed
   points( test_data[ ww, yind], test_mean[ww],
           pch = 20, col = "red")
@@ -1438,9 +1449,17 @@ if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
           test_mean[ww] - 2*test_sd[ww],
           test_data[ ww, yind],
           test_mean[ww] + 2*test_sd[ww],
-          code = 3, angle = 90, lwd = 0.6, length = 0.02, col = "red" )
+          code = 3, angle = 90, lwd = 0.4, length = 0.02, col = "red" )
+
+  text( yrange[1], yrange[1] + 0.95*(yrange[2] - yrange[1]), pos = 4,
+        ice_name, cex = 1.3)
+
+  col_text <- ifelse(frac_right < 0.9, "red", "black")
+  text( yrange[1], yrange[1] + 0.85*(yrange[2] - yrange[1]), pos = 4,
+        sprintf("%.0f%%", frac_right*100.0), col = col_text)
 
   dev.off()
+
 }
 
 
