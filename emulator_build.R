@@ -10,7 +10,8 @@
 # BUILD EMULATOR
 #
 # Writes RData file: paste0("outdir", out_name, "_EMULATOR.RData")
-# to be read by FACTS for predicting land ice contributions with FaIR GSAT projections
+# in data-raw/ to be read by FACTS for predicting land ice contributions
+# Other output is written to out/
 #
 # Set plot_level > 0 to output plot pdf files
 #_______________________________________________________________________________
@@ -1180,6 +1181,7 @@ if (plot_level > 0) {
 
 
 # ________________----
+#' # Build emulator
 # BUILD EMULATOR  ------------------------------------------------------------
 
 make_factor <- function(x) {
@@ -1255,7 +1257,7 @@ emu_mv <- emulandice2::make_emu( as.matrix(X), as.matrix(Y) ) #) )
 # TEST ------------------------------------------------------------
 
 #' # Predict for SA designs
-# Design: main effects -----------------------------------------------------------------------
+# Design: main effects ---------------------------------------------------------
 
 #' ## Main effects
 # Main effects (i.e. one-at-a-time design for sensitivity analysis)
@@ -1278,7 +1280,7 @@ for (input in names( design_sa )) {
 
 #' ## Uniform temperature prior
 
-# Design: uniform ----------------------------------------------------------------------
+# Design: uniform --------------------------------------------------------------
 
 # Design "unif_temps" makes projections using uniform priors for GSAT with same ranges as sims
 # a better comparison than using FaIR projected distributions for each SSP

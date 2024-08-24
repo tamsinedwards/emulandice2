@@ -20,7 +20,7 @@ Find a permutation (stochastic) of the row indices of a dataframe with the prope
 * If `frontLoad = TRUE` the levels in `perm[1:n]` are roughly balanced for not-small and not-large `n`: levels which are less common run out more quickly, and do not appear at the end of `perm`.
 }
 \details{
-Internally, the factors are processed sequentially ordered by the KL divergence between the levels' proportions and the Uniform distribution, so that the more unbalanced factors (larger KL divergence) are prioritized.
+Internally, the factors are processed sequentially ordered by the number of levels, so that when `frontLoad = TRUE` the factors with small numbers of levels are not pushed down the reordering.
 }
 \examples{
 ## Iris dataframe is balanced
