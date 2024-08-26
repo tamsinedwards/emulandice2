@@ -116,7 +116,7 @@ if (i_s == "GLA") {
 }
 
 # Set limit on data size for training GP
-target_size <- 1000
+target_size <- 200
 
 # Long names for outputs
 if (i_s == "GIS") ice_name <- "Greenland"
@@ -169,12 +169,12 @@ scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP534-over", "SSP58
 if (i_s == "AIS") {
 
   # All models (do not change!)
-  model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce" ) # XXX "BISICLES" )
+  model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce", "BISICLES" )
 
   # Would drop short simulations anyway but early on is better for emulator inputs
   if (ensemble_subset == "GCM_forced" ||
       (ensemble_subset == "all_forced" && final_year > 2200) ) {
-    model_list <- c( "Kori", "PISM" )
+    model_list <- c( "Kori", "PISM", "BISICLES" )
   } else model_list <- model_list_full
 
 }
@@ -211,7 +211,8 @@ if (i_s == "GLA") {
 
   # Fraction of glaciers that must have completed (guidance from Fabien Maussion)
   # Currently only applied to OGGM; XXX add GO model to select_sims()
-  complete_thresh <- 0.95 # NA to not use
+  # Some regions only reach ~92% so can't go higher without adjusting
+  complete_thresh <- 0.90 # NA to not use
 
 }
 
@@ -266,7 +267,7 @@ cat(paste("\nEmulator covariance:",emulator_settings,"\n"), file = logfile_build
 #' ## Glacier maximum contributions
 # Get glacier cap --------
 
-glacier_cap <- emulandice2::get_glacier_cap(reg)
+if (i_s == "GLA") glacier_cap <- emulandice2::get_glacier_cap(reg)
 
 # Calibration dates --------
 #' ## Baseline and calibration dates
@@ -285,7 +286,7 @@ if (i_s == "GLA") cal_end <- 2020 # because OGGM fails if too early xxx obsolete
 # XXX Implement different baselines for 2100/50 and 2300?
 
 # Antarctica
-if (i_s == "AIS") cal_start = 2000
+if (i_s == "AIS") cal_start = 2010 #2000
 
 # Greenland
 if (i_s == "GIS") cal_start = 2000 # xxx change to 1995 when decoupled baseline
@@ -361,7 +362,6 @@ cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append =
 
 if (i_s == "AIS") {
 
-  # XXX Drop phase, PDD_sd from file; also init method if correlated model
   # (or add PD12 Kori GCM and look at PISM RCM doc)
   # xxx Double-check heat_flux names translation from GCM to RCM ensembles
 
@@ -430,6 +430,10 @@ if (i_s == "AIS") {
   # Elmer/Ice
   ice_cont_list_model[["ElmerIce"]] <- c("heat_flux_PICO", "sliding_exponent")
 
+  # BISICLES
+  ice_cont_list_model[["BISICLES"]] <- "heat_flux_ISMIP6_nonlocal"
+  ice_factor_list_model[["BISICLES"]] <- c("shelf_collapse", "sliding_law")
+
   # Combine model lists
   ice_cont_list <- NA
   ice_factor_list <- NA
@@ -441,6 +445,7 @@ if (i_s == "AIS") {
 
   # If both models present, can also include this
   # as they use different values
+  # i.e. this covers GCM-forced 2300
   if ("Kori" %in% model_list && "PISM" %in% model_list) {
     ice_cont_list <- c(ice_cont_list, "overturning_PICO")
   }
@@ -808,7 +813,10 @@ stopifnot(N_sims > 0)
 
 # Ice sheet regions ------------------------------------------------------------
 
-if (i_s %in% c("AIS","GIS")) {
+do_regions <- TRUE
+if ( i_s == "AIS" && "BISICLES" %in% model_list) do_regions <- FALSE
+
+if (i_s %in% c("AIS","GIS") && do_regions) {
 
   cat("\nIce sheet regional fractions\n", file = logfile_build, append = TRUE)
 
@@ -1197,7 +1205,9 @@ Y <- ice_data[ , paste0("y", years_em) ]
 # Samples a balance of factor levels, not just random
 if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
 
-  cat( paste("Selecting",target_size,"simulations for training\n"),
+  target_size_min <- min(0.7 * dim(ice_data)[1], target_size)
+
+  cat( paste("Selecting",target_size_min,"simulations for training\n"),
        file = logfile_build, append = TRUE)
 
   # Start with original dataset inputs
@@ -1229,7 +1239,7 @@ if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
   oo <- reorder_rows(Xraw, frontLoad = TRUE)
 
   # Select first N_subset of rows
-  train <- oo[1:target_size]
+  train <- oo[1:target_size_min]
 
   # Apply selection to raw design (just for checking), and inputs and outputs
   Xraw <- Xraw[ train, ]
@@ -1393,7 +1403,7 @@ if (do_loo_validation) {
 if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
 
   # Get index of all rows except training data
-  test_set <- oo[-(1:target_size)]
+  test_set <- oo[-(1:target_size_min)]
 
   # Get test dataset
   test_data <- ice_data[ test_set, ]
@@ -1422,7 +1432,7 @@ if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
 
   cat(sprintf("\nTRAIN AND TEST VALIDATION (N = %i):", length(test_set)),
       file = logfile_build, append = TRUE)
-  cat(sprintf("Number within emulator 95%% intervals: %.2f%%\n",
+  cat(sprintf("\nNumber within emulator 95%% intervals: %.2f%%\n",
               frac_right*100.0), file = logfile_build, append = TRUE)
 
   pdf( file = paste0( outdir, out_name, "_test_", yy, ".pdf"),

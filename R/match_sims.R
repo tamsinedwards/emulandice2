@@ -61,10 +61,12 @@ match_sims <- function() {
         # If 2099 value is there (quite common), then impute
         if ( !is.na(climate_exp[ , "y2099"]) ) {
 
-          cat( paste("\n",ss,": forcing data missing in 2100 for",
-                     ice_data[ ss,"scenario"],
-                     ice_data[ ss, "GCM" ],"- imputing with 2099 value\n"),
-               file = logfile_build, append = TRUE )
+          if (FALSE) {
+            cat( paste("\n",ss,": forcing data missing in 2100 for",
+                       ice_data[ ss,"scenario"],
+                       ice_data[ ss, "GCM" ],"- imputing with 2099 value\n"),
+                 file = logfile_build, append = TRUE )
+          }
 
           climate_exp[ , "y2100" ] <- climate_exp[ , "y2099" ]
 
@@ -73,9 +75,11 @@ match_sims <- function() {
           # Skip: this shouldn't happen, as all runs have data to 2099
           # in 230607 forcing dataset,
           # but keep in case new forcing rows do
-          cat( paste(ss,": forcing data missing in 2099 for",
-                     ice_data[ ss,"scenario"],
-                     ice_data[ ss, "GCM" ],"- skipping run\n"),file = logfile_build, append = TRUE)
+          if (FALSE) {
+            cat( paste(ss,": forcing data missing in 2099 for",
+                       ice_data[ ss,"scenario"],
+                       ice_data[ ss, "GCM" ],"- skipping run\n"),file = logfile_build, append = TRUE)
+          }
         }
       } # if no 2100
 
@@ -85,10 +89,12 @@ match_sims <- function() {
         # If 2299 value is there, then impute
         if ( !is.na(climate_exp[ , "y2299"]) ) {
 
-          cat( paste("\n",ss,": forcing data missing in 2300 for",
-                     ice_data[ ss,"scenario"],
-                     ice_data[ ss, "GCM" ],"- imputing with 2299 value\n"),
-               file = logfile_build, append = TRUE )
+          if (FALSE) {
+            cat( paste("\n",ss,": forcing data missing in 2300 for",
+                       ice_data[ ss,"scenario"],
+                       ice_data[ ss, "GCM" ],"- imputing with 2299 value\n"),
+                 file = logfile_build, append = TRUE )
+          }
 
           climate_exp[ , "y2300" ] <- climate_exp[ , "y2299" ]
 

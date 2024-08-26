@@ -30,7 +30,7 @@ model_list=GloGEM_OGGM
 now=$(date +'%y%m%d')
 outdir="$results_dir"/"$now"_GLA_ALL_"$final_year"
 
-for region in 03 # $(seq -f "%02g" 1 19) # if running only one region, then zero-pad!
+for region in $(seq -f "%02g" 1 19) # if running only one region, then zero-pad!
 do
 
   echo
