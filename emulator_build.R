@@ -19,6 +19,9 @@
 # SETUP ------------------------------------------------------------------------
 #' # SETUP
 
+# Temporary switch to go back to deliverable settings for testing
+deliverable_test <- TRUE
+
 # Get arguments from RScript
 args <- commandArgs(TRUE)
 
@@ -213,6 +216,7 @@ if (i_s == "GLA") {
   # Currently only applied to OGGM; XXX add GO model to select_sims()
   # Some regions only reach ~92% so can't go higher without adjusting
   complete_thresh <- 0.90 # NA to not use
+  if (deliverable_test) complete_thresh <- 0.80
 
 }
 
@@ -588,7 +592,7 @@ stopifnot(kernel %in% c("pow_exp", "matern_5_2", "matern_3_2"))
 
 # Plot all or just subset of figures
 # 0 for none, 1 for main, 2 for exhaustive
-plot_level <- 1
+plot_level <- 2
 stopifnot(plot_level %in% c(0,1,2)) # using plot_level = 3 to distinguish main.R calls
 
 # Sub-sample to plot; exclude any dates not predicted by emulator
@@ -784,10 +788,10 @@ ice_data <- emulandice2::select_sims("main")
 ice_data <- emulandice2::calculate_sle_anom()
 
 # Do second selection for glaciers using values of SLE change
-if (FALSE) {
-if (i_s == "GLA") {
-  ice_data <- emulandice2::select_sims("history_match")
-}
+if (deliverable_test) {
+  if (i_s == "GLA") {
+    ice_data <- emulandice2::select_sims("history_match")
+  }
 }
 
 # Get corresponding forcings (match by GCM + scenario; check length)
@@ -1206,6 +1210,7 @@ Y <- ice_data[ , paste0("y", years_em) ]
 if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
 
   target_size_min <- min(0.7 * dim(ice_data)[1], target_size)
+  if (deliverable_test) target_size_min <- target_size
 
   cat( paste("Selecting",target_size_min,"simulations for training\n"),
        file = logfile_build, append = TRUE)
@@ -1241,6 +1246,8 @@ if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
   # Select first N_subset of rows
   train <- oo[1:target_size_min]
 
+  if (deliverable_test) train <- sort(sample(nrow(ice_data), target_size_min))
+
   # Apply selection to raw design (just for checking), and inputs and outputs
   Xraw <- Xraw[ train, ]
   X <- X[ train, ]
@@ -1254,6 +1261,7 @@ if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
 
 }
 
+# make_emu -----
 
 # Build emulator
 # Writes emu obj into .RData workspace file later for running in FACTS
@@ -1285,6 +1293,7 @@ for (input in names( design_sa )) {
 
   design_sa_scaled <- as.data.frame( design_sa[[input]] )
   design_sa_scaled[ , input_cont_list ] <- design_sa_scaled_cont
+
   myem[[input]] <- emulandice2::emulator_predict( design_sa_scaled )
 }
 
