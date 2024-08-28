@@ -166,6 +166,7 @@ stopifnot(nyrs %in% c(1, 2, 5, 10))
 # Full list of possible emissions scenarios to look for
 # (dropped from unif_temps design if not simulated)
 scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP534-over", "SSP585")
+if (deliverable_test) scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP585")
 
 #' ## Ice model(s)
 
@@ -173,11 +174,13 @@ if (i_s == "AIS") {
 
   # All models (do not change!)
   model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce", "BISICLES" )
+  if (deliverable_test) model_list_full <- c( "Kori", "PISM", "CISM", "ElmerIce" )
 
   # Would drop short simulations anyway but early on is better for emulator inputs
   if (ensemble_subset == "GCM_forced" ||
       (ensemble_subset == "all_forced" && final_year > 2200) ) {
     model_list <- c( "Kori", "PISM", "BISICLES" )
+    if (deliverable_test) model_list <- c( "Kori", "PISM")
   } else model_list <- model_list_full
 
 }
@@ -290,12 +293,15 @@ if (i_s == "GLA") cal_end <- 2020 # because OGGM fails if too early xxx obsolete
 # XXX Implement different baselines for 2100/50 and 2300?
 
 # Antarctica
-if (i_s == "AIS") cal_start = 2010 #2000
+if (i_s == "AIS") {
+  cal_start <- 2010
+  if (deliverable_test) cal_start <- 2000
+}
 
 # Greenland
 if (i_s == "GIS") cal_start = 2000 # xxx change to 1995 when decoupled baseline
 
-# Glaciers: 2000 for most runs, but 2005 for OGGM PPE
+# Glaciers
 if (i_s == "GLA") cal_start = 2000
 
 # Check for current data ranges - change if updating data
