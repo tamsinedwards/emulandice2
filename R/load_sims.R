@@ -34,7 +34,7 @@ load_sims <- function(variable, source = NA, region = NA) { # dataset
       }
 
       if (source == "AIS") {
-        data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240826.csv")
+        data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240828.csv")
         if (deliverable_test) data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240306.csv")
       }
 
