@@ -29,7 +29,7 @@ args <- commandArgs(TRUE)
 if (length(args) == 0) {
 
   warning("No arguments set - using defaults")
-  i_s <- "GLA"
+  i_s <- "GIS"
   reg_num <- 1
   final_year <- 2300
 
@@ -744,18 +744,74 @@ if (i_s == "GLA") {
 #' # Load and process data
 
 #' ## Load observations
-# Get obs -------------------------------------------------------------------
+# Load obs -------------------------------------------------------------------
 
 # Needs to be before select_sims for history matching filtering of glaciers
 obs_data <- emulandice2::load_obs()
 
 #' ## Load climate and ice simulations
-# Get sims ---------------------------------------------------------------------
+# Load sims: climate ---------------------------------------------------------------------
 
-# GET CLIMATE AND LAND ICE SIMULATIONS
+# GET CLIMATE SIMULATIONS
+
 # Returns CSV file data
-climate_data <- emulandice2::load_sims(variable = "climate") # dataset
-ice_data <- emulandice2::load_sims(variable = "ice", source = i_s, region = reg) # dataset
+climate_data <- emulandice2::load_sims(variable = "climate")
+
+# Impute two common missing cases that mean a simulation would be dropped unnecssarily
+
+# GCM only reached 2099: impute 2100 with this value
+miss_ind <- is.na(climate_data$y2100) & !is.na(climate_data$y2099)
+if (length(miss_ind[miss_ind]) > 0) {
+  cat(sprintf("Imputing %i GCM simulations by setting 2100 to 2099 value:\n", length(miss_ind[miss_ind])),
+      file = logfile_build, append = TRUE)
+  cat(paste(climate_data[ miss_ind, c("scenario")], climate_data[ miss_ind, c("GCM")], "\n"), "\n",
+      file = logfile_build, append = TRUE)
+  climate_data[ miss_ind, "y2100"] <- climate_data[ miss_ind, "y2099"]
+}
+
+# Repeat for 2299/2300
+miss_ind <- is.na(climate_data$y2300) & !is.na(climate_data$y2299)
+if (length(miss_ind[miss_ind]) > 0) {
+  cat(sprintf("Imputing %i GCM simulations by setting 2300 to 2299 value:\n", length(miss_ind[miss_ind])),
+      file = logfile_build, append = TRUE)
+  cat(paste(climate_data[ miss_ind, c("scenario")], climate_data[ miss_ind, c("GCM")], "\n"), "\n",
+      file = logfile_build, append = TRUE)
+  climate_data[ miss_ind, "y2300"] <- climate_data[ miss_ind, "y2299"]
+}
+
+# Construct whole duplicate array of forcings with fixed climate from 2100
+# Not very efficient, but very many are used in ensemble and saves index errors too
+if ( i_s == "GIS" && final_year > 2100) {
+
+  # Initialise with original data
+  climate_data_fixed <- climate_data # this is to 2300
+
+  # Index for each decade after fixed date
+  decadal_ind <- seq(from = 2101, to = 2291, by = 10)
+
+  # Paste 2091-2100 values into these
+  for (dd in 1:length(decadal_ind)) {
+    climate_data_fixed[ , paste0("y", decadal_ind[dd] + 0:9)] <- climate_data[ , paste0("y", 2091:2100)]
+  }
+}
+
+# Only need scenario, GCM, and date range of simulations
+climate_data <- climate_data[, c("scenario", "GCM", paste0("y", first_year:final_year)) ]
+
+# Calculate climate change timeslice(s) e.g. GSAT_2100 for emulator input(s)
+temps_data <- emulandice2::calc_temps(climate_data)
+
+# Same again for fixed climate
+if ( i_s == "GIS" && final_year > 2100) {
+  climate_data_fixed <- climate_data_fixed[, c("scenario", "GCM", paste0("y", first_year:final_year)) ]
+  temps_data_fixed <- emulandice2::calc_temps(climate_data_fixed)
+}
+
+
+# Load sims: ice ---------------------------------------------------------------------
+# GET ICE SIMULATIONS
+
+ice_data <- emulandice2::load_sims(variable = "ice", source = i_s, region = reg) # ice dataset
 
 # Index of first column with name format yXXXX
 ice_file_yr_start_col <- suppressWarnings( myind <- min(which( nchar(names(ice_data)) == 5
@@ -801,9 +857,25 @@ if (deliverable_test) {
 }
 
 # Get corresponding forcings (match by GCM + scenario; check length)
-temps <- emulandice2::match_sims()
+temps <- emulandice2::match_gcms(ice_data, temps_data)
 
-# Find rows that do not have (first timeslice if multiple) forcing
+# Get fixed climate numbers and overwrite into rows with fixed_date = 2100
+if (i_s == "GIS" && final_year > 2100) {
+
+  fixed_ind <- ice_data$fixed_date == 2100
+  fixed_ind <- !is.na(fixed_ind)
+
+  temps_fixed <- emulandice2::match_gcms(ice_data, temps_data_fixed)
+  temps[ fixed_ind, ] <- temps_fixed[ fixed_ind, ]
+
+}
+
+# Drop scenario and GCM columns and just keep climate column(s)
+temps <- temps[ , -(1:2) ]
+if (i_s == "GIS" && final_year > 2100) temps_fixed <- temps_fixed[ , -(1:2) ]
+
+
+# Find simulations that do not have (first timeslice if multiple) forcing
 if ( length(temps_list) == 1 ) { sim_index <- !is.na(temps)
 } else sim_index <- !is.na(temps[,1])
 
