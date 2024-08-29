@@ -31,7 +31,7 @@ match_gcms <- function(ice_data, temps_dataset) {
 
       # For each row in ice_data (simulation), get temps_dataset
       temp_row <- temps_dataset[ temps_dataset$GCM == x[ "GCM" ]
-                                & temps_dataset$scenario == x[ "scenario"], tt + 2 ]
+                                 & temps_dataset$scenario == x[ "scenario"], tt + 2 ]
       if (length(temp_row) > 0) { temp_row
       } else NA
     }))
@@ -48,10 +48,11 @@ match_gcms <- function(ice_data, temps_dataset) {
 
   # And what we don't: missing final column
   df_miss <- unique( temps[is.na(temps[ , 2 + length(temps_list)]),] )
-  cat(paste("Could not find part/all of", dim(df_miss)[1],"forcings for", dim(temps[is.na(temps[ , 2 + length(temps_list)]),])[1],
-            "simulations so skipped these:\n"), file = logfile_build, append = TRUE)
-  cat(paste(df_miss[ ,"scenario"], df_miss[ ,"GCM"], "\n"), "\n", file = logfile_build, append = TRUE)
-
+  if (dim(df_miss)[1] > 0) {
+    cat(paste("Could not find part/all of", dim(df_miss)[1],"forcings for", dim(temps[is.na(temps[ , 2 + length(temps_list)]),])[1],
+              "simulations so skipped these:\n"), file = logfile_build, append = TRUE)
+    cat(paste(df_miss[ ,"scenario"], df_miss[ ,"GCM"], "\n"), "\n", file = logfile_build, append = TRUE)
+  }
 
   cat(paste("\nmatch_gcms: found", dim(temps[ ! is.na(temps[ , 2 + length(temps_list)]),])[1], "of", dim(temps)[1],
             "forcing simulations\n"), file = logfile_build, append = TRUE)

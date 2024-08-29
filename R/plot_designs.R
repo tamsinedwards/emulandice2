@@ -27,12 +27,12 @@ plot_designs <- function(data_type, plot_level = 0) {
   if (data_type == "sims") {
 
     # Colour scale: maximum range of data
-    if (min( ice_data[, paste0("y", c(cal_end:max(years_em))) ]) < 0) {
-      min_breaks <- 1.1 * min( ice_data[, paste0("y", c(cal_end:max(years_em))) ])
-    } else min_breaks <- 0.9 * min( ice_data[, paste0("y", c(cal_end:max(years_em))) ])
+    if (min( ice_data[, paste0("y", c(cal_end:max(years_em))) ], na.rm = TRUE) < 0) {
+      min_breaks <- 1.1 * min( ice_data[, paste0("y", c(cal_end:max(years_em))) ], na.rm = TRUE)
+    } else min_breaks <- 0.9 * min( ice_data[, paste0("y", c(cal_end:max(years_em))) ], na.rm = TRUE)
 
     breaks_SLE <- seq( from = min_breaks,
-                       to = 1.1*max( ice_data[, paste0("y", c(cal_end:max(years_em))) ]),
+                       to = 1.1*max( ice_data[, paste0("y", c(cal_end:max(years_em))) ], na.rm = TRUE),
                        length = 20 )
     #colrng_SLE <- pal(length(breaks_SLE) - 1)
     colrng_SLE <- hcl.colors(length(breaks_SLE) - 1, palette = "Blues")
