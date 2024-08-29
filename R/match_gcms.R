@@ -20,7 +20,7 @@ match_gcms <- function(ice_data, temps_dataset) {
   # Write temps into ice_data length matrix, not forcing length, to use in ice_design
   temps <- ice_data[ , c("scenario", "GCM")]
 
-  # For each GSAT
+  # For each GSAT change
   for (tt in 1:length(temps_list)) {
 
     temps <- cbind(temps, NA)

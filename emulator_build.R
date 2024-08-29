@@ -760,17 +760,13 @@ climate_csv <- emulandice2::load_sims(variable = "climate")
 # Fill 2100 and 2300 values
 climate_data <- impute_climate(climate_csv)
 
-# This time construct fixed forcings from 2100
-if ( i_s == "GIS" && final_year > 2100) {
-  climate_data_fixed <- impute_climate(climate_csv, construct_fixed = TRUE)
-}
-
 # Calculate climate change timeslice(s) e.g. GSAT_2100 for emulator input(s)
+# Same number of rows as climate data
 temps_data <- emulandice2::calc_temps(climate_data)
 
-# Same again for fixed climate
+# For GIS post-2100 repeat with fixed climate forcings
 if ( i_s == "GIS" && final_year > 2100) {
-  #climate_data_fixed <- climate_data_fixed[, c("scenario", "GCM", paste0("y", first_year:final_year)) ]
+  climate_data_fixed <- impute_climate(climate_csv, construct_fixed = TRUE)
   temps_data_fixed <- emulandice2::calc_temps(climate_data_fixed)
 }
 
@@ -823,10 +819,11 @@ if (deliverable_test) {
   }
 }
 
-# Get corresponding forcings (match by GCM + scenario; check length)
+# Get corresponding climate change(s) (match by GCM + scenario)
 temps <- emulandice2::match_gcms(ice_data, temps_data)
 
-# Get fixed climate numbers and overwrite into rows with fixed_date = 2100
+# For GIS post-2100, get fixed climate forcing change(s)
+# and overwrite into rows of temps with fixed_date = 2100
 if (i_s == "GIS" && final_year > 2100) {
 
   fixed_ind <- ice_data$fixed_date == 2100
@@ -837,10 +834,8 @@ if (i_s == "GIS" && final_year > 2100) {
 
 }
 
-# Drop scenario and GCM columns and just keep climate column(s)
+# Drop scenario and GCM columns: just keep climate column(s)
 temps <- temps[ , -(1:2) ]
-if (i_s == "GIS" && final_year > 2100) temps_fixed <- temps_fixed[ , -(1:2) ]
-
 
 # Find simulations that do not have (first timeslice if multiple) forcing
 if ( length(temps_list) == 1 ) { sim_index <- !is.na(temps)
