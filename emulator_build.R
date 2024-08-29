@@ -755,55 +755,22 @@ obs_data <- emulandice2::load_obs()
 # GET CLIMATE SIMULATIONS
 
 # Returns CSV file data
-climate_data <- emulandice2::load_sims(variable = "climate")
+climate_csv <- emulandice2::load_sims(variable = "climate")
 
-# Impute two common missing cases that mean a simulation would be dropped unnecssarily
+# Fill 2100 and 2300 values
+climate_data <- impute_climate(climate_csv)
 
-# GCM only reached 2099: impute 2100 with this value
-miss_ind <- is.na(climate_data$y2100) & !is.na(climate_data$y2099)
-if (length(miss_ind[miss_ind]) > 0) {
-  cat(sprintf("Imputing %i GCM simulations by setting 2100 to 2099 value:\n", length(miss_ind[miss_ind])),
-      file = logfile_build, append = TRUE)
-  cat(paste(climate_data[ miss_ind, c("scenario")], climate_data[ miss_ind, c("GCM")], "\n"), "\n",
-      file = logfile_build, append = TRUE)
-  climate_data[ miss_ind, "y2100"] <- climate_data[ miss_ind, "y2099"]
-}
-
-# Repeat for 2299/2300
-miss_ind <- is.na(climate_data$y2300) & !is.na(climate_data$y2299)
-if (length(miss_ind[miss_ind]) > 0) {
-  cat(sprintf("Imputing %i GCM simulations by setting 2300 to 2299 value:\n", length(miss_ind[miss_ind])),
-      file = logfile_build, append = TRUE)
-  cat(paste(climate_data[ miss_ind, c("scenario")], climate_data[ miss_ind, c("GCM")], "\n"), "\n",
-      file = logfile_build, append = TRUE)
-  climate_data[ miss_ind, "y2300"] <- climate_data[ miss_ind, "y2299"]
-}
-
-# Construct whole duplicate array of forcings with fixed climate from 2100
-# Not very efficient, but very many are used in ensemble and saves index errors too
+# This time construct fixed forcings from 2100
 if ( i_s == "GIS" && final_year > 2100) {
-
-  # Initialise with original data
-  climate_data_fixed <- climate_data # this is to 2300
-
-  # Index for each decade after fixed date
-  decadal_ind <- seq(from = 2101, to = 2291, by = 10)
-
-  # Paste 2091-2100 values into these
-  for (dd in 1:length(decadal_ind)) {
-    climate_data_fixed[ , paste0("y", decadal_ind[dd] + 0:9)] <- climate_data[ , paste0("y", 2091:2100)]
-  }
+  climate_data_fixed <- impute_climate(climate_csv, construct_fixed = TRUE)
 }
-
-# Only need scenario, GCM, and date range of simulations
-climate_data <- climate_data[, c("scenario", "GCM", paste0("y", first_year:final_year)) ]
 
 # Calculate climate change timeslice(s) e.g. GSAT_2100 for emulator input(s)
 temps_data <- emulandice2::calc_temps(climate_data)
 
 # Same again for fixed climate
 if ( i_s == "GIS" && final_year > 2100) {
-  climate_data_fixed <- climate_data_fixed[, c("scenario", "GCM", paste0("y", first_year:final_year)) ]
+  #climate_data_fixed <- climate_data_fixed[, c("scenario", "GCM", paste0("y", first_year:final_year)) ]
   temps_data_fixed <- emulandice2::calc_temps(climate_data_fixed)
 }
 
