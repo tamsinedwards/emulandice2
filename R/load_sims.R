@@ -22,7 +22,10 @@ load_sims <- function(variable, source = NA, region = NA) { # dataset
     # Climate forcing simulations put together by Mira
     # xxx Mira email 9th May 2023 about 230508 file: small discrepancies HadGEM2-ES Cecile
     # xxx Hatchet job 230618 merging Vio's 2300 file missing data
-    if (variable == "climate") data_file <- paste0( inputs_preprocess, "/GSAT/CLIMATE_FORCING_240127.csv")
+    if (variable == "climate") {
+      data_file <- paste0( inputs_preprocess, "/GSAT/CLIMATE_FORCING_240829.csv") # IPSL OS
+      if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GSAT/CLIMATE_FORCING_240127.csv")
+    }
 
     # Land ice simulations: results from PROTECT!
     # GLA are in mm, ice shets are cm... xxx put this in filename when fixing abs values
