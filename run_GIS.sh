@@ -19,9 +19,9 @@ gsat_dir=/Users/tamsinedwards/PROTECT/gsat
 # Final year is command line argument
 final_year=$1
 
-if [ "$final_year" != 2100 -a "$final_year" != 2200 -a "$final_year" != 2250 -a "$final_year" != 2300 ]
+if [ "$final_year" != 2100 -a "$final_year" != 2150 -a "$final_year" != 2200 -a "$final_year" != 2250 -a "$final_year" != 2300 ]
 then
-     echo "Incorrect final year argument: please choose from 2100, 2200, 2250 or 2300"
+     echo "Incorrect final year argument: please choose from 2100, 2150, 2200, 2250 or 2300"
      exit 1
 fi
 
@@ -35,11 +35,11 @@ Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GIS 
 echo
 echo run GIS: predict
 
-if [ "$final_year" -gt 2100 ]
+if [ "$final_year" -gt 2150 ] # 2100
 then
   build_file=GIS_ALL_CISM_pow_exp_01_EMULATOR.RData
 fi
-if [ "$final_year" == 2100 ]
+if [ "$final_year" -le 2150 ] # == 2100
 then
   build_file=GIS_ALL_CISM_IMAUICE_ElmerIce_GISM_pow_exp_01_EMULATOR.RData
 fi

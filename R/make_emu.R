@@ -62,7 +62,7 @@ make_emu <- function(designX, responseF, r = NULL, thresh = 0.999) {
   # Drop factors (dummy variable columns) from trend
   if (include_factors) {
 
-    cat("Dropping factors from trend:\n", file = logfile_build, append = TRUE)
+    cat("\nDropping factors from trend:\n", file = logfile_build, append = TRUE)
     cat(paste(c(ice_dummy_list, "\n"), collapse = " "), file = logfile_build, append = TRUE)
 
     trendX <- trendX[ , input_cont_list]

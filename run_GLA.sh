@@ -19,9 +19,9 @@ gsat_dir=/Users/tamsinedwards/PROTECT/gsat
 # Final year is command line argument
 final_year=$1
 
-if [ "$final_year" != 2100 -a "$final_year" != 2300 ]
+if [ "$final_year" != 2100 -a "$final_year" != 2150 -a "$final_year" != 2300 ]
 then
-     echo "Incorrect final year argument: please choose from 2100 or 2300"
+     echo "Incorrect final year argument: please choose from 2100, 2150 or 2300"
      exit 1
 fi
 
@@ -30,7 +30,7 @@ model_list=GloGEM_OGGM
 now=$(date +'%y%m%d')
 outdir="$results_dir"/"$now"_GLA_ALL_"$final_year"
 
-for region in $(seq -f "%02g" 1 19) # if running only one region, then zero-pad!
+for region in 01 # $(seq -f "%02g" 1 19) # if running only one region, then zero-pad!
 do
 
   echo
@@ -50,7 +50,7 @@ do
   echo
   echo "run GLA: predict for region RGI: $region"
 
-  for ssp in "ssp534-over" "ssp119" "ssp126" "ssp245" "ssp370" "ssp585"
+  for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp585" # "ssp534-over"
   do
 
   echo "Scenario:" $ssp

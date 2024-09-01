@@ -4,7 +4,7 @@
 \alias{calc_temps}
 \title{calc_temps: calculate climate change metric for emulator input}
 \usage{
-calc_temps(climate_dataset)
+calc_temps(climate_dataset, mean_impute = FALSE)
 }
 \value{
 `calc_temps()` returns requested temperature change(s) for all

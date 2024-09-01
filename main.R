@@ -130,7 +130,7 @@ scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper
 set.seed(seed)
 
 # Plots: 0 = none, 1 = main, 2 = nearly all, 3 = replot SIMS.pdf with model error
-plot_level <- 1
+plot_level <- 2
 
 # Number of 2LM projections of GSAT expected per SSP
 # (and therefore total number of samples for book-keeping by GSAT value)
@@ -247,7 +247,10 @@ for (scen in scenario_list) {
                  reg, scen, glacier_cap), file = logfile_results, append = TRUE)
     cat( sprintf("Initial range: %.3f - %.3f cm SLE\n", min( myem[[scen]]$mean ),
                  max( myem[[scen]]$mean )), file = logfile_results, append = TRUE)
-    myem[[scen]]$mean[ myem[[scen]]$mean > glacier_cap ] <- glacier_cap
+
+#    myem[[scen]]$mean[ myem[[scen]]$mean > glacier_cap ] <- glacier_cap
+    myem[[scen]]$mean <- emulandice2::weight_glacier_cap( myem[[scen]]$mean )
+
     cat( sprintf("Final range: %.3f - %.3f cm SLE\n", min( myem[[scen]]$mean ),
                  max( myem[[scen]]$mean)), file = logfile_results, append = TRUE)
   }
@@ -275,7 +278,9 @@ for (scen in scenario_list) {
                  min( projections[[ scen ]]  ),
                  max( projections[[ scen ]] )), file = logfile_results, append = TRUE)
 
-    projections[[ scen ]][ projections[[ scen ]] > glacier_cap ] <- glacier_cap
+ #   projections[[ scen ]][ projections[[ scen ]] > glacier_cap ] <- glacier_cap
+    projections[[ scen ]] <- emulandice2::weight_glacier_cap(projections[[ scen ]])
+
     cat( sprintf("Final range: %.3f - %.3f cm SLE\n", min( projections[[ scen ]]  ),
                  max( projections[[ scen ]]  )), file = logfile_results, append = TRUE)
   }

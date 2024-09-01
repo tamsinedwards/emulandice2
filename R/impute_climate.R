@@ -15,9 +15,7 @@
 impute_climate <- function(climate_dataset, construct_fixed = FALSE) {
 
   cat("\n_____________________________________\n",file = logfile_build, append = TRUE)
-  cat(paste("impute_climate: fill missing 2100 and 2300\n"),
-      file = logfile_build, append = TRUE)
-  cat(paste("Reconstructing fixed climates from 2100\n"),
+  cat(paste("impute_climate: fill missing 2100 and 2300\n\n"),
       file = logfile_build, append = TRUE)
 
   # Impute two common missing cases that mean a simulation would be dropped unnecssarily
@@ -46,6 +44,9 @@ impute_climate <- function(climate_dataset, construct_fixed = FALSE) {
   # Construct whole duplicate array of forcings with fixed climate from 2100
   # Not very efficient, but very many are used in ensemble and saves index errors too
   if (construct_fixed) {
+
+    cat(paste("Reconstructing fixed climates from 2100\n"),
+        file = logfile_build, append = TRUE)
 
     # Index for each decade after fixed date
     decadal_ind <- seq(from = 2101, to = 2291, by = 10)

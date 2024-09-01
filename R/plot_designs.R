@@ -26,6 +26,12 @@ plot_designs <- function(data_type, plot_level = 0) {
   # SIMULATIONS
   if (data_type == "sims") {
 
+    # GSAT
+    if (plot_level >= 1) {
+      matplot( 1950:2150, t(climate_data[ , 3:203]), type = "l", lty = 1,
+               xlab = "Year", ylab = "Global mean temperature (degC)")
+    }
+
     # Colour scale: maximum range of data
     if (min( ice_data[, paste0("y", c(cal_end:max(years_em))) ], na.rm = TRUE) < 0) {
       min_breaks <- 1.1 * min( ice_data[, paste0("y", c(cal_end:max(years_em))) ], na.rm = TRUE)
@@ -253,7 +259,7 @@ plot_designs <- function(data_type, plot_level = 0) {
       # PLOT: GSAT of simulations
 
       for ( tt in 1:length(temps_list)) {
-        if (length(temps_list)) { plot_temps <- temps
+        if (length(temps_list) == 1) { plot_temps <- temps
         } else plot_temps <- temps[, tt]
 
         hist(plot_temps, col = "darkgrey", breaks = 40, #xlim = c(-4,16), breaks = seq(from = -4, to = 16, by = 0.2), # cex.axis = 1.5, cex.lab = 1.2,

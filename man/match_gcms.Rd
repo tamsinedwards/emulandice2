@@ -4,7 +4,7 @@
 \alias{match_gcms}
 \title{match_gcms: match ice simulations to climate forcing simulations}
 \usage{
-match_gcms(ice_data, temps_dataset)
+match_gcms(ice_data, temps_dataset, mean_impute = FALSE)
 }
 \value{
 `match_gcms()` returns requested temperature change(s) for each

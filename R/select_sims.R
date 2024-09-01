@@ -33,11 +33,14 @@ select_sims <- function(select_type) {
            file = logfile_build, append = TRUE)
     }
 
-    # Select runs that get to final expected year
-    full_length <- ! is.na( ice_data[ , paste0("y", years_sim[ length(years_sim) ] ) ] )
-    ice_data <- ice_data[ full_length, ]
-    cat( paste0("After checking simulations reach ",years_sim[ length(years_sim) ], ": ", dim(ice_data)[1],"\n"),
-         file = logfile_build, append = TRUE)
+    # Select runs that get to final expected year (unless imputing)
+    if ( ! impute_sims ) {
+      full_length <- ! is.na( ice_data[ , paste0("y", years_sim[ length(years_sim) ] ) ] )
+      ice_data <- ice_data[ full_length, ]
+      cat( paste0("After checking simulations reach ",years_sim[ length(years_sim) ], ": ", dim(ice_data)[1],"\n"),
+           file = logfile_build, append = TRUE)
+
+    }
 
     #__________________________________________________
     # GREENLAND SELECTIONS
@@ -107,97 +110,97 @@ select_sims <- function(select_type) {
     #__________________________________________________
     # Subset simulations for testing
 
-  #  if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
+    #  if ( ! is.na(target_size) & dim(ice_data)[1] > target_size ) {
 
-      # Randomly sample
-  #    sel_index <- sort(sample(nrow(ice_data), target_size))
+    # Randomly sample
+    #    sel_index <- sort(sample(nrow(ice_data), target_size))
 
-#      ice_data <- ice_data[ sel_index, ]
-#      cat( paste("After randomly selecting",target_size,"simulations to limit size:", dim(ice_data)[1], "\n"),
- #          file = logfile_build, append = TRUE)
+    #      ice_data <- ice_data[ sel_index, ]
+    #      cat( paste("After randomly selecting",target_size,"simulations to limit size:", dim(ice_data)[1], "\n"),
+    #          file = logfile_build, append = TRUE)
 
-#    }
-
-
-} # select_type == main
+    #    }
 
 
-# Broad history matching for glacier OGGM simulations
-if (select_type == "history_match") {
-
-  if (i_s == "GLA") {
-
-    # Pre-screening with history matching:
-
-    # Broad history matching, using slightly tailored thresholds
-    # xxx Temporary code until consolidating more neatly
-    # use _sel to avoid confusion with later projection calibration
-
-    # Model discrepancy scaling factor for glacier pre-screening only
-    scale_mod_err_sel <- 10
-
-    # Total error
-    model_err_sel <- scale_mod_err_sel * obs_data[,"SLE_sd"]
-    total_err_sel <- sqrt(obs_data[,"SLE_sd"]^2 + model_err_sel^2)
-
-    # Change and error for calibration period
-    obs_change_sel <- obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"]
-    obs_change_err_sel <- total_err_sel[obs_data$Year == cal_end]
-
-    # Sea level change
-    # xxx cal_start part should be redundant because (currently) zero
-    model_change <- ( ice_data[ , paste0("y",cal_end) ]
-                      - ice_data[ , paste0("y",cal_start) ] )
-
-    # Implausibility
-    implausibility <- abs( (model_change - obs_change_sel) / obs_change_err_sel )
-
-    # Default threshold (5 large and 5 small regions)
-    imp_thresh <- 50
-
-    # Adjust for 9 of 19 regions
-    # LARGE (vol > 1 cm SLE)
-    if (reg_num == 4) imp_thresh <- 30 # Arctic Canada South
-    if (reg_num == 9) imp_thresh <- 100 # Russia
-    if (reg_num == 19) imp_thresh <- 150 # AIS
-
-    # SMALL
-    if (reg_num %in% c(10, 11, 12, 18)) imp_thresh <- 30
-    if (reg_num == 13) imp_thresh <- 60
-    if (reg_num == 14) imp_thresh <- 100
-
-    # Index to keep
-    # Apply just to OGGM
-    #      nroy_sel <- (implausibility <= imp_thresh & ice_data$model == "OGGM") |
-    #        ice_data$model %in% model_list[ model_list != "OGGM"]
-
-    # Apply to both models
-    nroy_sel <- implausibility <= imp_thresh
-
-    # Restrict dataset
-    ice_data <- ice_data[ nroy_sel , ]
-
-    #cat( sprintf("\nAfter restricting OGGM to I < %i (model discrep x %i obs_error): %i\n",
-    #             imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
-    #     file = logfile_build, append = TRUE )
-
-    cat( sprintf("\nAfter restricting to I < %i (model discrep x %i obs_error): %i\n",
-                 imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
-         file = logfile_build, append = TRUE )
+  } # select_type == main
 
 
-  } # GLA
+  # Broad history matching for glacier OGGM simulations
+  if (select_type == "history_match") {
 
-} # history_match
+    if (i_s == "GLA") {
 
-#__________________________________________________
-# SUMMARY
+      # Pre-screening with history matching:
 
-cat(paste("\nselect_sims: SELECTED", dim(ice_data)[1], "ICE SIMULATIONS FOR", i_s, reg, "\n"),
-    file = logfile_build, append = TRUE)
-cat("_____________________________________\n",file = logfile_build, append = TRUE)
+      # Broad history matching, using slightly tailored thresholds
+      # xxx Temporary code until consolidating more neatly
+      # use _sel to avoid confusion with later projection calibration
+
+      # Model discrepancy scaling factor for glacier pre-screening only
+      scale_mod_err_sel <- 10
+
+      # Total error
+      model_err_sel <- scale_mod_err_sel * obs_data[,"SLE_sd"]
+      total_err_sel <- sqrt(obs_data[,"SLE_sd"]^2 + model_err_sel^2)
+
+      # Change and error for calibration period
+      obs_change_sel <- obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"]
+      obs_change_err_sel <- total_err_sel[obs_data$Year == cal_end]
+
+      # Sea level change
+      # xxx cal_start part should be redundant because (currently) zero
+      model_change <- ( ice_data[ , paste0("y",cal_end) ]
+                        - ice_data[ , paste0("y",cal_start) ] )
+
+      # Implausibility
+      implausibility <- abs( (model_change - obs_change_sel) / obs_change_err_sel )
+
+      # Default threshold (5 large and 5 small regions)
+      imp_thresh <- 50
+
+      # Adjust for 9 of 19 regions
+      # LARGE (vol > 1 cm SLE)
+      if (reg_num == 4) imp_thresh <- 30 # Arctic Canada South
+      if (reg_num == 9) imp_thresh <- 100 # Russia
+      if (reg_num == 19) imp_thresh <- 150 # AIS
+
+      # SMALL
+      if (reg_num %in% c(10, 11, 12, 18)) imp_thresh <- 30
+      if (reg_num == 13) imp_thresh <- 60
+      if (reg_num == 14) imp_thresh <- 100
+
+      # Index to keep
+      # Apply just to OGGM
+      #      nroy_sel <- (implausibility <= imp_thresh & ice_data$model == "OGGM") |
+      #        ice_data$model %in% model_list[ model_list != "OGGM"]
+
+      # Apply to both models
+      nroy_sel <- implausibility <= imp_thresh
+
+      # Restrict dataset
+      ice_data <- ice_data[ nroy_sel , ]
+
+      #cat( sprintf("\nAfter restricting OGGM to I < %i (model discrep x %i obs_error): %i\n",
+      #             imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
+      #     file = logfile_build, append = TRUE )
+
+      cat( sprintf("\nAfter restricting to I < %i (model discrep x %i obs_error): %i\n",
+                   imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
+           file = logfile_build, append = TRUE )
 
 
-return(ice_data)
+    } # GLA
+
+  } # history_match
+
+  #__________________________________________________
+  # SUMMARY
+
+  cat(paste("\nselect_sims: SELECTED", dim(ice_data)[1], "ICE SIMULATIONS FOR", i_s, reg, "\n"),
+      file = logfile_build, append = TRUE)
+  cat("_____________________________________\n",file = logfile_build, append = TRUE)
+
+
+  return(ice_data)
 
 }
