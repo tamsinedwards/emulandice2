@@ -4,13 +4,11 @@
 \alias{do_calibration}
 \title{do_calibration: calculate calibration information.}
 \usage{
-do_calibration(distances, calib_type)
+do_calibration(distances)
 }
 \arguments{
 \item{distances}{Distance of each historical emulator prediction from the
 observations}
-
-\item{calib_type}{history_matching or Bayesian}
 }
 \value{
 `do_calibration()` returns index of NROY ensemble members if
@@ -18,6 +16,5 @@ history matching or weights for each ensemble member if Bayesian calibration.
 }
 \description{
 Use distance of each emulator prediction over the historical period from
-observations to calculate whether it is implausible/NROY (history matching),
-or calculate weights using a Gaussian likelihood (Bayesian calibration).
+observations to calculate normalised weights using a Gaussian likelihood (i.e. Bayesian calibration).
 }

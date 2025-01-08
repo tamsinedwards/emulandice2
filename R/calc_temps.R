@@ -11,7 +11,7 @@
 calc_temps <- function(climate_dataset, mean_impute = FALSE) {
 
   cat("\n_____________________________________\n",file = logfile_build, append = TRUE)
-  cat( "calc_temps: calculating temperature change(s) for all GCMs in dataset\n", file = logfile_build, append = TRUE )
+  cat( "calc_temps: calculating temperature change(s) for all forcings in dataset\n", file = logfile_build, append = TRUE )
   if (mean_impute) cat( "Imputing missing GCMs with mean of others for SSP\n\n",
                         file = logfile_build, append = TRUE )
 
@@ -24,7 +24,7 @@ calc_temps <- function(climate_dataset, mean_impute = FALSE) {
   # Drop scenario, vals before calculating just to save indexes (re-add after)
   climate_vals <- climate_dataset[ , -c(1,2) ]
 
-  # Normalise by subtracting baseline mean from whole time series
+  # Normalise by subtracting baseline mean from whole time series XXXX plot this?
   climate_norm <- t( apply(climate_vals, 1, function(x) {
     x <- unlist(x) - mean( unlist(x[ paste0( "y", temps_period) ]) )
   }) )
@@ -64,7 +64,7 @@ calc_temps <- function(climate_dataset, mean_impute = FALSE) {
 
   # Add scenario and GCM columns back
   climate_anom <- cbind( climate_dataset[ , 1:2 ], climate_anom )
-  colnames(climate_anom)[-c(1,2)] <- temps_list_names # paste0("GSAT_", temps_list)
+  colnames(climate_anom)[-c(1,2)] <- temps_list_names
 
   # Add extra rows for ensemble mean if imputing simulations
   if (mean_impute) {

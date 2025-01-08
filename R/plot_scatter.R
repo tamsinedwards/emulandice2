@@ -149,7 +149,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
       #___________________________________________________________________________
       # PLOT CALIBRATION SCATTER: FUTURE VS PAST - final
 
-      # Posterior because then shows NROY as darker
+      # Posterior
       if (data_type == "posterior") {
 
         plot(1:3, 1:3, type = "n",
@@ -186,19 +186,6 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, cex = 0.7,
                 col = AR6_rgb_light[[scen]], bg = AR6_rgb_light[[scen]] )
         text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated", cex = 0.7)
-
-        # Plot calibrated (NROY) again but darker
-        # Only do this for real projections, to avoid calibrating unif_temps for visualisation only
-        if (design_name == "AR6_2LM") {
-          points(projections[[scen]][ proj_nroy[[scen]], paste0("y",cal_end) ],
-                 projections[[scen]][ proj_nroy[[scen]], paste0("y",yy) ],
-                 pch = 16, cex = 0.5, bg = AR6_rgb_light[[scen]],
-                 col = AR6_rgb_med[[scen]])
-          yleg <- sle_lim[[yy]][1] + 0.82*(sle_lim[[yy]][2] - sle_lim[[yy]][1])
-          points( ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), yleg, pch = 16, cex = 0.7,
-                  col = AR6_rgb_med[[scen]], bg = AR6_rgb_med[[scen]] )
-          text(x = ylim_obs[1] + 0.05*(ylim_obs[2] - ylim_obs[1]), y = yleg, pos = 4, "Emulated: NROY", cex = 0.7)
-        }
 
         # SIMULATIONS
         yleg <- sle_lim[[yy]][1] + 0.92*(sle_lim[[yy]][2] - sle_lim[[yy]][1])

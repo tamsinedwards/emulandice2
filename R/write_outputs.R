@@ -27,7 +27,6 @@ write_outputs <- function(write_mean) {
 
     csv_mean <- list()
     csv_final <- list()
-    csv_nroy <- list()
     csv_post <- list()
 
     for (scen in scenario_list) {
@@ -41,9 +40,6 @@ write_outputs <- function(write_mean) {
 
       csv_final[[scen]] <- paste0( outdir_facts, out_name,"_projections_FULL_",scen, ".csv")
       cat( csv_header, file = csv_final[[scen]] )
-
-      csv_nroy[[scen]] <- paste0( outdir_facts, out_name,"_projections_NROY_",scen, ".csv")
-      cat( csv_header, file = csv_nroy[[scen]] )
 
       csv_post[[scen]] <- paste0( outdir_facts, out_name,"_projections_POSTERIOR_",scen, ".csv")
       cat( csv_header, file = csv_post[[scen]] )
@@ -61,17 +57,6 @@ write_outputs <- function(write_mean) {
         cat( sprintf("%s,%s,%i,%.1f, %s\n",i_s, reg, tt, 0.0,
                      paste(projections[[scen]][ tt, paste0("y",years_em) ], collapse = ",")),
              file = csv_final[[scen]], append = TRUE )
-      }
-
-      # History matched: note will not be N_temp length
-      # Values should exactly match those with same row index (tt) in FULL csv above
-      # Could have added flag in column in that file, but this keeps header consistent across all files
-      for (tt in 1:N_temp) {
-        if (tt %in% proj_nroy[[scen]]) {
-          cat( sprintf("%s,%s,%i,%.1f, %s\n",i_s, reg, tt, 0.0,
-                       paste(projections[[scen]][ tt, paste0("y",years_em) ], collapse = ",")),
-               file = csv_nroy[[scen]], append = TRUE )
-        }
       }
 
       # Bayesian calibration: resampled from full projections

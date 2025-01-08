@@ -28,8 +28,8 @@ plot_designs <- function(data_type, plot_level = 0) {
 
     # GSAT
     if (plot_level >= 1) {
-      matplot( 1950:2150, t(climate_data[ , 3:203]), type = "l", lty = 1,
-               xlab = "Year", ylab = "Global mean temperature (degC)")
+      matplot( first_year:final_year, t(climate_data[ , paste0("y", first_year:final_year) ]), type = "l", lty = 1,
+                     xlab = "Year", ylab = "Global mean temperature (degC)")
     }
 
     # Colour scale: maximum range of data
@@ -262,7 +262,7 @@ plot_designs <- function(data_type, plot_level = 0) {
         if (length(temps_list) == 1) { plot_temps <- temps
         } else plot_temps <- temps[, tt]
 
-        hist(plot_temps, col = "darkgrey", breaks = 40, #xlim = c(-4,16), breaks = seq(from = -4, to = 16, by = 0.2), # cex.axis = 1.5, cex.lab = 1.2,
+        hist(plot_temps, col = "darkgrey", breaks = 40,
              main = paste0("Ensemble distribution: ",temps_list_names[tt]),
              xlab = GSAT_lab[[temps_list_names[tt]]] )
       }
@@ -301,7 +301,6 @@ plot_designs <- function(data_type, plot_level = 0) {
         breaks_SLE <- seq( from = min_breaks,
                            to = 1.1*max(myem[[scen]]$mean ),
                            length = 20 )
-        #colrng_SLE <- pal(length(breaks_SLE) - 1)
         colrng_SLE <- hcl.colors(length(breaks_SLE) - 1, palette = "Blues")
 
         for ( yy in yy_plot ) {
@@ -321,43 +320,66 @@ plot_designs <- function(data_type, plot_level = 0) {
 
     # Prior: GSAT ------------------------------------------------------------
     # PLOT: GSAT priors
-    # print("Histogram: GSAT prior(s)")
 
-    if (data_type == "prior") {
+    for (scen in scenario_list) {
 
-      for (scen in scenario_list) {
+      if (data_type == "prior") {
 
         # PLOT: GSAT
         for ( tt in 1:length(temps_list)) {
-          hist( design_pred[[scen]][ , tt],
+          hist( design_prior[[scen]][ , tt],
                 main = paste("Prior:", temps_list_names[tt], "for", scen_name[[scen]]),
                 xlab = GSAT_lab[[temps_list_names[tt]]],
                 xlim = c(0,14),
                 breaks = seq(from = -5, to = 20, by = 0.25),
-                cex.axis = 1.2, cex.lab = 1.2, col = AR6_rgb[[scen]] )
+                cex.axis = 0.8, cex.lab = 0.8, col = AR6_rgb[[scen]] )
         }
+
       }
 
-    }
+      if (data_type == "posterior") {
+
+        # PLOT: GSAT
+        for ( tt in 1:length(temps_list)) {
+          hist( design_pred[[scen]][ , tt],
+                main = paste("Posterior:", temps_list_names[tt], "for", scen_name[[scen]]),
+                xlab = GSAT_lab[[temps_list_names[tt]]],
+                xlim = c(0,14),
+                breaks = seq(from = -5, to = 20, by = 0.25),
+                cex.axis = 0.8, cex.lab = 0.8, col = AR6_rgb[[scen]] )
+        }
+      }
+    } # scenario
 
     # Prior: ice model inputs ------------------------------------------------------------
     # PLOT: ice parameters
-    # print("Histogram: ice model prior(s)")
 
-    if (data_type == "prior") {
+    # 7/1/25 move this down to design_prior plot and add posterior flag to next
+    # if (data_type == "prior") {
 
-      # PLOT: ice sheet model parameter prior
-      for (scen in scenario_list) {
+    # PLOT: ice sheet model parameter prior
+    for (scen in scenario_list) {
 
+      if (data_type == "prior") {
         for (pp in ice_all_list ) {
-          hist(design_pred[[scen]][,pp],
+          hist(design_prior[[scen]][,pp],
                main = paste("Prior:", pp, "for", scen_name[[scen]]),
                xlab = pp, col = "cornflowerblue", breaks = 40,
                cex.axis = 1.5, cex.lab = 1.2 )
         }
       }
 
-    } # prior
+      if (data_type == "posterior") {
+        for (pp in ice_all_list ) {
+          hist(design_pred[[scen]][,pp],
+               main = paste("Posterior:", pp, "for", scen_name[[scen]]),
+               xlab = pp, col = "cornflowerblue", breaks = 40,
+               cex.axis = 1.5, cex.lab = 1.2 )
+        }
+      }
+    }
+
+    #  } # prior
 
   } # plot_level >= 2
 

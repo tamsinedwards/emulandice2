@@ -2,7 +2,8 @@
 % Please edit documentation in R/SVDimpute.R
 \name{SVDimpute}
 \alias{SVDimpute}
-\title{SVD Imputation Algorithm for Matrix Completion}
+\title{SVD Imputation Algorithm for Matrix Completion
+Code by Jonty Rougier}
 \usage{
 SVDimpute(X, k = NULL, pmin = 0.99, reltol = 0.001, maxit = 20)
 }

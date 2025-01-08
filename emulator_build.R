@@ -74,7 +74,7 @@ stopifnot(i_s %in% c("GIS","AIS", "GLA"))
 deliverable_test <- TRUE
 
 impute_sims <- ifelse(i_s == "AIS" && final_year == "2150", TRUE, FALSE)
-if (deliverable_test) impute_sims <- FALSE
+#if (deliverable_test) impute_sims <- FALSE
 
 # Later there are options to pick sub-ensembles
 ensemble_subset <- NA
@@ -134,11 +134,11 @@ if (i_s == "GLA") {
 # Sample size for unif_temps design - used for convenience when adding uncertainty
 # (Main effects sample size is set in load_design_to_pred.R, and
 # AR6 prior sample is equal to number of GSAT projections)
-N_prior <- 2000
+N_unif <- 2000L
 
 # Do LOO validation?
 do_loo_validation <- FALSE
-N_k <- 10 # for every N_k-th simulation; NA for full LOO
+N_k <- 10L # for every N_k-th simulation; NA for full LOO
 
 print("***********************************************************************")
 print("Hello! Welcome to emulandice2: build")
@@ -1418,7 +1418,7 @@ emu_mv <- emulandice2::make_emu( as.matrix(X), as.matrix(Y) ) #) )
 
 #' ## Main effects
 # Main effects (i.e. one-at-a-time design for sensitivity analysis)
-design_sa <- emulandice2::load_design_to_pred("main_effects")
+design_sa <- emulandice2::load_design_to_pred("main_effects", 100L)
 
 # Predict: overwrite object
 myem <- list()
@@ -1443,7 +1443,7 @@ for (input in names( design_sa )) {
 # Design "unif_temps" makes projections using uniform priors for GSAT with same ranges as sims
 # a better comparison than using FaIR projected distributions for each SSP
 
-design_pred <- emulandice2::load_design_to_pred("unif_temps")
+design_pred <- emulandice2::load_design_to_pred("unif_temps", N_unif)
 
 for (scen in scenario_list) {
 
