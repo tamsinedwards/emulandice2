@@ -100,9 +100,10 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
           # Get simulations for this scenario
           plot_data <- ice_data[ ice_data$scenario == scen, ]
 
-          # Add nearest RCPs xxx should put RCPs in legends too
+          # Add nearest RCPs or reconstructed xxx should put RCPs in legends too
           if (scen == "SSP126") plot_data <- ice_data[ ice_data$scenario %in% c("RCP26", "SSP126"), ]
           if (scen == "SSP245") plot_data <- ice_data[ ice_data$scenario %in% c("RCP45", "SSP245"), ]
+          if (scen == "SSP534-over") plot_data <- ice_data[ ice_data$scenario %in%  c("SSP534-over", "SSP534-over-recon"), ]
           if (scen == "SSP585") plot_data <- ice_data[ ice_data$scenario %in% c("RCP85", "SSP585"), ]
 
           # Assume more than one simulation...
@@ -199,6 +200,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
           # Add nearest RCPs xxx should put RCP in legends too
           if (scen == "SSP126") plot_data <- ice_data[ ice_data$scenario %in% c("RCP26", "SSP126"), ]
           if (scen == "SSP245") plot_data <- ice_data[ ice_data$scenario %in% c("RCP45", "SSP245"), ]
+          if (scen == "SSP534-over") plot_data <- ice_data[ ice_data$scenario %in%  c("SSP534-over", "SSP534-over-recon"), ]
           if (scen == "SSP585") plot_data <- ice_data[ ice_data$scenario %in% c("RCP85", "SSP585"), ]
 
           # Assume more than one simulation...

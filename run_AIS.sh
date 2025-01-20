@@ -38,19 +38,17 @@ echo run AIS: predict
 
  if [ "$final_year" -gt 2200 ]
   then
-     # build_file=AIS_ALL_Kori_PISM_BISICLES_pow_exp_10_EMULATOR.RData
-     build_file=AIS_ALL_Kori_PISM_pow_exp_10_EMULATOR.RData
+     build_file=AIS_ALL_Kori_PISM_BISICLES_pow_exp_10_EMULATOR.RData
   fi
   if [ "$final_year" -le 2200 ]
   then
-     # build_file=AIS_ALL_Kori_PISM_CISM_ElmerIce_BISICLES_pow_exp_10_EMULATOR.RData
-     build_file=AIS_ALL_Kori_PISM_CISM_ElmerIce_pow_exp_10_EMULATOR.RData
+     build_file=AIS_ALL_Kori_PISM_CISM_ElmerIce_BISICLES_pow_exp_10_EMULATOR.RData
   fi
 
 echo $build_file
 echo
 
-for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp585"
+for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp585" "ssp534-over"
   do
 
   echo "Scenario:" $ssp

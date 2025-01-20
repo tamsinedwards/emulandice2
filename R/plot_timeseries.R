@@ -99,6 +99,7 @@ plot_timeseries <- function(data_type, plot_level = 0) {
               scen_list <- scen # Was NA, but this should catch other SSPs
               if (scen == "SSP126") scen_list <- c("RCP26", "SSP126")
               if (scen == "SSP245") scen_list <- c("RCP45", "SSP245")
+              if (scen == "SSP534-over") scen_list <- c("SSP534-over", "SSP534-over-recon")
               if (scen == "SSP585") scen_list <- c("RCP85", "SSP585")
 
               # If find simulations for scenario(s):

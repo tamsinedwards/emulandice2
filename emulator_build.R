@@ -74,7 +74,7 @@ stopifnot(i_s %in% c("GIS","AIS", "GLA"))
 deliverable_test <- TRUE
 
 impute_sims <- ifelse(i_s == "AIS" && final_year == "2150", TRUE, FALSE)
-#if (deliverable_test) impute_sims <- FALSE
+if (deliverable_test) impute_sims <- FALSE
 
 # Later there are options to pick sub-ensembles
 ensemble_subset <- NA
@@ -138,7 +138,7 @@ N_unif <- 2000L
 
 # Do LOO validation?
 do_loo_validation <- FALSE
-N_k <- 10L # for every N_k-th simulation; NA for full LOO
+N_k <- NA # 10L # integer for every N_k-th simulation; NA for full LOO
 
 print("***********************************************************************")
 print("Hello! Welcome to emulandice2: build")
@@ -168,7 +168,8 @@ stopifnot(nyrs %in% c(1, 2, 5, 10))
 
 # Full list of possible emissions scenarios to look for
 # (dropped from unif_temps design if not simulated)
-scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP534-over", "SSP585")
+# over-recon is Heiko's reconstruction of SSP534-over forcing
+scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP534-over", "SSP534-over-recon", "SSP585")
 if (deliverable_test) scenario_list <- c("SSP119", "SSP126", "SSP245", "SSP370", "SSP585")
 
 #' ## Ice model(s)
@@ -299,7 +300,7 @@ if (i_s == "GLA") cal_end <- 2020 # because OGGM fails if too early xxx obsolete
 
 # Antarctica
 if (i_s == "AIS") {
-  cal_start <- 2010
+  cal_start <- 2010 # for BISICLES which starts in 2007
   if (deliverable_test) cal_start <- 2000
 }
 
@@ -352,7 +353,10 @@ temps_baseline <- 2015
 # Not too many, to avoid linear combinations (esp bad for fixed climate GIS) or overfitting
 # Altered below if request shorter projections e.g. to 2150 only
 if (i_s == "AIS") temps_list <- 2300
-if (i_s == "GIS") temps_list <- 2100 # 2100 is better than 2300 (mostly fixed GSAT after)
+if (i_s == "GIS") {
+  temps_list <- c(2100, 2200, 2300)
+  if (deliverable_test) temps_list <- 2100
+}
 if (i_s == "GLA") {
   temps_list <- c(2100, 2300)
   if (deliverable_test) temps_list <- 2300
@@ -824,6 +828,11 @@ stopifnot(ice_param_list %in% ice_param_list_full)
 
 # Select sims ---------------------------------------------------------------------
 
+# Rename overshoot to something more clear in context: reconstructed overshoot
+if (i_s == "GIS") {
+  ice_data[ ice_data$scenario == "SSP585-o2300", "scenario" ] <- "SSP534-over-recon"
+}
+
 # Select ice source, region, model(s) and any other exclusions
 ice_data <- emulandice2::select_sims("main")
 
@@ -884,6 +893,7 @@ stopifnot(N_sims > 0)
 # Ice sheet regions ------------------------------------------------------------
 
 do_regions <- FALSE # xxx for testing
+# xxx can remove this exception when remaking regional files
 if ( i_s == "AIS" && "BISICLES" %in% model_list) do_regions <- FALSE
 
 if (i_s %in% c("AIS","GIS") && do_regions) {
@@ -1326,6 +1336,7 @@ if (impute_sims) {
   ice_data_impute <- t(ice_data_impute)
 
 }
+
 # ________________----
 #' # Build emulator
 # BUILD EMULATOR  ------------------------------------------------------------
@@ -1384,6 +1395,7 @@ if ( ! is.na(target_size) && dim(ice_data)[1] > target_size ) {
   # Select first N_subset of rows
   train <- oo[1:target_size_min]
 
+  # Was random sample for deliverable
   if (deliverable_test) train <- sort(sample(nrow(ice_data), target_size_min))
 
   # Apply selection to raw design (just for checking), and inputs and outputs

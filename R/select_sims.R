@@ -33,6 +33,37 @@ select_sims <- function(select_type) {
            file = logfile_build, append = TRUE)
     }
 
+    # Impute a few missing years in BISICLES by hand
+    # Could do this with auto-impute? xxx
+    # Last 1-2 years: repeat
+    miss_ind <- ice_data$model == "BISICLES" & is.na(ice_data$y2299) & !is.na(ice_data$y2298)
+    if (length(miss_ind[miss_ind]) > 0) {
+      cat(sprintf("Imputing %i BISICLES simulations by setting 2299 to 2298 value\n", length(miss_ind[miss_ind])),
+          file = logfile_build, append = TRUE)
+      ice_data[ miss_ind, "y2299"] <- ice_data[ miss_ind, "y2298"]
+    }
+    miss_ind <- ice_data$model == "BISICLES" & is.na(ice_data$y2300) & !is.na(ice_data$y2299)
+    if (length(miss_ind[miss_ind]) > 0) {
+      cat(sprintf("Imputing %i BISICLES simulations by setting 2300 to 2299 value\n", length(miss_ind[miss_ind])),
+          file = logfile_build, append = TRUE)
+      ice_data[ miss_ind, "y2300"] <- ice_data[ miss_ind, "y2299"]
+    }
+    # XXX Remove later if dataset fixed
+    # 2144, 2289: interpolate
+    miss_ind <- ice_data$model == "BISICLES" & is.na(ice_data$y2144) & !is.na(ice_data$y2145)
+    if (length(miss_ind[miss_ind]) > 0) {
+      cat(sprintf("Imputing %i BISICLES simulations by setting 2144 to interpolated value\n", length(miss_ind[miss_ind])),
+          file = logfile_build, append = TRUE)
+      ice_data[ miss_ind, "y2144"] <- apply(ice_data[miss_ind,c("y2143","y2145")], 1, mean)
+
+    }
+    miss_ind <- ice_data$model == "BISICLES" & is.na(ice_data$y2289) & !is.na(ice_data$y2290)
+    if (length(miss_ind[miss_ind]) > 0) {
+      cat(sprintf("Imputing %i BISICLES simulations by setting 2289 to interpolated value\n", length(miss_ind[miss_ind])),
+          file = logfile_build, append = TRUE)
+      ice_data[ miss_ind, "y2289"] <- apply(ice_data[miss_ind,c("y2288","y2290")], 1, mean)
+    }
+
     # Select runs that get to final expected year (unless imputing)
     if ( ! impute_sims ) {
       full_length <- ! is.na( ice_data[ , paste0("y", years_sim[ length(years_sim) ] ) ] )

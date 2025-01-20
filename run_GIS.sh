@@ -47,7 +47,7 @@ fi
 echo $build_file
 echo
 
-for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp585"
+for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp585" "ssp534-over"
   do
 
   echo "Scenario:" $ssp

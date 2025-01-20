@@ -23,8 +23,8 @@ load_sims <- function(variable, source = NA, region = NA) { # dataset
     # xxx Mira email 9th May 2023 about 230508 file: small discrepancies HadGEM2-ES Cecile
     # xxx Hatchet job 230618 merging Vio's 2300 file missing data
     if (variable == "climate") {
-      data_file <- paste0( inputs_preprocess, "/GSAT/CLIMATE_FORCING_240829.csv") # IPSL OS
-      if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GSAT/CLIMATE_FORCING_240127.csv")
+      data_file <- paste0( inputs_preprocess, "/GSAT/CLIMATE_FORCING_250119.csv") # IPSL OS, GIS OS-recon
+      #if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GSAT/CLIMATE_FORCING_240127.csv")
     }
 
     # Land ice simulations: results from PROTECT!
@@ -32,13 +32,13 @@ load_sims <- function(variable, source = NA, region = NA) { # dataset
     if (variable == "ice") {
 
       if (source == "GIS") {
-        data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240317.csv") # slc
-        if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240210.csv") # sle
+        data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p10_250112.csv") # slc not sle, new overshoot runs
+        #if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240210.csv") # sle
       }
 
       if (source == "AIS") {
-        data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240828.csv")
-        if (deliverable_test) data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240306.csv")
+        data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_250119.csv") # 240828
+        #if (deliverable_test) data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240306.csv")
       }
 
       if (source == "GLA") {
