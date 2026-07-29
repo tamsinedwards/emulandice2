@@ -2474,7 +2474,18 @@ if (validation_type == "tvt") {
     dev.off()
 
   } # validation_years loop
-}
+
+  # Plot validation
+  if (plot_level > 0) {
+
+    # Validation design: mean +/- 2 s.d.
+    pdf( file = paste0( outdir, out_name, "_VALIDATION_mean.pdf"),
+         width = 9, height = 5)
+    emulandice2::plot_scatter("tvt", "validation", plot_level)
+    dev.off()
+
+  }
+} # if tvt
 
 
 # ________________----

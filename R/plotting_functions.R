@@ -1,6 +1,19 @@
 # Plotting functions -----------------------------------------------------------
-# But AddScale not used yet so don't export
+# Internal so no need to export
 
+# Mapping of scenarios when plotting e.g. simulations together
+# Suggested by Cursor
+scen_match <- function(scen) {
+  aliases <- list(
+    SSP126        = c("RCP26", "SSP126"),
+    SSP245        = c("RCP45", "SSP245"),
+    `SSP534-over` = c("SSP534-over", "SSP534-over-recon"),
+    SSP585        = c("RCP85", "SSP585")
+  )
+  if (scen %in% names(aliases)) aliases[[scen]] else scen
+}
+
+# AddScale not currently used
 AddScale <- function(legbreaks, leglabels, col, xlim, ylim, cex = par("cex")) {
 
   n <- length(legbreaks)
