@@ -133,7 +133,7 @@ scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper
 set.seed(seed)
 
 # Plots: 0 = none, 1 = main, 2 = nearly all, 3 = replot SIMS.pdf with model error
-plot_level <- 2
+plot_level <- 2 # xxx using 3 to get SIMS.pdf in results dir isn't working
 
 # Write workspace to .RData for nice plotting later
 write_rdata <- TRUE # xxx probably obsolete now just saving few objects
@@ -342,6 +342,9 @@ design_prior <- emulandice2::load_design_to_pred( "AR6_2LM" )
 
 # Get number of FaIR samples per scenario
 N_temp <- length( design_prior[[1]][ , 1] )
+
+# xxx test
+# save.image(file="~/PROTECT/emulandice2/before_calib.RData")
 
 #' # Design: posteriors
 # Design: posteriors -----------------------------------------------------------------------

@@ -1717,8 +1717,8 @@ if (plot_level > 0) {
   pdf( file = paste0( outdir, out_name, "_SIMS.pdf"),
        width = 9, height = 5)
   emulandice2::plot_timeseries("sims", plot_level)
-  # Need to tidy and fix
-  #emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
+  # Need to tidy and fix - not currently adding to plots?? xxx
+  emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
   # Need to add sims option to plot SLE histograms
   #emulandice2::plot_distributions("sims", plot_level) # xxx check if doing anything or covered by plot_design...
   dev.off()
@@ -1816,9 +1816,6 @@ ice_data[ , paste0("y", years_em)] <- ice_data_impute
 # Rebaseline by subtracting value in year cal_end
 ice_data <- emulandice2::calculate_sle_anom(ice_data, baseline=cal_start)
 
-# Sims only for testing: stop here
-#save.image(file="~/PROTECT/emulandice2/sims_impute.RData")
-if ( read_sims_only) stop("Stopping after reading and plotting simulations (not an error!)", call. = FALSE)
 # Pre-calibration with HM ---------------------------------------------------------------
 
 # History matching with observations - returns row index
@@ -1855,6 +1852,8 @@ if (do_history_match) {
 }
 
 
+#save.image(file=paste0(rdatadir, out_name, "_sims_impute.RData"))
+
 # Re-plot for imputed - now same baseline as observations
 if (plot_level > 0) {
 
@@ -1867,12 +1866,15 @@ if (plot_level > 0) {
        width = 9, height = 5)
   emulandice2::plot_timeseries("sims", plot_level)
   # Need to tidy and fix [Note: copied from SIM.pdf]
-  #emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
+  emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
   # Need to add sims option to plot SLE histograms
   #emulandice2::plot_distributions("sims", plot_level) # xxx check if doing anything or covered by plot_design...
   dev.off()
 
 }
+
+# Sims only for testing: stop here
+if ( read_sims_only) stop("Stopping after reading and plotting simulations (not an error!)", call. = FALSE)
 
 # ________________----
 #' # Build emulator
