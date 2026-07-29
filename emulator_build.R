@@ -291,17 +291,8 @@ if (i_s == "GLA") {
 
   # Default completion thresholds
   complete_thresh <- list()
-  complete_thresh[["OGGM"]] <- 0.95
-  complete_thresh[["GO"]] <- 0.80 # 0.85 when update dataset
-
-  # Exceptions for OGGM
-  if (reg_num %in% 16:18) complete_thresh[["OGGM"]] <- 0.80 # maybe keep 0.95 for 17?
-
-  # Exceptions for GO xxx remove when update dataset
-  if (reg_num %in% 3:4) complete_thresh[["GO"]] <- 0.70
-  if (reg_num == 13) complete_thresh[["GO"]] <- 0.50
-  if (reg_num %in% c(8,17)) complete_thresh[["GO"]] <- 0.40
-  if (reg_num == 14) complete_thresh[["GO"]] <- 0.20
+  complete_thresh[["OGGM"]] <- 0.90
+  complete_thresh[["GO"]] <- 0.85
 
 }
 
