@@ -190,7 +190,7 @@ if (deliverable_test) {
 
 # Glacier dataset for calibration
 if (i_s == "GLA") {
-  glacier_data <- "Hugonnet"
+  glacier_data <- "GlaMBIE"
   stopifnot(glacier_data %in% c("Hugonnet", "GlaMBIE"))
 }
 
@@ -291,7 +291,7 @@ if (i_s == "GLA") {
   # No GO at time of PROTECT deliverable
   if (deliverable_test) complete_thresh[["OGGM"]] <- 0.80
 
-  # Default completion thresholds
+  # Completion thresholds from Meg James
   complete_thresh <- list()
   complete_thresh[["OGGM"]] <- 0.90
   complete_thresh[["GO"]] <- 0.85
