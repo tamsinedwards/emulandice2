@@ -5,15 +5,20 @@
 #' sufficient length, and further ice-source-specific selections.
 #'
 #' @param select_type Type of selection: main or history_match
-#' @returns select_sims returns a matrix ice_data which is a subset of the original.
+#' @returns select_sims returns a matrix ice_data which is a subset of the
+#' original, if select_type is main, or else row index if history_match
 #'
 #' @export
 
 select_sims <- function(select_type) {
 
+  n_presel <- nrow(ice_data)
+
   cat("\n_____________________________________\n",file = logfile_build, append = TRUE)
   cat( sprintf("select_sims: selecting simulations from ice data file - %s\n", select_type),
        file = logfile_build, append = TRUE)
+
+  # Main selections  ------------------------------------------------------------
 
   # MAIN SELECTIONS
   if (select_type == "main") {
@@ -160,83 +165,64 @@ select_sims <- function(select_type) {
 
   } # select_type == main
 
+  # History matching  ------------------------------------------------------------
 
-  # Broad history matching for glacier OGGM simulations
+  # Broad history matching before emulation
   if (select_type == "history_match") {
 
-    if (i_s == "GLA") {
+    # Pre-screening with history matching:
 
-      # Pre-screening with history matching:
+    # Broad history matching, using slightly tailored thresholds
+    # use _sel to avoid confusion with later projection calibration
 
-      # Broad history matching, using slightly tailored thresholds
-      # xxx Temporary code until consolidating more neatly
-      # use _sel to avoid confusion with later projection calibration
+    # Model discrepancy scaling factor for pre-screening
+    scale_mod_err_sel <- 5.0
 
-      # Model discrepancy scaling factor for glacier pre-screening only
-      scale_mod_err_sel <- 10
+    # Total error
+    total_err_sel <- sqrt(obs_err^2 + ( scale_mod_err_sel * obs_err )^2)
 
-      # Total error
-      model_err_sel <- scale_mod_err_sel * obs_data[,"SLE_sd"]
-      total_err_sel <- sqrt(obs_data[,"SLE_sd"]^2 + model_err_sel^2)
+    # Sea level change over same period
+    model_change <- ( ice_data[ , paste0("y",cal_end) ]
+                      - ice_data[ , paste0("y",cal_start) ] )
 
-      # Change and error for calibration period
-      obs_change_sel <- obs_data[obs_data$Year == cal_end,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"]
-      obs_change_err_sel <- total_err_sel[obs_data$Year == cal_end]
+    # Implausibility
+    implausibility <- abs( (model_change - obs_change) / total_err_sel )
 
-      # Sea level change
-      # xxx cal_start part should be redundant because (currently) zero
-      model_change <- ( ice_data[ , paste0("y",cal_end) ]
-                        - ice_data[ , paste0("y",cal_start) ] )
-
-      # Implausibility
-      implausibility <- abs( (model_change - obs_change_sel) / obs_change_err_sel )
-
-      # Default threshold (5 large and 5 small regions)
-      imp_thresh <- 50
-
-      # Adjust for 9 of 19 regions
-      # LARGE (vol > 1 cm SLE)
-      if (reg_num == 4) imp_thresh <- 30 # Arctic Canada South
-      if (reg_num == 9) imp_thresh <- 100 # Russia
-      if (reg_num == 19) imp_thresh <- 150 # AIS
-
-      # SMALL
-      if (reg_num %in% c(10, 11, 12, 18)) imp_thresh <- 30
-      if (reg_num == 13) imp_thresh <- 60
-      if (reg_num == 14) imp_thresh <- 100
-
-      # Index to keep
-      # Apply just to OGGM
-      #      nroy_sel <- (implausibility <= imp_thresh & ice_data$model == "OGGM") |
-      #        ice_data$model %in% model_list[ model_list != "OGGM"]
-
-      # Apply to both models
-      nroy_sel <- implausibility <= imp_thresh
-
-      # Restrict dataset
-      ice_data <- ice_data[ nroy_sel , ]
-
-      #cat( sprintf("\nAfter restricting OGGM to I < %i (model discrep x %i obs_error): %i\n",
-      #             imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
-      #     file = logfile_build, append = TRUE )
-
-      cat( sprintf("\nAfter restricting to I < %i (model discrep x %i obs_error): %i\n",
-                   imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
-           file = logfile_build, append = TRUE )
+    # Threshold (by Pukelsheim)
+    imp_thresh <- 6
 
 
-    } # GLA
+    # Apply threshold
+    nroy_sel <- implausibility <= imp_thresh
+
+    # Select ice and climate forcing datasets
+    # xxx now only used for below because nroy_sel is returned
+    ice_data <- ice_data[ nroy_sel , ]
+
+    cat("\nselect_sims: history matching\n", file = logfile_build, append = TRUE)
+    cat(sprintf("select_sims: model error %i x obs error\n", scale_mod_err_sel), file = logfile_build, append = TRUE)
+    cat(sprintf("select_sims: threshold (Pukelsheim): %.1f\n", imp_thresh), file = logfile_build, append = TRUE)
+    cat(sprintf("select_sims: observed sea level change (cm SLE, %s):\n", obs_period), file = logfile_build, append = TRUE)
+    cat(sprintf("select_sims: %.4f +/- %.4f cm SLE (+/- %.1f s.d total error)\n", obs_change, imp_thresh*total_err_sel, imp_thresh), file = logfile_build, append = TRUE)
+    cat(sprintf("select_sims: from %.4f to %.4f cm SLE\n", obs_change - imp_thresh*total_err_sel, obs_change + imp_thresh*total_err_sel), file = logfile_build, append = TRUE)
+
+    cat( sprintf("\nAfter restricting to |I| < %i (with model discrep x %i obs_error): %i\n",
+                 imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
+         file = logfile_build, append = TRUE )
 
   } # history_match
 
   #__________________________________________________
   # SUMMARY
 
-  cat(paste("\nselect_sims: SELECTED", dim(ice_data)[1], "ICE SIMULATIONS FOR", i_s, reg, "\n"),
+  cat(paste("\nselect_sims: SELECTED", dim(ice_data)[1], "of",n_presel,"ICE SIMULATIONS FOR", i_s, reg, "\n"),
       file = logfile_build, append = TRUE)
   cat("_____________________________________\n",file = logfile_build, append = TRUE)
 
-
-  return(ice_data)
+  # Return ice_data or NROY index
+  # xxx would be clearer to split into two functions, or else
+  # rewrite main to return index of original
+  if (select_type == "main") return(ice_data)
+  if (select_type == "history_match") return(nroy_sel)
 
 }

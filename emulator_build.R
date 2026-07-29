@@ -151,6 +151,8 @@ if (i_s == "GLA") {
   stopifnot(final_year %in% c(2100, 2150, 2300))
 }
 
+do_history_match <- TRUE
+
 # Set max ensemble size for training GPs
 # Uses minimum of this or 70% of dataset for train and test validation
 # e.g. if 1000, then trains on 700 and uses 300 for testing
@@ -1096,6 +1098,7 @@ ice_data <- emulandice2::select_sims("main")
 #ice_data <- emulandice2::calculate_sle_anom(ice_data)
 
 # Do second selection for glaciers using values of SLE change
+# xxx no longer works because sims are not in same units as obs
 if (deliverable_test) {
   if (i_s == "GLA") {
     ice_data <- emulandice2::select_sims("history_match")
@@ -1811,13 +1814,46 @@ if (impute_sims != "none") {
 ice_data[ , paste0("y", years_em)] <- ice_data_impute
 
 # Rebaseline by subtracting value in year cal_end
-# xxx Need to call this calculating earlier instead for ice_data (and not impute back)
-# if using glacier history matching (deliverable_test = TRUE)
 ice_data <- emulandice2::calculate_sle_anom(ice_data, baseline=cal_start)
 
 # Sims only for testing: stop here
 #save.image(file="~/PROTECT/emulandice2/sims_impute.RData")
 if ( read_sims_only) stop("Stopping after reading and plotting simulations (not an error!)", call. = FALSE)
+# Pre-calibration with HM ---------------------------------------------------------------
+
+# History matching with observations - returns row index
+if (do_history_match) {
+  nroy_sel <- emulandice2::select_sims("history_match")
+  save.image(file=paste0(rdatadir, out_name, "_sims_impute.RData"))
+
+  # Select for everything... xxx re-order code to improve?
+  # Emulator data:
+  ice_data <- ice_data[ nroy_sel, ]
+  ice_design_scaled <- ice_design_scaled[ nroy_sel, ]
+
+  # Plots:
+  if ( length(temps_list) == 1) { temps <- temps[ nroy_sel ]
+  } else temps <- temps[ nroy_sel, ]
+  ice_design <- ice_design[ nroy_sel, ]
+
+  # LOO xxx but could rewrite to use nrow(ice_data) in do_LOO.R
+  N_sims <- nrow(ice_data)
+
+  # Not needed (temporary or not used): ice_data_impute, ice_data_proj,
+  # ice_design_scaled, sims_data, sim_index
+  # imputing things
+
+  cat(paste("\nFINAL FINAL DATA SELECTION: using", N_sims, "ice simulations for",
+            i_s, reg, "\n"), file = logfile_build, append = TRUE)
+
+  cat("\nOf which:", "\n", file = logfile_build, append = TRUE)
+  for (mm in model_list) {
+    cat( paste0(mm, ": ", length( ice_data[ice_data$model == mm, 1] )), "\n",
+         file = logfile_build, append = TRUE)
+  }
+
+}
+
 
 # Re-plot for imputed - now same baseline as observations
 if (plot_level > 0) {
