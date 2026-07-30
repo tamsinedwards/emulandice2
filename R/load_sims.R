@@ -35,7 +35,7 @@ load_sims <- function(variable, source = NA, region = NA) { # dataset
     if (variable == "ice") {
 
       if (source == "GIS") {
-        data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_m_2014_250719.csv" )
+        data_file <- paste0( inputs_preprocess, "/GIS/GIS_SIMULATIONS_m_SLE_2014_250826.csv" )
         if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240210.csv")
       }
 
