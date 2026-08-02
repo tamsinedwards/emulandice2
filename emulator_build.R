@@ -153,13 +153,16 @@ if (i_s == "GLA") {
 
 do_history_match <- TRUE
 
-# Set max ensemble size for training GPs
+# Set max ensemble size for training GPs in TVT validation - optionally set in config file
 # Uses minimum of this or 70% of dataset for train and test validation
 # e.g. if 1000, then trains on 700 and uses 300 for testing
 # if 1500, then trains on 1000 and uses 500 for testing
 # if 2000, then still trains on 1000 and uses 1000 for testing
 # Or can set to NA, e.g. for laGP which can handle large data
-N_max_em <- 1000L
+N_max_em <- config::get("n_train", file = config_file)
+
+# If not set, limit to max GP can handle
+if (is.null(N_max_em) || N_max_em > 1000L) N_max_em <- 1000L
 
 # Long names for outputs
 if (i_s == "GIS") ice_name <- "Greenland"
@@ -200,10 +203,12 @@ print("*************************************************************************
 
 print(paste(ice_name,"region",reg))
 if (read_sims_only) print("ONLY READING SIMULATIONS")
-if (validation_type == "loo") {
-  print(paste("LOO with N_k =",N_k,"(could be very slow)"))
-}
 print(paste0("Config file: ./inst/", config_filename))
+if (validation_type == "loo") {
+  print(paste("Using LOO validation with N_k =",N_k,"(could be very slow)"))
+} else {
+  print(paste("Using TVT validation after training on up to",N_max_em,"simulations"))
+}
 
 #' ## Projection times and possible scenarios
 
