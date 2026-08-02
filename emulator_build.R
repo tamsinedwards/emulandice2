@@ -1578,23 +1578,29 @@ if (i_s == "AIS" ) {
   # Longer timescales checked first
   if (final_year > 2150) {
 
-    cat(paste("\nMerging some similar and/or rare factor levels:\n"), file = logfile_build, append = TRUE)
-    cat(paste("\nsliding_law was:",paste(unique(ice_data[,"sliding_law"]), collapse = " ")), file = logfile_build, append = TRUE)
+    cat(paste("\nMerging some similar and/or rare factor levels (if blank then none):\n"), file = logfile_build, append = TRUE)
 
-    # Merge all sliding laws that have effective pressure dependence
-    # (small numbers in ensemble, and similar response)
-    # Based on conversations with Bill Lipscombe and Helene Seroussi
-    ice_data[ ice_data$sliding_law == "power_law_Tsai", "sliding_law" ] <- "eff_pressure"
-    ice_data[ ice_data$sliding_law == "Zoet-Iverson", "sliding_law" ] <- "eff_pressure"
-    ice_data[ ice_data$sliding_law == "Coulomb_reg_300", "sliding_law" ] <- "eff_pressure"
-    ice_data[ ice_data$sliding_law == "Coulomb_reg_50", "sliding_law" ] <- "eff_pressure"
-    cat(paste("\nand is now:",paste(unique(ice_data[,"sliding_law"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
+    if ("sliding_law" %in% ice_factor_list) {
+      cat(paste("\nsliding_law was:",paste(unique(ice_data[,"sliding_law"]), collapse = " ")), file = logfile_build, append = TRUE)
 
-    # Merge 2 types of GIA in IMAUICE ensemble (still small fraction)
-    cat(paste("\nGIA was:",paste(unique(ice_data[,"GIA"]), collapse = " ")), file = logfile_build, append = TRUE)
-    ice_data[ ice_data$GIA == "3D_strong", "GIA" ] <- "3D"
-    ice_data[ ice_data$GIA == "3D_weak", "GIA" ] <- "3D"
-    cat(paste("\nand is now:",paste(unique(ice_data[,"GIA"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
+      # Merge all sliding laws that have effective pressure dependence
+      # (small numbers in ensemble, and similar response)
+      # Based on conversations with Bill Lipscombe and Helene Seroussi
+      ice_data[ ice_data$sliding_law == "power_law_Tsai", "sliding_law" ] <- "eff_pressure"
+      ice_data[ ice_data$sliding_law == "Zoet-Iverson", "sliding_law" ] <- "eff_pressure"
+      ice_data[ ice_data$sliding_law == "Coulomb_reg_300", "sliding_law" ] <- "eff_pressure"
+      ice_data[ ice_data$sliding_law == "Coulomb_reg_50", "sliding_law" ] <- "eff_pressure"
+      cat(paste("\nand is now:",paste(unique(ice_data[,"sliding_law"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
+    }
+
+    if ("GIA" %in% ice_factor_list) {
+
+      # Merge 2 types of GIA in IMAUICE ensemble (still small fraction)
+      cat(paste("\nGIA was:",paste(unique(ice_data[,"GIA"]), collapse = " ")), file = logfile_build, append = TRUE)
+      ice_data[ ice_data$GIA == "3D_strong", "GIA" ] <- "3D"
+      ice_data[ ice_data$GIA == "3D_weak", "GIA" ] <- "3D"
+      cat(paste("\nand is now:",paste(unique(ice_data[,"GIA"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
+    }
 
   }
 
