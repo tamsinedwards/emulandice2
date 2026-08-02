@@ -3,6 +3,7 @@ default:
   deliverable_test: FALSE
   validation_type: "tvt"
   emulator_covar: "pow_exp_10"
+  n_train: 1000
 lagp:
   emulator_type: "laGP"
 
