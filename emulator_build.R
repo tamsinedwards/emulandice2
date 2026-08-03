@@ -2305,7 +2305,7 @@ if (validation_type == "loo") {
     # Fraction that missed
     frac_right <- 1 - ( length(which(wrong[[yind]][N_k_index] == TRUE)) / N_k_subset )
 
-    # xxx Could save in list for plot_loo, or output summary there - duplication
+    # xxx Could save in list for plot_valid, or output summary there - duplication
     loo_err <- loo_mean[[yind]] - Ytrain[ , yind ]
     loo_std_err <- loo_err / loo_sd[[yind]]
 
@@ -2338,7 +2338,7 @@ if (validation_type == "loo") {
   # Plot LOO results
   pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
        width = 9, height = 5)
-  emulandice2::plot_loo()
+  emulandice2::plot_valid(valid_type = "LOO")
   dev.off()
 
 } # validation_type == "loo"
@@ -2375,32 +2375,10 @@ if (validation_type == "tvt") {
   # YY is the full dataset (with any imputed values), so this should be all but YY[ train ]
   test_data <- YY[ test_set, ]
 
-  # Plot example timeseries
-  n_plot <- 10
-  run_cols <- hcl.colors(n_plot, palette = "Dark 3")
-
-  pdf( file = paste0( outdir, out_name, "_VALIDATION_TIMESERIES.pdf"),
-       width = 10, height = 5)
-
-  plot( years_em, emu_test$mean[1,], type = "n", main = "Example simulator and mean emulator projections",
-        xlab = "Year", ylab = "Sea level contribution (cm SLE)",
-        ylim = range(emu_test$mean[1:n_plot,]) )
-  abline(h=0)
-  for ( ss in 1:n_plot) {
-    lines(years_em, emu_test$mean[ ss, ], col = run_cols[ss], lty = 5)
-    lines(years_em, test_data[ ss, ], col = run_cols[ss])
-  }
-  plot( years_em, emu_test$mean[1,], type = "n", main = "Example emulator errors",
-        xlab = "Year", ylab = "Emulated minus simulated (cm SLE)",
-        ylim = c(-1,1)*max(abs(emu_test$mean[1:n_plot,] - test_data[ 1:n_plot, ])) )
-  abline(h=0)
-  for ( ss in 1:n_plot) lines(years_em, emu_test$mean[ ss, ] - test_data[ ss, ], col = run_cols[ss])
-  dev.off()
-
   # Unlike LOO, should be no missing data in these: i.e. values for all test sims
   test_mean <- list()
   test_sd <- list()
-  test_wrong <- list()
+  wrong <- list()
 
   # Use final year requested for LOO validation for now
   for ( yy in validation_years) {
@@ -2412,13 +2390,12 @@ if (validation_type == "tvt") {
     test_sd[[yind]] <- emu_test$sd[ , yind]
 
     # Misses
-    test_wrong[[ yind ]] <- test_data[ , yind] > ( test_mean[[yind]] + 2*test_sd[[yind]] ) |
+    wrong[[ yind ]] <- test_data[ , yind] > ( test_mean[[yind]] + 2*test_sd[[yind]] ) |
       test_data[ , yind] < ( test_mean[[yind]]  - 2*test_sd[[yind]] )
-    ww <- test_wrong[[yind]]
+    ww <- wrong[[yind]]
 
     # Again, no need to select this time unlike for LOO
-    # xxx removed test_set selection which was a bug?!
-    frac_right <- 1 - ( length(which(test_wrong[[yind]] == TRUE)) / length(test_set) )
+    frac_right <- 1 - ( length(which(wrong[[yind]] == TRUE)) / length(test_set) )
     test_err <- test_mean[[yind]] - test_data[ , yind]
     test_std_err <- test_err / test_sd[[yind]]
     euclid_dist <- sqrt( sum( (test_std_err)^2 , na.rm = TRUE) )
@@ -2440,54 +2417,40 @@ if (validation_type == "tvt") {
                 min(test_std_err), max(test_std_err)),
         file = logfile_build, append = TRUE)
 
-    # Plot: train and test --------
-    # Plot train and test results
-    #yrange <- range(c(test_mean[[yind]] - 4*test_sd[[yind]],
-    #                  test_mean[[yind]] + 4*test_sd[[yind]]), na.rm = TRUE)
-    yrange <- sle_lim[[as.character(yy)]]
-
-    pdf( file = paste0( outdir, out_name, "_VALIDATION_", yy, ".pdf"),
-         width = 5, height = 5)
-
-    plot( test_data[ , yind], test_mean[[yind]],
-          pch = 20,
-          xlim = yrange, ylim = yrange, cex = 0.8,
-          xaxs = "i", yaxs = "i",
-          xlab = paste("Simulated sea level contribution at",yy,"(cm SLE)"),
-          ylab = paste("Emulated sea level contribution at",yy,"(cm SLE)"),
-          main = paste0("Test set validation (N = ", length(test_set), ")") )
-    abline ( a = 0, b = 1 )
-    if (i_s == "GLA") {
-      abline( h = glacier_cap, col = "lightgrey", lwd = 0.5, lty = 5)
-      abline( v = glacier_cap, col = "lightgrey", lwd = 0.5, lty = 5)
-    }
-
-    # +/- 2 s.d. error bars
-    arrows( test_data[ , yind], test_mean[[yind]] - 2*test_sd[[yind]],
-            test_data[ , yind], test_mean[[yind]] + 2*test_sd[[yind]],
-            code = 3, angle = 90, lwd = 0.4, length = 0.02 )
-
-    # Replot over in red for those that missed
-    points( test_data[ ww, yind], test_mean[[yind]][ww],
-            pch = 20, col = "red")
-    arrows( test_data[ ww, yind],
-            test_mean[[yind]][ww] - 2*test_sd[[yind]][ww],
-            test_data[ ww, yind],
-            test_mean[[yind]][ww] + 2*test_sd[[yind]][ww],
-            code = 3, angle = 90, lwd = 0.4, length = 0.02, col = "red" )
-
-    text( yrange[1], yrange[1] + 0.95*(yrange[2] - yrange[1]), pos = 4,
-          ice_name, cex = 1.3)
-
-    text( yrange[1], yrange[1] + 0.85*(yrange[2] - yrange[1]), pos = 4,
-          sprintf("%.0f%%", frac_right*100.0), col = ifelse(frac_right < 0.9, "red", "black") )
-
-    dev.off()
-
   } # validation_years loop
 
-  # Plot validation
+  # Plot: TVT-------
+  # Plot TVT results
   if (plot_level > 0) {
+
+    # Example timeseries
+    n_plot <- 10
+    run_cols <- hcl.colors(n_plot, palette = "Dark 3")
+
+    pdf( file = paste0( outdir, out_name, "_VALIDATION_TIMESERIES.pdf"),
+         width = 10, height = 5)
+
+    plot( years_em, emu_test$mean[1,], type = "n", main = "Example simulator and mean emulator projections",
+          xlab = "Year", ylab = "Sea level contribution (cm SLE)",
+          ylim = range(emu_test$mean[1:n_plot,]) )
+    abline(h=0)
+    for ( ss in 1:n_plot) {
+      lines(years_em, emu_test$mean[ ss, ], col = run_cols[ss], lty = 5)
+      lines(years_em, test_data[ ss, ], col = run_cols[ss])
+    }
+
+    # Example timeseries errors
+    plot( years_em, emu_test$mean[1,], type = "n", main = "Example emulator errors",
+          xlab = "Year", ylab = "Emulated minus simulated (cm SLE)",
+          ylim = c(-1,1)*max(abs(emu_test$mean[1:n_plot,] - test_data[ 1:n_plot, ])) )
+    abline(h=0)
+    for ( ss in 1:n_plot) lines(years_em, emu_test$mean[ ss, ] - test_data[ ss, ], col = run_cols[ss])
+    dev.off()
+
+    pdf( file = paste0( outdir, out_name, "_VALIDATION_TVT.pdf"),
+         width = 9, height = 5)
+    emulandice2::plot_valid(valid_type = "TVT")
+    dev.off()
 
     # Validation design: mean +/- 2 s.d.
     pdf( file = paste0( outdir, out_name, "_VALIDATION_mean.pdf"),
@@ -2584,13 +2547,16 @@ if (write_sa) {
 
   # LOO validation results
   if (validation_type == "loo") {
-    to_save_sa <- c(to_save_sa, "loo_mean", "loo_sd", "wrong")
+    to_save_sa <- c(to_save_sa, "loo_mean", "loo_sd")
   }
 
   # Train and test validation results
   if ( validation_type == "tvt" ) {
-    to_save_sa <- c(to_save_sa, "test_mean", "test_sd", "test_wrong", "test_set", "emu_test" ) # full trajectory
+    to_save_sa <- c(to_save_sa, "test_mean", "test_sd", "test_set", "emu_test" ) # full trajectory
   }
+
+  # Validation wrong index has same name in both methods
+  to_save_sa <- c(to_save_sa, "wrong")
 
   # Save file
   save(list = to_save_sa, file = sa_file)

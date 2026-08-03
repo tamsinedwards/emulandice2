@@ -360,52 +360,52 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
           # Guard against no test data for validation plots
           if (data_type == "prior" || (data_type == "tvt" && length(ii) > 0) ) {
 
-          # SEA LEVEL VS ICE MODEL PARAMETER
-          # Plot mean and full projections vs each parameter in turn
-          for (pp in ice_all_list) {
+            # SEA LEVEL VS ICE MODEL PARAMETER
+            # Plot mean and full projections vs each parameter in turn
+            for (pp in ice_all_list) {
 
-            # Plot emulated: mean
-            plot( emu_pp[ , pp], emu_mean[ , paste0("y",yy)],
-                  pch = 16, col = AR6_rgb_light[[scen]], cex = 0.7,
-                  main = paste("Mean projections at",yy,"for", scen_name[[scen]]),
-                  ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
-                  xlab = pp, ylim = sle_lim[[yy]])
-            abline( h = 0 )
+              # Plot emulated: mean
+              plot( emu_pp[ , pp], emu_mean[ , paste0("y",yy)],
+                    pch = 16, col = AR6_rgb_light[[scen]], cex = 0.7,
+                    main = paste("Mean projections at",yy,"for", scen_name[[scen]]),
+                    ylab = paste("Sea level contribution at",yy,"(cm SLE)"),
+                    xlab = pp, ylim = sle_lim[[yy]])
+              abline( h = 0 )
 
-            if (yy == cal_end) {
-              abline( h = obs_change, col = grey(0.2, 0.4), lwd = 1.6)
-              rect( min(emu_pp[ , pp ]), obs_change - 3 * obs_err,
-                    max(emu_pp[ , pp ]), obs_change + 3 * obs_err,
-                    col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-              if (plot_level > 2) {
-                rect( min(emu_pp[ , pp ]), obs_change - 3 * tot_err,
-                      max(emu_pp[ , pp ]), obs_change + 3 * tot_err,
-                      col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+              if (yy == cal_end) {
+                abline( h = obs_change, col = grey(0.2, 0.4), lwd = 1.6)
+                rect( min(emu_pp[ , pp ]), obs_change - 3 * obs_err,
+                      max(emu_pp[ , pp ]), obs_change + 3 * obs_err,
+                      col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
+                if (plot_level > 2) {
+                  rect( min(emu_pp[ , pp ]), obs_change - 3 * tot_err,
+                        max(emu_pp[ , pp ]), obs_change + 3 * tot_err,
+                        col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+                }
               }
-            }
 
-            # Plot emulated: error bars
-            if (data_type == "prior" || (data_type == "tvt" && length(ii) > 0) ) {
+              # Plot emulated: error bars
+              if (data_type == "prior" || (data_type == "tvt" && length(ii) > 0) ) {
 
-              arrows( emu_pp[ , pp ], emu_mean[ , paste0("y", yy) ] - 2 * emu_sd[ , paste0("y", yy) ],
-                      emu_pp[ , pp ], emu_mean[ , paste0("y", yy) ] + 2 * emu_sd[ , paste0("y", yy) ],
-                      code = 3, length = 0.06, angle = 90, lwd = 0.1,
-                      col = AR6_rgb_light[[scen]])
-            }
+                arrows( emu_pp[ , pp ], emu_mean[ , paste0("y", yy) ] - 2 * emu_sd[ , paste0("y", yy) ],
+                        emu_pp[ , pp ], emu_mean[ , paste0("y", yy) ] + 2 * emu_sd[ , paste0("y", yy) ],
+                        code = 3, length = 0.06, angle = 90, lwd = 0.1,
+                        col = AR6_rgb_light[[scen]])
+              }
 
-            # Get comparison simulations for this scenario
-            if (data_type == "tvt") {
-              plot_data <- test_data[ ii, , drop = FALSE]
-              plot_design <- emu_pp[, pp]
-            } else {
-              plot_data <- ice_data[ ice_data$scenario %in% match, , drop = FALSE]
-              plot_design <- ice_design[ ice_data$scenario %in% match, pp, drop = FALSE ] # was unlist(ice_design[,pp])[ ice_data$scenario %in% match,  ]
-            }
+              # Get comparison simulations for this scenario
+              if (data_type == "tvt") {
+                plot_data <- test_data[ ii, , drop = FALSE]
+                plot_design <- emu_pp[, pp]
+              } else {
+                plot_data <- ice_data[ ice_data$scenario %in% match, , drop = FALSE]
+                plot_design <- ice_design[ ice_data$scenario %in% match, pp, drop = FALSE ] # was unlist(ice_design[,pp])[ ice_data$scenario %in% match,  ]
+              }
 
-            # Plot simulations
-            points( plot_design, plot_data[ , paste0("y", yy) ], pch = 16, cex = 0.7)
+              # Plot simulations
+              points( plot_design, plot_data[ , paste0("y", yy) ], pch = 16, cex = 0.7)
 
-          } # param list
+            } # param list
 
           } # if prior or test data
 
