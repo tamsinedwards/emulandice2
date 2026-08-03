@@ -10,7 +10,8 @@ select_sims(select_type)
 \item{select_type}{Type of selection: main or history_match}
 }
 \value{
-select_sims returns a matrix ice_data which is a subset of the original.
+select_sims returns a matrix ice_data which is a subset of the
+original, if select_type is main, or else row index if history_match
 }
 \description{
 Select land ice simulations from ice data file: ice source, region, model(s),

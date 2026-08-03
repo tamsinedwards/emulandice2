@@ -11,7 +11,7 @@
 #' @export
 
 # Not writing to logfile because called from both build and main
-plot_scatter <- function(data_type, design_name, plot_level = 0) {
+plot_scatter <- function(data_type, design_name, plot_level = 0, plot_obs = TRUE) {
 
   # Designs: simulations, SA and prediction
   # Design unif_temps is used by emulator_build.R for emulator SA i.e. validation,
@@ -26,6 +26,9 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
   # Add test dataset validation option
   if (design_name == "validation") stopifnot(data_type == "tvt")
   if (data_type == "tvt") stopifnot(design_name == "validation")
+
+  # plot_obs: always plot obs, so don't add flag throughout
+  # Except one place - needed for SIMS pdf which uses original data baseline
 
   par(mfrow = c(1,2), pin = c(2.7,2.7), cex.main = 0.6, cex.axis = 0.7, cex.lab = 0.7)
 
@@ -60,15 +63,17 @@ plot_scatter <- function(data_type, design_name, plot_level = 0) {
         }
 
         # Plot observations
-        abline( v = obs_change,
-                col = grey(0.2, 0.4), lwd = 1.6)
-        rect( obs_change - 3 * obs_err, sle_lim[[yy]][1],
-              obs_change + 3 * obs_err, sle_lim[[yy]][2],
-              col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-        if (plot_level > 2) {
-          rect( obs_change - 3 * tot_err, sle_lim[[yy]][1],
-                obs_change + 3 * tot_err, sle_lim[[yy]][2],
-                col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+        if (plot_obs) {
+          abline( v = obs_change,
+                  col = grey(0.2, 0.4), lwd = 1.6)
+          rect( obs_change - 3 * obs_err, sle_lim[[yy]][1],
+                obs_change + 3 * obs_err, sle_lim[[yy]][2],
+                col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
+          if (plot_level > 2) {
+            rect( obs_change - 3 * tot_err, sle_lim[[yy]][1],
+                  obs_change + 3 * tot_err, sle_lim[[yy]][2],
+                  col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
+          }
         }
 
         if (data_type %in% c("prior", "tvt")) {

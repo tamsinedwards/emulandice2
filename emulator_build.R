@@ -1715,9 +1715,7 @@ scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"])
 
 cat("\nPlot simulator projections\n", file = logfile_build, append = TRUE)
 
-# Plot simulations (some with observations)
-# Can repeat from main.R to tweak or add model discrepancy to history matching window
-# xxx different baseline to observations because not imputed yet - switch off obs plotting with plot_level?
+# Plot raw simulations
 if (plot_level > 0) {
 
   pdf( file = paste0( outdir, out_name, "_DESIGN.pdf"),
@@ -1727,11 +1725,17 @@ if (plot_level > 0) {
 
   pdf( file = paste0( outdir, out_name, "_SIMS.pdf"),
        width = 9, height = 5)
+
+  # TODO: remove vertical line at cal_end using plot_obs argument
   emulandice2::plot_timeseries("sims", plot_level)
-  # Need to tidy and fix - not currently adding to plots?? xxx
-  emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
-  # Need to add sims option to plot SLE histograms
-  #emulandice2::plot_distributions("sims", plot_level) # xxx check if doing anything or covered by plot_design...
+
+  # Raw simulations (original baseline, no imputing)
+  emulandice2::plot_scatter("sims", "none", plot_level, plot_obs = FALSE)
+
+  # TODO: add sims option to plot SLE histograms
+  # if doing anything not already covered by plot_design
+  # emulandice2::plot_distributions("sims", plot_level)
+
   dev.off()
 
 
@@ -1739,7 +1743,9 @@ if (plot_level > 0) {
 
 # Impute missing ---------------------------------------------------------------
 
-# Save simulations as sim_data, because we will replace ice_data with imputed after this
+# Save simulations as sims_data, because we will replace ice_data with imputed after this
+# Not currently used
+# TODO: Save sims_data to .RData if wanting to replot nicely later
 sims_data <- ice_data
 
 if (impute_sims != "none") {
