@@ -20,7 +20,8 @@ calc_temps <- function(climate_dataset, mean_impute = FALSE) {
                         file = logfile_build, append = TRUE )
 
   # Baseline period
-  temps_period <- temps_baseline + 1:N_temp_yrs - 1
+  # TODO: This is duplicated in load_design_to_pred.R - convert to small function
+  temps_period <- (temps_baseline - N_temp_yrs + 1):temps_baseline
 
   cat( paste("Calculating GSAT mean for baseline period:", paste(range(temps_period), collapse = "-"), "\n"),
        file = logfile_build, append = TRUE )

@@ -456,7 +456,8 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
       }
 
       # Years for baseline
-      temps_period1 <- temps_baseline + 1:N_temp_yrs - 1
+      # TODO: This duplicates code in calc_temps.R - create small function for both
+      temps_period1 <- (temps_baseline - N_temp_yrs + 1):temps_baseline
 
       cat( paste("GSAT prior: baseline mean period", paste(range(temps_period1), collapse = "-"), "\n"),
            file = logfile_design, append = TRUE )

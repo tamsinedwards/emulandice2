@@ -96,7 +96,9 @@ config_file <- system.file(config_filename,
 deliverable_test <- config::get("deliverable_test", file = config_file)
 
 # Just read, filter and plot simulations (for testing etc)
-read_sims_only <- FALSE
+# Default is off
+sims_only <- config::get("sims_only", file = config_file)
+read_sims_only <- ifelse( !is.null(sims_only), sims_only, FALSE)
 
 # Impute missing years in simulations: either a light fill, or an extension
 # Option "none" will currently fail in make_emu SVD if missing value(s): xxx add something to skip runs?
@@ -204,10 +206,12 @@ print("*************************************************************************
 print(paste(ice_name,"region",reg))
 if (read_sims_only) print("ONLY READING SIMULATIONS")
 print(paste0("Config file: ./inst/", config_filename))
-if (validation_type == "loo") {
-  print(paste("Using LOO validation with N_k =",N_k,"(could be very slow)"))
-} else {
-  print(paste("Using TVT validation after training on up to",N_max_em,"simulations"))
+if (!read_sims_only) {
+  if (validation_type == "loo") {
+    print(paste("Using LOO validation with N_k =",N_k,"(could be very slow)"))
+  } else {
+    print(paste("Using TVT validation after training on up to",N_max_em,"simulations"))
+  }
 }
 
 #' ## Projection times and possible scenarios
@@ -521,31 +525,44 @@ stopifnot(temp_input == "mean")
 # // Temps ------------------------------------------------------------
 
 # GSAT timeslices for ice_design
-# XXX consider going back earlier?
+tl <- config::get("temp_end_years", file = config_file)
 
-temps_baseline <- 2015
+# First is end of baseline, so need at least two in list if specifying
+stopifnot(is.null(tl[1]) || (!is.null(tl[1]) && length(tl) > 1))
+temps_baseline <- ifelse(!is.null(tl[1]), tl[1], 2044) # Default baseline set if not specified
 
 # Not too many, to avoid linear combinations (esp bad for fixed climate GIS) or overfitting
-# Altered below if request shorter projections e.g. to 2150 only
-if (i_s == "AIS") temps_list <- 2300
-if (i_s == "GIS") {
-  temps_list <- 2100
-  if (deliverable_test) temps_list <- 2100
-}
-if (i_s == "GLA") {
-  temps_list <- c(2100, 2300)
-  if (deliverable_test) temps_list <- 2300
+# Timeslices are dropped below if request shorter projections e.g. to 2150 only
+
+# Set from config file
+if (!is.null(tl[2])) {
+  temps_list <- tl[2:length(tl)]
+} else {
+  # Old defaults
+  if (i_s == "AIS") temps_list <- 2300
+  if (i_s == "GIS") {
+    temps_list <- 2100
+    if (deliverable_test) temps_list <- 2100
+  }
+  if (i_s == "GLA") {
+    temps_list <- c(2100, 2300)
+    if (deliverable_test) temps_list <- 2300
+  }
 }
 
 # Number of years to average over
 # e.g. setting 10 with temps_list = 2300 and temps_baseline = 2015
 # gives decadal mean 2291-2300 relative to 2015-2024
-N_temp_yrs <- 30
+tn <- config::get("temp_nyrs", file = config_file)
+N_temp_yrs <- ifelse(!is.null(tn), tn, 30) # Default if not specified
 
-cat(paste("GSAT baseline first year:", temps_baseline, "\n"), file = logfile_build, append = TRUE)
-cat(paste("GSAT final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
+# GSATs are calculated in calc_temps.R and load_design_to_pred.R
+# TODO: consolidate
+
+cat(paste("GSAT baseline final year:", temps_baseline, "\n"), file = logfile_build, append = TRUE)
+cat(paste("GSAT timeslice final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
 if (max(temps_list) > final_year) {
-  cat("GSAT timeslice(s) extend beyond ice model simulation: adjusting\n", file = logfile_build, append = TRUE)
+  cat("GSAT timeslice(s) extend beyond ice model simulation: dropping\n", file = logfile_build, append = TRUE)
   temps_list <- temps_list[ temps_list <= final_year ]
   if (length(temps_list) == 0) temps_list <- final_year
   cat(paste("New GSAT input timeslice(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
@@ -1564,7 +1581,7 @@ GSAT_lab <- list()
 for (tt in 1:length(temps_list_names)) {
   GSAT_lab[[temps_list_names[tt]]] <- paste0('Global mean temperature ',
                                              temps_list[tt]-N_temp_yrs+1,'-',temps_list[tt],
-                                             ' rel. to ',temps_baseline,'-',temps_baseline+N_temp_yrs-1,' (degC)')
+                                             ' rel. to ',(temps_baseline-N_temp_yrs+1),'-',temps_baseline,' (degC)')
 }
 
 # Factor level merging ---------------------------------------------------------------
