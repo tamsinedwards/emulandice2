@@ -4,7 +4,7 @@
 \alias{plot_scatter}
 \title{plot_scatter: plot scatter (X-Y) figures.}
 \usage{
-plot_scatter(data_type, design_name, plot_level = 0)
+plot_scatter(data_type, design_name, plot_level = 0, plot_obs = TRUE)
 }
 \arguments{
 \item{data_type}{Data type: "sims" for simulations; "prior" or "posterior" for

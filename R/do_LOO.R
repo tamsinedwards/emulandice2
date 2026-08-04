@@ -49,7 +49,7 @@ do_loo <- function(designX, responseF, forcingX, year_list, N_k = NA) {
 
     # Fit emulator to all but that one simulation
     # 22/7/25: changed to be X and Y from emulator_build.R passed as arguments
-    if (temp_input == "mean") emu_mv_loo <- try(make_emu( designX = designX[ -ss, ],
+    if (temp_input == "mean") emu_mv_loo <- try(emulandice2::make_emu( designX = designX[ -ss, ],
                                                           responseF = responseF[ -ss, paste0("y", years_em) ],
                                                           thresh = scree_thresh ) )
     # Skip if failed

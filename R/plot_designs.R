@@ -118,9 +118,10 @@ plot_designs <- function(data_type, plot_level = 0) {
         cols_to_plot <- cbind(temps, ice_data[, ice_cont_list])
         colnames(cols_to_plot)[1:length(temps_list_names)] <- temps_list_names
 
-        pairs( cols_to_plot, main = paste("Sea level contribution in",yy,"vs continuous inputs"),
-               lower.panel = NULL, pch = 20, cex = 1.5, col = col_em)
-
+        if (ncol(cols_to_plot) < 15) {
+          pairs( cols_to_plot, main = paste("Sea level contribution in",yy,"vs continuous inputs"),
+                 lower.panel = NULL, pch = 20, cex = 1.5, col = col_em)
+        }
       }
 
     } # all plots
