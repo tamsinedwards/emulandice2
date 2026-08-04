@@ -1632,35 +1632,40 @@ ice_factor_values <- list()
 # ADD FACTOR COLUMNS
 if ( include_factors ) {
 
-  # Adding factors
+  # For each factor input
   for ( ff in ice_factor_list ) {
 
     cat(paste("\nFactor to add:", ff, "\n"), file = logfile_build, append = TRUE)
-    ff_vals <- sort(unique(ice_data[ ,ff]))
 
+    # Get all factor level values present in the dataset
+    ff_vals <- sort(unique(ice_data[ ,ff]))
     cat(paste("Levels:", length(ff_vals), "\n"), file = logfile_build, append = TRUE)
 
-    # First alphabetical value will be reference/nominal: ff_vals[1]
-    cat(paste("Adding",length(ff_vals) - 1,"dummy variables with reference value:", ff_vals[1], "\n"), file = logfile_build, append = TRUE)
+    # Count levels first to make the most common one the reference (more stable)
+    ff_count <- sapply(ff_vals, function(fx) sum(ice_data[, ff] == fx))
+    ff_ref <- ff_vals[which.max(ff_count)]
+    cat(paste("Adding",length(ff_vals) - 1,"dummy variables with reference value:", ff_ref, "\n"), file = logfile_build, append = TRUE)
 
+    # Loop over levels
     for ( vv in ff_vals ) {
 
-      frac_level <- (100.0*nrow(ice_data[ice_data[, ff] == vv, ]))/nrow(ice_data)
+      # Warn if fraction of ensemble with this level is < 5% (can be unstable)
+      frac_level <- 100.0 * sum(ice_data[, ff] == vv) / nrow(ice_data)
 
-      # Name of column is factor:level
       cat(sprintf("Factor:level %s:%s (%.1f%% of ensemble)\n", ff, vv, frac_level),
           file = logfile_build, append = TRUE)
       if (frac_level < 5.0) cat(paste0("Warning: small fraction of ensemble is ",vv,
                                        " - consider merging this with other level(s)\n"),
                                 file = logfile_build, append = TRUE)
 
-      # Drop first (reference) level to avoid collinearity
-      if (vv == ff_vals[1]) {
+      # Drop reference level to avoid collinearity
+      if (vv == ff_ref) {
         cat(sprintf("- reference value\n"),
             file = logfile_build, append = TRUE)
         next
       }
 
+      # Name of dummy variable column is factor:level
       cat(sprintf("- generating dummy variable column for %s:%s\n", ff, vv),
           file = logfile_build, append = TRUE)
 
@@ -1669,12 +1674,11 @@ if ( include_factors ) {
       colnames(ice_design)[dim(ice_design)[2]] <- paste(ff, vv, sep = ":")
 
     }
-    # Alternative code
-    # for (j in 1:length(ff_vals)) dummy[,j] <- as.integer(ice_data[, ff] == ff_vals[j])
 
-    #}
-    # Save to use for prior
-    ice_factor_values[[ff]] <- ff_vals
+    # Save to use for prior: put reference first as all designs expect this
+    # (because did originally use alphabetical ordering to choose reference)
+    ice_factor_values[[ff]] <- c(ff_ref, ff_vals[ff_vals != ff_ref])
+
   } # factors loop
 }
 
@@ -1907,14 +1911,11 @@ if (plot_level > 0) {
 
 }
 
-# Sims only for testing: stop here
-if ( read_sims_only) stop("Stopping after reading and plotting simulations (not an error!)", call. = FALSE)
-
 # ________________----
-#' # Build emulator
-# BUILD EMULATOR  ------------------------------------------------------------
+#' # EMULATION
+# EMULATION  ------------------------------------------------------------
 
-# FULL DATASET TO EMULATE:
+# FULL DATASET
 
 # Inputs
 XX <- ice_design_scaled
@@ -1934,7 +1935,7 @@ YY <- ice_data[ , paste0("y", years_em) ]
 # i.e. select non-random sample and reserve 30% / remaining for testing
 
 #' # Select data subset
-# Select data subset  ------------------------------------------------------------
+# Select data subset if TVT ------------------------------------------------------------
 
 # SUBSET DATA FOR TRAINING: 70% of total, or 70% of N_max_em
 # Samples a balance of factor levels, not just random
@@ -2041,12 +2042,6 @@ if ( validation_type != "loo" | # case 3,4
 
 } # if not LOO (or if sampling for deliverable_test LOO)
 
-# make_emu -----
-
-# Build emulator
-# Writes emu obj into .RData workspace file later for running in FACTS
-# Note this call is repeated in do_LOO.R
-
 # Train emulator with random/ordered subset, or full dataset ice_data[_impute]
 if (train_subset) {
   Xtrain <- XX_sub
@@ -2056,8 +2051,52 @@ if (train_subset) {
   Ytrain <- YY
 }
 
+# Get and check inputs -----
+
+# Start log file
+emu_log_file <- paste0(outdir, out_name,"_", emulator_type, ".log")
+cat("______________________________________\n", file = emu_log_file)
+cat("EMULATOR LOG FILE\n\n", file = emu_log_file, append = TRUE)
+cat("MAIN EMULATOR:\n", file = emu_log_file, append = TRUE)
+cat("______________________________________\n", file = emu_log_file, append = TRUE)
+
+# Need three colons for these functions because emulator_build.R is outside package and function is not exported
+
+# If multiple GSAT timeslices in design, drop any that are too highly correlated with others
+if (length(temps_list_names) > 1) {
+  cat("\nDropping highly correlated GSAT timeslices...\n",
+      file = logfile_build, append = TRUE)
+  temps_list_names_drop <- emulandice2:::drop_temps(Xtrain)
+  Xtrain <- Xtrain[ , ! colnames(Xtrain) %in% temps_list_names_drop ]
+  cat("\nKeeping GSAT timeslices: ",
+      paste(temps_list_names[ ! temps_list_names %in% temps_list_names_drop ], collapse=" "),
+      "\n", file = logfile_build, append = TRUE)
+}
+
+# Check main design matrix rank and conditioning: returns 0 if good, > 0 if fails test(s)
+# Note any other use of make_emu as in LOO does not use this - could move inside make_emu?
+check_X <- emulandice2:::check_design(Xtrain)
+
+# Returns an integer
+cat("\nNumber of design matrix tests failed:", check_X, "\n",
+    file = logfile_build, append = TRUE)
+
+# For strict checking
+# stopifnot(check_X == 0)
+
 # Check we have the same number of rows in design and output matrices
 stopifnot(nrow(Xtrain) == nrow(Ytrain))
+
+# Sims only for testing: stop just before emulation
+if ( read_sims_only) {
+  print("Stopping before emulation")
+  quit(save = "no")
+}
+
+# Build: make_emu -----
+# BUILD EMULATOR
+# Writes emu obj into .RData workspace file later for running in FACTS
+# Note this call is repeated in do_LOO.R
 
 print("Building emulator...")
 
@@ -2068,18 +2107,10 @@ if (i_s == "GIS" && final_year >= 2200) scree_thresh = 0.99999
 # Flag for whether we are coming from main.R or emulator_build.R
 is_build <- TRUE
 
-# Start log file
-emu_log_file <- paste0(outdir, out_name,"_", emulator_type, ".log")
-cat("______________________________________\n", file = emu_log_file)
-cat("EMULATOR LOG FILE\n\n", file = emu_log_file, append = TRUE)
-cat("MAIN EMULATOR:\n", file = emu_log_file, append = TRUE)
-cat("______________________________________\n", file = emu_log_file, append = TRUE)
-
 # If change anything here, also change in do_loo()
 # Design continuous inputs are scaled
 
-# Emulate using all columns (i.e. GSAT means)
-if (temp_input == "mean") {
+if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for GSAT
   emu_mv <- emulandice2::make_emu( designX = as.matrix(Xtrain),
                                    responseF = as.matrix(Ytrain),
                                    thresh = scree_thresh)

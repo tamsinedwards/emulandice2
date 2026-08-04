@@ -32,80 +32,17 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
 
   ## Put any miscellaneous output in log file
   sink(file = emu_log_file, append = TRUE)
-  # Check other inputs
-  stopifnot(is.matrix(designX))
-  m <- nrow(designX)
-  d <- ncol(designX)
-  stopifnot(is.matrix(responseF), nrow(responseF) == m)
-  n <- ncol(responseF)
+
+  # Check design matrix - more checks are in check_design() before main call
+  stopifnot(is.matrix(responseF))
+
+  # Check response matrix
+  n_inputs <- ncol(designX)
+  stopifnot(is.matrix(responseF), nrow(responseF) == nrow(designX))
+  n_times <- ncol(responseF)
   if (!is.null(r))
-    stopifnot(r == round(r), 0 < r, r <= n)
+    stopifnot(r == round(r), 0 < r, r <= n_times)
   stopifnot(length(thresh) == 1, 0 < thresh, thresh < 1)
-
-  # Colinearity check ----------------------------------------------------------
-  # Cursor AI
-
-  # Check ensemble is not rank deficient
-  # (e.g. in GIS 2300 ensemble, resolution and init_yrs are confounded)
-
-  # Compute rank deficiency
-  if (qr(designX)$rank < ncol(designX)) {
-    cat(sprintf("\nNOTE: ensemble is rank deficient: rank is %i which is less
-                than number of columns %i\n",
-                qr(designX)$rank, ncol(designX)),
-        file = emu_log_file, append = TRUE)
-
-    # Identify redundant (aliased) columns from QR pivot
-    qr_obj <- qr(designX)
-    dep_idx <- qr_obj$pivot[(qr_obj$rank + 1):ncol(designX)]
-    confounded <- colnames(designX)[dep_idx]
-
-    # Fallback names if missing
-    if (is.null(confounded)) confounded <- paste0("V", dep_idx)
-
-    cat("\nAliased/redundant columns (drop one or more):\n",
-        file = emu_log_file, append = TRUE)
-    cat(paste(confounded, collapse = ", "), "\n", file = emu_log_file, append = TRUE)
-
-    # Print alias equations
-    tmp_df <- as.data.frame(designX)
-    tmp_df$.__y__ <- rnorm(nrow(tmp_df))
-    ali <- alias(stats::lm(.__y__ ~ ., data = tmp_df))
-
-    cat("\nAlias structure (Complete):\n", file = emu_log_file, append = TRUE)
-    capture.output(print(ali$Complete), file = emu_log_file, append = TRUE)
-
-    # Warn if rank deficient, so user can decide
-    warning("Ensemble is rank deficient: consider dropping one or more inputs")
-
-  }
-
-  # Further checks ------------------------------------------------
-  # Conditioning: Cursor AI
-
-  # 1. Condition number of the ensemble design
-  # If k > 1e12–1e15, that’s problematic
-  k <- kappa(designX, exact = TRUE)
-  cat("\nCondition number of design:", k, "\n", file = emu_log_file, append = TRUE)
-
-  # 2. Check for (near) zero-variance columns
-  # Zero or tiny variance columns can break QR/kappa
-  cat("\nCheck for zero/near-zero variance:\n", file = emu_log_file, append = TRUE)
-  cat(paste(colnames(designX), collapse = " "),"\n", file = emu_log_file, append = TRUE)
-  test_var <- apply(designX, 2, function(z) {
-    v <- var(z)
-    #    c(var = v, sd = sqrt(v))
-  })
-  cat(paste(test_var, collapse = " "),"\n", file = emu_log_file, append = TRUE)
-  cat("Minimum: ", min(test_var),"\n", file = emu_log_file, append = TRUE)
-
-  # Very large magnitudes can overflow
-  # 4. Singular values (alternative to kappa)
-  s <- svd(scale(designX))$d
-
-  # Very small min(s) or tiny ratio suggests ill-conditioning
-  cat("\nSmallest singular value:", min(s), "\n", file = emu_log_file, append = TRUE)
-  cat("Ratio smallest/largest:", min(s)/max(s), "\n", file = emu_log_file, append = TRUE)
 
   # SVD -----------------------------------------------------------------------
 
@@ -375,7 +312,7 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
       if (laGP_scaling) {
 
         # Index for random subsample of simulations
-        subs <- sample(1:m, min(1000, m), replace = FALSE)
+        subs <- sample(1:nrow(designX), min(1000, nrow(designX)), replace = FALSE)
 
         # Generates prior on length scale, based on distribution of distances between design points
         # Upper bound at 100
@@ -654,13 +591,13 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
 
     type <- match.arg(type)
 
-    if (!is.matrix(designXout) && length(designXout) == d) {
-      dim(designXout) <- c(1L, d)
+    if (!is.matrix(designXout) && length(designXout) == n_inputs) {
+      dim(designXout) <- c(1L, n_inputs)
     } else {
       # moved ncol check inside pred_emu because requested design might include extra (inert) inputs
-      stopifnot(is.matrix(designXout)) # ncol(designXout) == d)
+      stopifnot(is.matrix(designXout)) # ncol(designXout) == n_inputs)
     }
-    m_out <- nrow(designXout)
+    n_predict <- nrow(designXout) # renamed m_out n_predict
 
     # Put names back xxx check when dropped
     if (multi_sim) { colnames(designXout) <- design_names
@@ -671,45 +608,45 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
 
     # Output laGP estimated length scales and nuggets, e.g. for testing
     if (emulator_type == "laGP") {
-      darg <- sapply(pplist, "[[", "d") # m_out x r
+      darg <- sapply(pplist, "[[", "d") # n_predict x r
       print(darg)
-      garg <- sapply(pplist, "[[", "g") # m_out x r
+      garg <- sapply(pplist, "[[", "g") # n_predict x r
       print(garg)
     }
 
-    ## compute the time series (n time slices) of mean values
-    # for each of the m_out design points
-    mu <- sapply(pplist, "[[", "mean") # m_out x r
-    dim(mu) <- c(m_out, r)
-    mx <- sweep(mu %*% Vt, 2L, cc, "+") # m_out x n
+    ## compute the time series (n_times time slices) of mean values
+    # for each of the n_predict design points
+    mu <- sapply(pplist, "[[", "mean") # n_predict x r
+    dim(mu) <- c(n_predict, r)
+    mx <- sweep(mu %*% Vt, 2L, cc, "+") # n_predict x n_times
 
     # Can choose to return only the mean
     if (type == "mean")
       return(list(mean = mx))
 
     ## compute the sd from the PCs similarly: note most packages output var not sd
-    if (emulator_type == "statGP") sdu <- sapply(pplist, "[[", "sd") # m_out x r
+    if (emulator_type == "statGP") sdu <- sapply(pplist, "[[", "sd") # n_predict x r
     if (emulator_type == "deepgp") sdu <- sqrt(sapply(pplist, "[[", "s2"))
     if (emulator_type == "dgpsi") sdu <- sqrt(sapply(pplist, "[[", "var"))
     if (emulator_type == "laGP") sdu <- sqrt(sapply(pplist, "[[", "var"))
 
-    dim(sdu) <- c(m_out, r)
-    sdx <- lapply(1L:m_out, function(i) {
-      sqrt(colSums((sdu[i, ] * Vt)^2)) # n vector
+    dim(sdu) <- c(n_predict, r)
+    sdx <- lapply(1L:n_predict, function(i) {
+      sqrt(colSums((sdu[i, ] * Vt)^2)) # n_times vector
     })
-    sdx <- do.call("rbind", sdx) #  m_out x n
+    sdx <- do.call("rbind", sdx) #  n_predict x n_times
 
     # Can choose to return only the s.d.
     if (type == "sd") return(list(mean = mx, sd = sdx))
 
-    ## compute the variance - i.e. covariances between the n timeslices
+    ## compute the variance - i.e. covariances between the n_times time slices
     # for each design point
-    Sx <- lapply(1L:m_out, function(i) {
-      as.vector(crossprod(sdu[i, ] * Vt)) # n*n vector
+    Sx <- lapply(1L:n_predict, function(i) {
+      as.vector(crossprod(sdu[i, ] * Vt)) # n_times*n_times vector
     })
-    Sx <- do.call("cbind", Sx) # n*n x m_out
-    dim(Sx) <- c(n, n, m_out)
-    Sx <- aperm(Sx, c(3, 1, 2))  # m_out x n*n
+    Sx <- do.call("cbind", Sx) # n_times*n_times x n_predict
+    dim(Sx) <- c(n_times, n_times, n_predict)
+    Sx <- aperm(Sx, c(3, 1, 2))  # n_predict x n_times*n_times
 
     # Default is to return mean, sd and var
     return(list(mean = mx, sd = sdx, var = Sx, inputs = keep_inputs))
