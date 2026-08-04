@@ -20,7 +20,6 @@ check_design <- function(designX) {
   k_thresh <- 1e8
   var_thresh <- 1e-6
   frac_thresh <- 0.01
-  cor_thresh <- 0.95
 
   # Start with OK, and add 1 for each potential problems found
   is_design_OK <- 0
@@ -28,64 +27,78 @@ check_design <- function(designX) {
   # Colinearity check ----------------------------------------------------------
   # Cursor AI
 
-  # Check ensemble is not rank deficient
-  # (e.g. in GIS 2300 ensemble, resolution and init_yrs are confounded)
+  # Check rank and condition of GSAT_only columns (to ensure drop_temps() did
+  # enough to avoid collinearity), then full design
 
-  cat("\nChecking rank of matrix...\n", file = emu_log_file, append = TRUE)
-  cat("\nRank:", qr(designX)$rank, "\n", file = emu_log_file, append = TRUE)
-  cat("Number of columns:", ncol(designX),"\n", file = emu_log_file, append = TRUE)
-  if (qr(designX)$rank == ncol(designX)) cat("Matrix is full rank\n", file = emu_log_file, append = TRUE)
+  for (test_matrix in c("GSAT columns of", "full design")) {
 
-  # Compute rank deficiency
-  if (qr(designX)$rank < ncol(designX)) {
-    cat(sprintf("\nNOTE: ensemble is rank deficient: rank %i is less
+    if (test_matrix == "GSAT columns of" ) testX <- designX[ , colnames(designX) %in% temps_list_names ]
+    if (test_matrix == "full design" ) testX <- designX
+
+    cat("\ncheck_design: checking",test_matrix,"matrix\n", file = emu_log_file, append = TRUE)
+
+    # Check ensemble is not rank deficient
+    # (e.g. in GIS 2300 ensemble, resolution and init_yrs are confounded)
+
+    cat("\nChecking rank...\n", file = emu_log_file, append = TRUE)
+    cat("\nRank:", qr(testX)$rank, "\n", file = emu_log_file, append = TRUE)
+    cat("Number of columns:", ncol(testX),"\n", file = emu_log_file, append = TRUE)
+    if (qr(testX)$rank == ncol(testX)) cat("Matrix is full rank\n", file = emu_log_file, append = TRUE)
+
+    # Compute rank deficiency
+    if (qr(testX)$rank < ncol(testX)) {
+      cat(sprintf("\nNOTE: ensemble is rank deficient: rank %i is less
                 than number of columns %i\n",
-                qr(designX)$rank, ncol(designX)),
-        file = emu_log_file, append = TRUE)
+                  qr(testX)$rank, ncol(testX)),
+          file = emu_log_file, append = TRUE)
 
-    # Identify redundant (aliased) columns from QR pivot
-    qr_obj <- qr(designX)
-    dep_idx <- qr_obj$pivot[(qr_obj$rank + 1):ncol(designX)]
-    confounded <- colnames(designX)[dep_idx]
+      # Identify redundant (aliased) columns from QR pivot
+      qr_obj <- qr(testX)
+      dep_idx <- qr_obj$pivot[(qr_obj$rank + 1):ncol(testX)]
+      confounded <- colnames(testX)[dep_idx]
 
-    # Fallback names if missing
-    if (is.null(confounded)) confounded <- paste0("V", dep_idx)
+      # Fallback names if missing
+      if (is.null(confounded)) confounded <- paste0("V", dep_idx)
 
-    cat("\nAliased/redundant columns (drop one or more):\n",
-        file = emu_log_file, append = TRUE)
-    cat(paste(confounded, collapse = ", "), "\n", file = emu_log_file, append = TRUE)
+      cat("\nAliased/redundant columns (drop one or more):\n",
+          file = emu_log_file, append = TRUE)
+      cat(paste(confounded, collapse = ", "), "\n", file = emu_log_file, append = TRUE)
 
-    # Print alias equations
-    tmp_df <- as.data.frame(designX)
-    tmp_df$.__y__ <- rnorm(nrow(tmp_df))
-    ali <- alias(stats::lm(.__y__ ~ ., data = tmp_df))
+      # Print alias equations
+      tmp_df <- as.data.frame(testX)
+      tmp_df$.__y__ <- rnorm(nrow(tmp_df))
+      ali <- alias(stats::lm(.__y__ ~ ., data = tmp_df))
 
-    cat("\nAlias structure (Complete):\n", file = emu_log_file, append = TRUE)
-    capture.output(print(ali$Complete), file = emu_log_file, append = TRUE)
+      cat("\nAlias structure (Complete):\n", file = emu_log_file, append = TRUE)
+      capture.output(print(ali$Complete), file = emu_log_file, append = TRUE)
 
-    # Non-zero return because rank deficient
-    is_design_OK <- is_design_OK + 1
-    cat("\ncheck_design: ** Warning! Design matrix is rank deficient. Consider dropping inputs ** \n", file = emu_log_file, append = TRUE)
-    warning("Design matrix is rank deficient: consider dropping inputs")
+      # Non-zero return because rank deficient
+      is_design_OK <- is_design_OK + 1
+      cat("\ncheck_design: ** Warning! Design matrix is rank deficient. Consider dropping inputs ** \n", file = emu_log_file, append = TRUE)
+      warning("Design matrix is rank deficient: consider dropping inputs")
 
-  }
+    }
 
-  # Further checks ------------------------------------------------
-  # Conditioning: Cursor AI
+    # Further checks ------------------------------------------------
+    # Conditioning: Cursor AI
 
-  # 1. Condition number of the ensemble design
-  # If k > 1e12–1e15, that’s problematic
-  cat("\nChecking condition of matrix...\n", file = emu_log_file, append = TRUE)
-  k <- kappa(designX, exact = TRUE)
-  cat("\nCondition number:", k, "\n", file = emu_log_file, append = TRUE)
-  cat("Threshold is", k_thresh, "\n", file = emu_log_file, append = TRUE)
+    # 1. Condition number of the ensemble design
+    # If k > 1e12–1e15, that’s problematic
+    cat("\nChecking condition...\n", file = emu_log_file, append = TRUE)
+    k <- kappa(testX, exact = TRUE)
+    cat("\nCondition number:", k, "\n", file = emu_log_file, append = TRUE)
+    cat("Threshold is", k_thresh, "\n", file = emu_log_file, append = TRUE)
 
-  # Non-zero return if ill-conditioned
-  if ( k > k_thresh ) {
-    is_design_OK <- is_design_OK + 1
-    cat("\ncheck_design: ** Warning! Design matrix is ill-conditioned ** \n", file = emu_log_file, append = TRUE)
-    warning("Design matrix is ill-conditioned: k > k_thresh")
-  }
+    # Non-zero return if ill-conditioned
+    if ( k > k_thresh ) {
+      is_design_OK <- is_design_OK + 1
+      cat("\ncheck_design: ** Warning! Design matrix is ill-conditioned ** \n", file = emu_log_file, append = TRUE)
+      warning("Design matrix is ill-conditioned: k > k_thresh")
+    }
+
+  } # End of duplicate tests on GSAT-only columns and full design
+
+  cat("\ncheck_design: further checks on full design matrix\n", file = emu_log_file, append = TRUE)
 
   # 2. Check for (near) zero-variance columns, i.e. (nearly) constant values
   # Zero or tiny variance columns can break QR/kappa
@@ -139,8 +152,8 @@ check_design <- function(designX) {
   cat("\nSmallest singular value :", min(s), "\n", file = emu_log_file, append = TRUE)
   cat("Ratio of smallest/largest singular values:", min(s)/max(s), "\n", file = emu_log_file, append = TRUE)
 
-  if (is_design_OK == 0) { cat("\ncheck_design: passed all matrix tests\n", file = emu_log_file, append = TRUE)
-  } else cat("\ncheck_design: failed",is_design_OK,"matrix tests\n", file = emu_log_file, append = TRUE)
+  if (is_design_OK == 0) { cat("\ncheck_design: passed all matrix checks\n", file = emu_log_file, append = TRUE)
+  } else cat("\ncheck_design: failed",is_design_OK,"matrix checks\n", file = emu_log_file, append = TRUE)
 
   # Return 0 or 1
   is_design_OK

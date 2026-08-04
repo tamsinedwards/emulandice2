@@ -2078,7 +2078,7 @@ if (length(temps_list_names) > 1) {
 check_X <- emulandice2:::check_design(Xtrain)
 
 # Returns an integer
-cat("\nNumber of design matrix tests failed:", check_X, "\n",
+cat("\nNumber of design matrix checks failed:", check_X, "\n",
     file = logfile_build, append = TRUE)
 
 # For strict checking
