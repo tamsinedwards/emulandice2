@@ -1701,33 +1701,32 @@ if (include_factors) {
 }
 
 
-#' ## Scale inputs for emulator
-# Scale inputs ---------------------------------------------------------------
-# xxx Can I move this into get_inputs()?
+#' #' ## Scale inputs for emulator
+#' # Scale inputs ---------------------------------------------------------------
 
-cat("\nOriginal ranges of inputs:\n", file = logfile_build, append = TRUE)
-for (cc in 1:dim(ice_design)[2]) {
-  cat( paste(colnames(ice_design)[cc], min(ice_design[,cc]), "to",
-             max(ice_design[,cc]), "\n"), file = logfile_build, append = TRUE)
-}
-
-# Scale columns of continuous parameters (climate and ice model)
-cat("\nCentre and scale continuous inputs (mean = 0, s.d. = 1)\n", file = logfile_build, append = TRUE)
-ice_design_scaled_cont <- scale(ice_design[, input_cont_list])
-
-# Store scaling to use later for prior
-inputs_centre <- attr(ice_design_scaled_cont,"scaled:center")
-inputs_scale <- attr(ice_design_scaled_cont,"scaled:scale")
-
-# Fill back into original design
-ice_design_scaled <- ice_design
-ice_design_scaled[, input_cont_list] <- ice_design_scaled_cont
-
-cat("\nNew ranges of inputs after scaling:\n", file = logfile_build, append = TRUE)
-for (cc in 1:dim(ice_design_scaled)[2]) {
-  cat( paste(colnames(ice_design_scaled)[cc], min(ice_design_scaled[,cc]), "to",
-             max(ice_design_scaled[,cc]), "\n"), file = logfile_build, append = TRUE)
-}
+# cat("\nOriginal ranges of inputs:\n", file = logfile_build, append = TRUE)
+# for (cc in 1:dim(ice_design)[2]) {
+#   cat( paste(colnames(ice_design)[cc], min(ice_design[,cc]), "to",
+#              max(ice_design[,cc]), "\n"), file = logfile_build, append = TRUE)
+# }
+#
+# # Scale columns of continuous parameters (climate and ice model)
+# cat("\nCentre and scale continuous inputs (mean = 0, s.d. = 1)\n", file = logfile_build, append = TRUE)
+# ice_design_scaled_cont <- scale(ice_design[, input_cont_list])
+#
+# # Store scaling to use later for prior
+# inputs_centre <- attr(ice_design_scaled_cont,"scaled:center")
+# inputs_scale <- attr(ice_design_scaled_cont,"scaled:scale")
+#
+# # Fill back into original design
+# ice_design_scaled <- ice_design
+# ice_design_scaled[, input_cont_list] <- ice_design_scaled_cont
+#
+# cat("\nNew ranges of inputs after scaling:\n", file = logfile_build, append = TRUE)
+# for (cc in 1:dim(ice_design_scaled)[2]) {
+#   cat( paste(colnames(ice_design_scaled)[cc], min(ice_design_scaled[,cc]), "to",
+#              max(ice_design_scaled[,cc]), "\n"), file = logfile_build, append = TRUE)
+# }
 
 # Make sure scenario list only includes those of simulations
 scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"]) ]
@@ -1869,7 +1868,6 @@ if (do_history_match) {
   # Select for everything... xxx re-order code to improve?
   # Emulator data:
   ice_data <- ice_data[ nroy_sel, ]
-  ice_design_scaled <- ice_design_scaled[ nroy_sel, ]
 
   # Plots:
   if ( length(temps_list) == 1) { temps <- temps[ nroy_sel ]
@@ -1880,7 +1878,7 @@ if (do_history_match) {
   N_sims <- nrow(ice_data)
 
   # Not needed (temporary or not used): ice_data_impute, ice_data_proj,
-  # ice_design_scaled, sims_data, sim_index
+  # sims_data, sim_index
   # imputing things
 
   cat(paste("\nFINAL FINAL DATA SELECTION: using", N_sims, "ice simulations for",
@@ -1921,12 +1919,14 @@ if (plot_level > 0) {
 # EMULATION  ------------------------------------------------------------
 
 # FULL DATASET
+# Will train emulator with this full dataset ice_data (full LOO)
+# or random/ordered subset selected below (LOO subset or TVT)
 
 # Inputs
-XX <- ice_design_scaled
+Xtrain <- ice_design
 
-# Outputs: includes any imputed values xx redundant naming - could remove here and later (and ALL_validation.R)
-YY <- ice_data[ , paste0("y", years_em) ]
+# Outputs: includes any imputed values (and ALL_validation.R)
+Ytrain <- ice_data[ , paste0("y", years_em) ]
 
 # Train emulators with:
 
@@ -1939,6 +1939,7 @@ YY <- ice_data[ , paste0("y", years_em) ]
 # 4. N = 70% of N_ensemble, if dataset medium-large OR if GP can cope with large dataset (e.g. laGP)
 # i.e. select non-random sample and reserve 30% / remaining for testing
 
+
 #' # Select data subset
 # Select data subset if TVT ------------------------------------------------------------
 
@@ -1948,11 +1949,14 @@ YY <- ice_data[ , paste0("y", years_em) ]
 # Will be set to TRUE later if subset taken
 train_subset <- FALSE
 
+# Indices for train and test dataset rows used in TVT
+train_set <- NULL
+test_set <- NULL
+
 # Only do this selection if not using LOO validation later
 # except if reproducing deliverable, which set limit of 1000 for all
-# Note uses of ice_data not YY here are fine: same number of rows as YY (which has imputed years) xxx redundant naming
 if ( validation_type != "loo" | # case 3,4
-     ( nrow(ice_data) > 1000L &&  validation_type == "loo" && deliverable_test)) { # case 1
+     ( deliverable_test && validation_type == "loo" && nrow(ice_data) > 1000L )) { # case 1
 
   # Get full dataset design
   # Yes, really! Not emulator inputs, because full list includes e.g. GCM, SSP etc
@@ -1995,19 +1999,19 @@ if ( validation_type != "loo" | # case 3,4
 
   }
 
-  # Or subset for LOO in deliverable_test mode xxx double-check this
-  if (nrow(ice_data) > 1000L && deliverable_test && validation_type == "loo") {
+  # Or subset for LOO in deliverable_test mode
+  if (deliverable_test && validation_type == "loo" && nrow(ice_data) > 1000L) {
     target_size <- 1000L
   }
 
   cat( paste("\nSelecting",target_size,"simulations for training:\n"),
        file = logfile_build, append = TRUE)
 
-  # Was random sample for deliverable, which used LOO
-  if ( nrow(ice_data) > 1000L && deliverable_test && validation_type == "loo") {
+  # Case 1: deliverable used random sample subset for LOO
+  if ( deliverable_test && validation_type == "loo" && nrow(ice_data) > 1000L ) {
     cat( paste("- random sample\n"),
          file = logfile_build, append = TRUE)
-    train <- sort(sample(nrow(ice_data), target_size))
+    train_set <- sort(sample(nrow(ice_data), target_size))
 
   } else {
 
@@ -2027,15 +2031,18 @@ if ( validation_type != "loo" | # case 3,4
     # (simple random if no factors)
     reordered <- reorder_rows(Xraw, frontLoad = TRUE)
 
-    # Improved method: select first N_subset of rows
-    train <- reordered[ 1:target_size ]
+    # Improved method: select first N_subset of rows for training
+    train_set <- reordered[ 1:target_size ]
+
+    # These will be used for validation later
+    test_set <- reordered[-(1:target_size)]
 
   }
 
   # Apply random/ordered selection to raw design (just for checking), and inputs and outputs
-  Xraw_sub <- Xraw[ train, ]
-  XX_sub <- XX[ train, ]
-  YY_sub <- YY[ train, ]
+  Xraw_sub <- Xraw[ train_set, ]
+  Xtrain <- Xtrain[ train_set, ]
+  Ytrain <- Ytrain[ train_set, ]
   train_subset <- TRUE
 
   # Factor levels in training data - all factors, not just emulated
@@ -2047,23 +2054,16 @@ if ( validation_type != "loo" | # case 3,4
 
 } # if not LOO (or if sampling for deliverable_test LOO)
 
-# Train emulator with random/ordered subset, or full dataset ice_data[_impute]
-if (train_subset) {
-  Xtrain <- XX_sub
-  Ytrain <- YY_sub
-} else {
-  Xtrain <- XX
-  Ytrain <- YY
-}
-
-# Get and check inputs -----
-
+# Start log file -----
 # Start log file
+
 emu_log_file <- paste0(outdir, out_name,"_", emulator_type, ".log")
 cat("______________________________________\n", file = emu_log_file)
 cat("EMULATOR LOG FILE\n\n", file = emu_log_file, append = TRUE)
 cat("MAIN EMULATOR:\n", file = emu_log_file, append = TRUE)
 cat("______________________________________\n", file = emu_log_file, append = TRUE)
+
+# Drop temp inputs -----
 
 # Need three colons for these functions because emulator_build.R is outside package and function is not exported
 
@@ -2079,14 +2079,18 @@ if (length(temps_list_names) > 1) {
 
     keep <- setdiff(colnames(Xtrain), temps_list_names_drop)
     out <- emulandice2:::sync_design_inputs(keep_names = keep,
-                                            Xtrain = Xtrain, ice_design = ice_design, ice_design_scaled = ice_design_scaled,
-                                            temps = temps, temps_list = temps_list, temps_list_names = temps_list_names,
-                                            ice_cont_list = ice_cont_list, ice_dummy_list = ice_dummy_list,
-                                            ice_all_list = ice_all_list, input_cont_list = input_cont_list,
-                                            inputs_centre = inputs_centre, inputs_scale = inputs_scale)
+                                            Xtrain = Xtrain,
+                                            ice_design = ice_design,
+                                            temps = temps,
+                                            temps_list = temps_list,
+                                            temps_list_names = temps_list_names,
+                                            ice_cont_list = ice_cont_list,
+                                            ice_dummy_list = ice_dummy_list,
+                                            ice_all_list = ice_all_list,
+                                            input_cont_list = input_cont_list)
+
     Xtrain <- out$Xtrain
     ice_design <- out$ice_design
-    ice_design_scaled <- out$ice_design_scaled
     temps <- out$temps
     temps_list <- out$temps_list
     temps_list_names <- out$temps_list_names
@@ -2094,15 +2098,78 @@ if (length(temps_list_names) > 1) {
     ice_dummy_list <- out$ice_dummy_list
     ice_all_list <- out$ice_all_list
     input_cont_list <- out$input_cont_list
-    inputs_centre <- out$inputs_centre
-    inputs_scale <- out$inputs_scale
-
   }
 
   cat("\nKeeping",length(temps_list_names),"GSAT timeslices: ", paste(temps_list_names, collapse=" "),
       "\n", file = logfile_build, append = TRUE)
 
 }
+
+#' ## Relative GSAT timeslices
+# Relative temps ---------------------------------------------------------------
+
+# If relative timeslices (no need if only one)
+if (temp_type == "relative" && length(temps_list) > 1) {
+
+  # Get GSAT colnames (intersect keeps temps_list order)
+  gsat_cols <- intersect(temps_list_names, colnames(ice_design))
+
+  # Replace ice_design temps with relative i.e. difference with previous timeslice not baseline
+  ice_design[ , gsat_cols ] <- emulandice2:::gsat_abs_to_relative(ice_design[, gsat_cols, drop = FALSE])
+
+  # Overwrite temps too (matrix of 2 or more columns, due to temps_list length check)
+  temps <- emulandice2:::gsat_abs_to_relative(temps)
+
+  # Update GSAT labels
+  for (tt in seq_along(temps_list_names)) {
+
+    if (tt == 1) next
+    win <- paste0(temps_list[tt] - N_temp_yrs + 1, "-", temps_list[tt])
+    prev <- paste0(temps_list[tt - 1] - N_temp_yrs + 1, "-", temps_list[tt - 1])
+
+    GSAT_lab[[temps_list_names[tt]]] <- paste0(
+        "Global mean temperature ", win, " minus ", prev, " (degC)")
+  }
+
+}
+
+#' ## Scale inputs for emulator
+# Scale inputs ---------------------------------------------------------------
+# Scale FULL dataset (not just Xtrain, which for TVT are rows selected for training)
+
+cat("\nOriginal ranges of inputs:\n", file = logfile_build, append = TRUE)
+for (cc in 1:dim(ice_design)[2]) {
+  cat( paste(colnames(ice_design)[cc], min(ice_design[,cc]), "to",
+             max(ice_design[,cc]), "\n"), file = logfile_build, append = TRUE)
+}
+
+# Scale columns of continuous parameters (climate and ice model)
+cat("\nCentre and scale continuous inputs (mean = 0, s.d. = 1)\n", file = logfile_build, append = TRUE)
+ice_design_scaled_cont <- scale(ice_design[, input_cont_list])
+
+# Store scaling to use later for prior
+inputs_centre <- attr(ice_design_scaled_cont,"scaled:center")
+inputs_scale <- attr(ice_design_scaled_cont,"scaled:scale")
+
+# Fill continuous parameters back into original design
+ice_design_scaled <- ice_design
+ice_design_scaled[, input_cont_list] <- ice_design_scaled_cont
+
+cat("\nNew ranges of inputs after scaling:\n", file = logfile_build, append = TRUE)
+for (cc in 1:dim(ice_design_scaled)[2]) {
+  cat( paste(colnames(ice_design_scaled)[cc], min(ice_design_scaled[,cc]), "to",
+             max(ice_design_scaled[,cc]), "\n"), file = logfile_build, append = TRUE)
+}
+
+# Now grab Xtrain columns (and if TVT, rows) of ice_design_scaled
+if (train_subset) {
+  Xtrain <- ice_design_scaled[ train_set, colnames(Xtrain), drop = FALSE]
+} else {
+  Xtrain <- ice_design_scaled[ , colnames(Xtrain), drop = FALSE]
+}
+
+#' ## Check inputs for emulator
+# Check inputs ---------------------------------------------------------------
 
 # Check main design matrix rank and conditioning: returns 0 if good, > 0 if fails test(s)
 # Note any other use of make_emu as in LOO does not use this - could move inside make_emu?
@@ -2123,6 +2190,7 @@ if ( read_sims_only) {
   print("Stopping before emulation")
   quit(save = "no")
 }
+
 
 # Build: make_emu -----
 # BUILD EMULATOR
@@ -2159,14 +2227,20 @@ if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for
         file = logfile_build, append = TRUE)
 
     out <- emulandice2:::sync_design_inputs(keep_names = emu_inputs,
-                                            Xtrain = Xtrain, ice_design = ice_design, ice_design_scaled = ice_design_scaled,
-                                            temps = temps, temps_list = temps_list, temps_list_names = temps_list_names,
-                                            ice_cont_list = ice_cont_list, ice_dummy_list = ice_dummy_list,
-                                            ice_all_list = ice_all_list, input_cont_list = input_cont_list,
-                                            inputs_centre = inputs_centre, inputs_scale = inputs_scale)
+                                            Xtrain = Xtrain,
+                                            ice_design = ice_design,
+                                            temps = temps,
+                                            temps_list = temps_list,
+                                            temps_list_names = temps_list_names,
+                                            ice_cont_list = ice_cont_list,
+                                            ice_dummy_list = ice_dummy_list,
+                                            ice_all_list = ice_all_list,
+                                            input_cont_list = input_cont_list,
+                                            inputs_centre = inputs_centre,
+                                            inputs_scale = inputs_scale,
+                                            ice_design_scaled = ice_design_scaled)
     Xtrain <- out$Xtrain
     ice_design <- out$ice_design
-    ice_design_scaled <- out$ice_design_scaled
     temps <- out$temps
     temps_list <- out$temps_list
     temps_list_names <- out$temps_list_names
@@ -2176,6 +2250,7 @@ if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for
     input_cont_list <- out$input_cont_list
     inputs_centre <- out$inputs_centre
     inputs_scale <- out$inputs_scale
+    ice_design_scaled <- out$ice_design_scaled
 
     # Factor values - do separately so don't drop nominal
     print(ice_factor_values)
@@ -2439,20 +2514,14 @@ if (validation_type == "tvt") {
 
   cat("\nTRAIN AND TEST VALIDATION\n", file = logfile_build, append = TRUE)
 
-  # Get index of all rows except training data
-  test_set <- reordered[-(1:target_size)]
-
   # Predict for all the original design points not in the training set
-  # using main emulator build (emu_mv)
-  # Note inputs are already scaled
-  # ice_design_scaled has same number of rows as ice_data
+  # i.e. all but train_set rows
+  # (values scaled before training set selection) using main emulator build (emu_mv)
   # This predicts full time series
-
   emu_test <- emulandice2::emulator_predict( ice_design_scaled[ test_set, ], forcing_prior = "mean" )
 
-  # Get test dataset to validate with
-  # YY is the full dataset (with any imputed values), so this should be all but YY[ train ]
-  test_data <- YY[ test_set, ]
+  # Get outputs for same test rows to validate the emulator with
+  test_data <- ice_data[ test_set, paste0("y", years_em) ]
 
   # Unlike LOO, should be no missing data in these: i.e. values for all test sims
   test_mean <- list()
@@ -2553,8 +2622,7 @@ sa_file <- paste0(rdatadir, out_name, "_SA.RData")
 # Bit of duplication or unused
 to_save <- c("climate_data", # CLIMATE MODEL SIMULATION DATA
              "ice_data", # ALL SELECTED ICE MODEL SIMULATION DATA
-             "YY", # ice_data or subset of ice_data, with any imputed values
-             "Xtrain", "Ytrain", # training data (emulator may not use GSAT columns)
+             "Xtrain", "Ytrain", # training data
              "obs_data", "obs_change", "obs_err", # OBSERVATION DATA (full data, total, and err in total)
              "inputs_preprocess", "inputs_ext", # Paths for package data
              "out_name", # General part of all output filenames

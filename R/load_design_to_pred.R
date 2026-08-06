@@ -451,10 +451,13 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
       design_prior_gsat <- t(apply(climate_prior, 1, gsat_anom_row,
                                    end_years = temps_list,
                                    baseline_end = temps_baseline,
-                                   n_yrs = N_temp_yrs,
-                                   anom_type = temp_type))
+                                   n_yrs = N_temp_yrs))
       design_prior_gsat <- matrix(design_prior_gsat, ncol = length(temps_list),
                                   dimnames = list(NULL, paste0("y", temps_list)))
+      # Optionally convert to relative timeslices
+      if (temp_type == "relative" && length(temps_list) > 1) {
+        design_prior_gsat <- gsat_abs_to_relative(design_prior_gsat)
+      }
 
       N_temp <- nrow(design_prior_gsat)
 

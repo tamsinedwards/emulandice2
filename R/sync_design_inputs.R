@@ -14,17 +14,19 @@
 # after make_emu so that it can be used in multiple places
 
 sync_design_inputs <- function(keep_names,
-                               Xtrain, ice_design, ice_design_scaled,
+                               Xtrain, ice_design,
                                temps, temps_list, temps_list_names,
                                ice_cont_list, ice_dummy_list, ice_all_list,
-                               input_cont_list, inputs_centre, inputs_scale) {
+                               input_cont_list,
+                               inputs_centre = NULL, inputs_scale = NULL,
+                               ice_design_scaled = NULL ) {
 
   keep_names <- unique(keep_names)
 
   # Matrices / frames
   Xtrain            <- Xtrain[, colnames(Xtrain) %in% keep_names, drop = FALSE]
   ice_design        <- ice_design[, colnames(ice_design) %in% keep_names, drop = FALSE]
-  ice_design_scaled <- ice_design_scaled[, colnames(ice_design_scaled) %in% keep_names, drop = FALSE]
+  if (! is.null(ice_design_scaled) ) ice_design_scaled <- ice_design_scaled[, colnames(ice_design_scaled) %in% keep_names, drop = FALSE]
 
   # Prefer colnames order from the design you care about
   keep_names <- colnames(Xtrain)
@@ -44,8 +46,8 @@ sync_design_inputs <- function(keep_names,
     ice_all_list <- c(ice_cont_list, ice_dummy_list) # Rebuild too
   }
 
-  inputs_centre <- inputs_centre[ intersect(names(inputs_centre), input_cont_list) ]
-  inputs_scale  <- inputs_scale[ intersect(names(inputs_scale), input_cont_list) ]
+  if (! is.null(inputs_centre) ) inputs_centre <- inputs_centre[ intersect(names(inputs_centre), input_cont_list) ]
+  if (! is.null(inputs_scale) ) inputs_scale  <- inputs_scale[ intersect(names(inputs_scale), input_cont_list) ]
 
   stopifnot(
     all(temps_list_names %in% colnames(Xtrain)),
@@ -53,9 +55,10 @@ sync_design_inputs <- function(keep_names,
     ncol(temps) == length(temps_list) || length(temps_list) == 1
   )
 
-  list(Xtrain = Xtrain, ice_design = ice_design, ice_design_scaled = ice_design_scaled,
+  list(Xtrain = Xtrain, ice_design = ice_design,
        temps = temps, temps_list = temps_list, temps_list_names = temps_list_names,
        ice_cont_list = ice_cont_list, ice_dummy_list = ice_dummy_list,
        ice_all_list = ice_all_list, input_cont_list = input_cont_list,
-       inputs_centre = inputs_centre, inputs_scale = inputs_scale)
+       inputs_centre = inputs_centre, inputs_scale = inputs_scale,
+       ice_design_scaled = ice_design_scaled )
 }
