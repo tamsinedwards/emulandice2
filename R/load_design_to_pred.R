@@ -447,50 +447,16 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
       # climate_prior <- climate_prior_all[ climate_prior_all$scenario == scen, ] # only needed when reading CSV
       climate_prior <- climate_prior_all
 
-      # Create matrix for GSAT values
-      if (length(temps_list) == 1) {
-        design_prior_gsat <- rep(NA, dim(climate_prior)[1])
-      } else {
-        design_prior_gsat <- matrix( NA, nrow = dim(climate_prior)[1], ncol = length(temps_list) )
-        colnames(design_prior_gsat) <- paste0("y", temps_list)
-      }
+      # Code snippet from Cursor using helper function gsat_anom_row() in calc_temps_functions.R
+      design_prior_gsat <- t(apply(climate_prior, 1, gsat_anom_row,
+                                   end_years = temps_list,
+                                   baseline_end = temps_baseline,
+                                   n_yrs = N_temp_yrs,
+                                   anom_type = temp_type))
+      design_prior_gsat <- matrix(design_prior_gsat, ncol = length(temps_list),
+                                  dimnames = list(NULL, paste0("y", temps_list)))
 
-      # Years for baseline
-      # TODO: This duplicates code in calc_temps.R - create small function for both
-      temps_period1 <- (temps_baseline - N_temp_yrs + 1):temps_baseline
-
-      cat( paste("GSAT prior: baseline mean period", paste(range(temps_period1), collapse = "-"), "\n"),
-           file = logfile_design, append = TRUE )
-
-      # Calculate decadal means and subtract baseline
-      for (ss in 1:dim(climate_prior)[1]) {
-
-        # Get timeslice(s) needed for prediction
-        if (length(temps_list) == 1) {
-
-          temps_period2 <- temps_list - N_temp_yrs:1 + 1
-
-          if (ss == 1) cat( paste("GSAT prior: forcing mean period", paste(range(temps_period2), collapse = "-"), "\n"),
-                            file = logfile_design, append = TRUE )
-          design_prior_gsat[ ss ] <- mean(unlist(climate_prior[ ss, paste0("y", temps_period2) ])) - mean(unlist(climate_prior[ ss, paste0("y", temps_period1) ]))
-
-        } else {
-
-          for ( tt in temps_list ) {
-
-            temps_period2 <- tt - N_temp_yrs:1 + 1
-
-            if (ss == 1) cat( paste("GSAT prior: forcing mean period", paste(range(temps_period2), collapse = "-"), "\n"),
-                              file = logfile_design, append = TRUE )
-
-            design_prior_gsat[ ss, paste0("y", tt) ] <- mean(unlist(climate_prior[ ss, paste0("y", temps_period2) ])) - mean(unlist(climate_prior[ ss, paste0("y", temps_period1) ]))
-
-          }
-        }
-      }
-
-      if (length(temps_list) == 1) { N_temp <- length(design_prior_gsat)
-      } else N_temp <- dim(design_prior_gsat)[1]
+      N_temp <- nrow(design_prior_gsat)
 
       cat(paste("Got", N_temp, "GSAT samples from file for prior\n"), file = logfile_design, append = TRUE)
 

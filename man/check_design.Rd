@@ -7,14 +7,12 @@
 check_design(designX)
 }
 \arguments{
-\item{designX}{Dataset design metric}
-
-\item{strict}{Strict checking: fails on various criteria}
+\item{designX}{Dataset design matrix}
 }
 \value{
-`check_design()` returns an emulator object to use.
+`check_design()` returns 1 if any potential problems found; 0 otherwise.
 }
 \description{
-Test rank, conditioning and GSAT correlation and write to log file
+Test rank, conditioning, and other info and write to log file
 Written with some input from Cursor AI.
 }

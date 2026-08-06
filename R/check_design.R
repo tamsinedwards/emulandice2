@@ -30,12 +30,18 @@ check_design <- function(designX) {
   # Check rank and condition of GSAT_only columns (to ensure drop_temps() did
   # enough to avoid collinearity), then full design
 
-  for (test_matrix in c("GSAT columns of", "full design")) {
+  for (test_matrix in c("GSAT columns of design", "full design")) {
 
-    if (test_matrix == "GSAT columns of" ) testX <- designX[ , colnames(designX) %in% temps_list_names ]
+    if (test_matrix == "GSAT columns of design" ) testX <- designX[ , colnames(designX) %in% temps_list_names, drop = FALSE ]
     if (test_matrix == "full design" ) testX <- designX
 
     cat("\ncheck_design: checking",test_matrix,"matrix\n", file = emu_log_file, append = TRUE)
+
+    # If only one GSAT column
+    if (ncol(testX) == 1) {
+      cat("\nMatrix only has one column - skipping checks\n", file = emu_log_file, append = TRUE)
+      next
+    }
 
     # Check ensemble is not rank deficient
     # (e.g. in GIS 2300 ensemble, resolution and init_yrs are confounded)
@@ -74,8 +80,9 @@ check_design <- function(designX) {
 
       # Non-zero return because rank deficient
       is_design_OK <- is_design_OK + 1
-      cat("\ncheck_design: ** Warning! Design matrix is rank deficient. Consider dropping inputs ** \n", file = emu_log_file, append = TRUE)
-      warning("Design matrix is rank deficient: consider dropping inputs")
+
+      cat("\ncheck_design: ** Warning -",test_matrix,"matrix rank deficient. Consider dropping inputs ** \n", file = emu_log_file, append = TRUE)
+      warning("\ncheck_design:",test_matrix,"matrix rank deficient: consider dropping up to",ncol(testX)-qr(testX)$rank,"input(s)")
 
     }
 
@@ -92,8 +99,8 @@ check_design <- function(designX) {
     # Non-zero return if ill-conditioned
     if ( k > k_thresh ) {
       is_design_OK <- is_design_OK + 1
-      cat("\ncheck_design: ** Warning! Design matrix is ill-conditioned ** \n", file = emu_log_file, append = TRUE)
-      warning("Design matrix is ill-conditioned: k > k_thresh")
+      cat("\ncheck_design: ** Warning -",test_matrix,"matrix ill-conditioned ** \n", file = emu_log_file, append = TRUE)
+      warning("\ncheck_design:",test_matrix,"matrix rank ill-conditioned: k > k_thresh")
     }
 
   } # End of duplicate tests on GSAT-only columns and full design

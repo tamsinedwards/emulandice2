@@ -550,17 +550,21 @@ if (!is.null(tl[2])) {
   }
 }
 
+# Type of anomalies: relative to baseline, or relative to each successive timeslice?
+# Set default to baseline for now
+temp_anom_type <- config::get("temp_anom_type", file = config_file)
+temp_type <- ifelse(!is.null(temp_anom_type), temp_anom_type, "baseline")
+stopifnot( temp_type %in% c("baseline", "relative"))
+
 # Number of years to average over
 # e.g. setting 10 with temps_list = 2300 and temps_baseline = 2015
 # gives decadal mean 2291-2300 relative to 2015-2024
 tn <- config::get("temp_nyrs", file = config_file)
 N_temp_yrs <- ifelse(!is.null(tn), tn, 30) # Default if not specified
 
-# GSATs are calculated in calc_temps.R and load_design_to_pred.R
-# TODO: consolidate
-
+cat(paste("GSAT anomaly type:", temp_type, "\n"), file = logfile_build, append = TRUE)
 cat(paste("GSAT baseline final year:", temps_baseline, "\n"), file = logfile_build, append = TRUE)
-cat(paste("GSAT timeslice final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
+cat(paste("Initial GSAT timeslice final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
 if (max(temps_list) > final_year) {
   cat("GSAT timeslice(s) extend beyond ice model simulation: dropping\n", file = logfile_build, append = TRUE)
   temps_list <- temps_list[ temps_list <= final_year ]
@@ -1060,13 +1064,13 @@ climate_data <- impute_climate(climate_csv)
 impute_gcms <- ifelse(impute_sims == "extend", TRUE, FALSE)
 
 # Calculate summary means
-temps_data <- emulandice2::calc_temps(climate_data, mean_impute = impute_gcms)
+temps_data <- emulandice2::calc_temps_gcms(climate_data, mean_impute = impute_gcms)
 
 # For GIS post-2100, repeat with fixed climate forcings
 # No need to set mean_impute, because this is already filling in [?] xxx check
 if ( i_s == "GIS" && final_year > 2100) {
   if (temp_input == "mean") climate_data_fixed <- impute_climate(climate_csv, construct_fixed = TRUE)
-  temps_data_fixed <- emulandice2::calc_temps(climate_data_fixed)
+  temps_data_fixed <- emulandice2::calc_temps_gcms(climate_data_fixed)
 }
 
 
@@ -1644,6 +1648,7 @@ if ( include_factors ) {
     # Count levels first to make the most common one the reference (more stable)
     ff_count <- sapply(ff_vals, function(fx) sum(ice_data[, ff] == fx))
     ff_ref <- ff_vals[which.max(ff_count)]
+
     cat(paste("Adding",length(ff_vals) - 1,"dummy variables with reference value:", ff_ref, "\n"), file = logfile_build, append = TRUE)
 
     # Loop over levels
@@ -2064,13 +2069,39 @@ cat("______________________________________\n", file = emu_log_file, append = TR
 
 # If multiple GSAT timeslices in design, drop any that are too highly correlated with others
 if (length(temps_list_names) > 1) {
-  cat("\nDropping highly correlated GSAT timeslices...\n",
+
+  cat("\nDropping any highly correlated GSAT timeslices...\n",
       file = logfile_build, append = TRUE)
   temps_list_names_drop <- emulandice2:::drop_temps(Xtrain)
-  Xtrain <- Xtrain[ , ! colnames(Xtrain) %in% temps_list_names_drop ]
-  cat("\nKeeping GSAT timeslices: ",
-      paste(temps_list_names[ ! temps_list_names %in% temps_list_names_drop ], collapse=" "),
+
+  # If some were dropped
+  if ( sum(is.na(temps_list_names_drop)) == 0 ) {
+
+    keep <- setdiff(colnames(Xtrain), temps_list_names_drop)
+    out <- emulandice2:::sync_design_inputs(keep_names = keep,
+                                            Xtrain = Xtrain, ice_design = ice_design, ice_design_scaled = ice_design_scaled,
+                                            temps = temps, temps_list = temps_list, temps_list_names = temps_list_names,
+                                            ice_cont_list = ice_cont_list, ice_dummy_list = ice_dummy_list,
+                                            ice_all_list = ice_all_list, input_cont_list = input_cont_list,
+                                            inputs_centre = inputs_centre, inputs_scale = inputs_scale)
+    Xtrain <- out$Xtrain
+    ice_design <- out$ice_design
+    ice_design_scaled <- out$ice_design_scaled
+    temps <- out$temps
+    temps_list <- out$temps_list
+    temps_list_names <- out$temps_list_names
+    ice_cont_list <- out$ice_cont_list
+    ice_dummy_list <- out$ice_dummy_list
+    ice_all_list <- out$ice_all_list
+    input_cont_list <- out$input_cont_list
+    inputs_centre <- out$inputs_centre
+    inputs_scale <- out$inputs_scale
+
+  }
+
+  cat("\nKeeping",length(temps_list_names),"GSAT timeslices: ", paste(temps_list_names, collapse=" "),
       "\n", file = logfile_build, append = TRUE)
+
 }
 
 # Check main design matrix rank and conditioning: returns 0 if good, > 0 if fails test(s)
@@ -2081,7 +2112,7 @@ check_X <- emulandice2:::check_design(Xtrain)
 cat("\nNumber of design matrix checks failed:", check_X, "\n",
     file = logfile_build, append = TRUE)
 
-# For strict checking
+# For strict checking, must pass all tests (not needed for RobustGaSP, but may be wise precaution)
 # stopifnot(check_X == 0)
 
 # Check we have the same number of rows in design and output matrices
@@ -2127,27 +2158,26 @@ if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for
         "inert inputs from design:", setdiff(colnames(Xtrain), emu_inputs), "\n",
         file = logfile_build, append = TRUE)
 
+    out <- emulandice2:::sync_design_inputs(keep_names = emu_inputs,
+                                            Xtrain = Xtrain, ice_design = ice_design, ice_design_scaled = ice_design_scaled,
+                                            temps = temps, temps_list = temps_list, temps_list_names = temps_list_names,
+                                            ice_cont_list = ice_cont_list, ice_dummy_list = ice_dummy_list,
+                                            ice_all_list = ice_all_list, input_cont_list = input_cont_list,
+                                            inputs_centre = inputs_centre, inputs_scale = inputs_scale)
+    Xtrain <- out$Xtrain
+    ice_design <- out$ice_design
+    ice_design_scaled <- out$ice_design_scaled
+    temps <- out$temps
+    temps_list <- out$temps_list
+    temps_list_names <- out$temps_list_names
+    ice_cont_list <- out$ice_cont_list
+    ice_dummy_list <- out$ice_dummy_list
+    ice_all_list <- out$ice_all_list
+    input_cont_list <- out$input_cont_list
+    inputs_centre <- out$inputs_centre
+    inputs_scale <- out$inputs_scale
 
-    print("Before")
-
-    # Used in validation, main effects design
-    # Can compare directly with emu_inputs because same origin (dummy levels; don't include reference level)
-    Xtrain <- Xtrain[ , colnames(Xtrain) %in% emu_inputs]
-    ice_design <- ice_design[ , colnames(ice_design) %in% emu_inputs]
-    ice_design_scaled <- ice_design_scaled[ , colnames(ice_design_scaled) %in% emu_inputs]
-
-    # Continuous or dummy inputs used in predictions
-    # Can also compare with emu_inputs directly
-    print(ice_all_list)
-    inputs_centre <- inputs_centre[ names(inputs_centre) %in% emu_inputs ]
-    inputs_scale <- inputs_scale[ names(inputs_scale) %in% emu_inputs ]
-    ice_cont_list <- ice_cont_list[ ice_cont_list %in% emu_inputs ]
-    ice_all_list <- ice_all_list[ ice_all_list %in% emu_inputs ]
-    ice_dummy_list <- ice_dummy_list[ ice_dummy_list %in% emu_inputs ]
-    input_cont_list <- input_cont_list[ input_cont_list %in% emu_inputs ]
-
-    # Factor values - need to be more careful so don't drop nominal
-    #print("Before")
+    # Factor values - do separately so don't drop nominal
     print(ice_factor_values)
     ice_factor_values_new <- ice_factor_values
 
@@ -2177,14 +2207,9 @@ if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for
         ice_factor_values_new <- ice_factor_values_new[ names(ice_factor_values_new) != ff ]
         stopifnot(names(ice_factor_values_new) == ice_factor_list)
       }
-    }
+    } # factor loop
+
     ice_factor_values <- ice_factor_values_new
-
-    print("After")
-    print(ice_all_list)
-    print(ice_factor_values)
-
-    #cat(paste(ice_factor_list, collapse = " "),"\n", file = logfile_build, append = TRUE)
 
     cat("\nSo now we have",length(emu_inputs),"inputs as follows:\n", file = logfile_build, append = TRUE)
     cat(paste(colnames(Xtrain), collapse = " "),"\n", file = logfile_build, append = TRUE)
@@ -2543,7 +2568,7 @@ to_save <- c("climate_data", # CLIMATE MODEL SIMULATION DATA
              "ice_cont_list", "ice_factor_list", "ice_all_list", # Lists of ice emulated inputs: continuous, factors, all
              "ice_dummy_list", "ice_factor_values", # Dummy column names and values for factor inputs
              "N_temp_yrs", # GSAT mean years; used in priors
-             "temp_input", # Using GSAT means or SVD
+             "temp_type", "temp_input", # GSAT anomaly type; using GSAT means or SVD xxx later obsolete if not using SVD
              "temps", "temps_baseline", "temps_list", "temps_list_names", # GSAT means and names used
              "input_cont_list", # List of all emulated continuous inputs, i.e. c(temps_list_names, ice_cont_list)
              "emulator_type",

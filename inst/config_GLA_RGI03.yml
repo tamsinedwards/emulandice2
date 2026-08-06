@@ -1,9 +1,10 @@
 default:
-  sims_only: TRUE
+  sims_only: FALSE
   emulator_type: "statGP"
   deliverable_test: FALSE
   validation_type: "tvt"
   emulator_covar: "pow_exp_01"
+  temp_anom_type: "baseline"
   temp_nyrs: 10
   temp_end_years: !expr seq(2000, 2300, by = 10)
 lagp:
