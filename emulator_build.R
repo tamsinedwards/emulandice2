@@ -2128,7 +2128,7 @@ if (temp_type == "relative" && length(temps_list) > 1) {
     prev <- paste0(temps_list[tt - 1] - N_temp_yrs + 1, "-", temps_list[tt - 1])
 
     GSAT_lab[[temps_list_names[tt]]] <- paste0(
-        "Global mean temperature ", win, " minus ", prev, " (degC)")
+      "Global mean temperature ", win, " minus ", prev, " (degC)")
   }
 
 }
@@ -2423,13 +2423,10 @@ if (validation_type == "loo") {
 
   cat("\nLEAVE ONE OUT VALIDATION\n", file = logfile_build, append = TRUE)
 
-  # Test every N_k-th run
-  # this is the slow bit....
+  # Test every N_k-th run (can be very slow)
   # xxx Improve: stratified by output value instead of every N_k
-  # LOO is only predicted for individual years, so emu predict function call is "sd" not "var"
   if (temp_input == "mean") loo_valid_all <- emulandice2::do_loo( designX = as.matrix(Xtrain),
                                                                   responseF = as.matrix(Ytrain),
-                                                                  year_list = validation_years,
                                                                   N_k = N_k)
 
   # To store results
@@ -2444,7 +2441,7 @@ if (validation_type == "loo") {
 
     yind <- paste0( "y", yy)
 
-    # Get LOO prediction (in do_loo.R)
+    # Get LOO predictions (in do_loo.R)
     loo_mean[[yind]] <- loo_valid_all$mean[ , yind]
     loo_sd[[yind]] <- loo_valid_all$sd[ , yind]
 
@@ -2486,14 +2483,14 @@ if (validation_type == "loo") {
                 min(loo_std_err), max(loo_std_err)),
         file = logfile_build, append = TRUE)
 
-  } # years
+} # years
 
-  # Plot: LOO-------
-  # Plot LOO results
-  pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
-       width = 9, height = 5)
-  emulandice2::plot_valid(valid_type = "LOO")
-  dev.off()
+# Plot: LOO-------
+# Plot LOO results
+pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
+     width = 9, height = 5)
+emulandice2::plot_valid(valid_type = "LOO")
+dev.off()
 
 } # validation_type == "loo"
 

@@ -7,17 +7,16 @@
 #' @param designX Full dataset design
 #' @param responseF Full dataset response
 #' @param forcingX Full forcing timeseries (if SVD)
-#' @param year_list List of projection years to do the LOO for.
 #' @param N_k Repeat the LOO for every N_k-th simulation (NA for all)
 #'
 #' @returns `do_loo()` returns mean and sd of each test for each year.
 #'
 #' @export
 
-do_loo <- function(designX, responseF, forcingX, year_list, N_k = NA) {
+do_loo <- function(designX, responseF, forcingX, N_k = NA) {
 
   cat("_____________________________________\n",file = logfile_build, append = TRUE)
-  cat(paste("do_loo:", paste(year_list, collapse = ","),"\n"), file = logfile_build, append = TRUE)
+  cat(paste("do_loo: predict all years\n"), file = logfile_build, append = TRUE)
 
   # Limit to this number of cores for laptop
   n_cores <- 32L
@@ -25,11 +24,12 @@ do_loo <- function(designX, responseF, forcingX, year_list, N_k = NA) {
   cat(paste("Number of cores:", n_cores,"\n"), file = logfile_build, append = TRUE)
   options(mc.cores = n_cores)
 
-  mean <- matrix( ncol = length(year_list), nrow = N_sims)
-  sd <- matrix( ncol = length(year_list), nrow = N_sims)
+  # Full timeseries for every LOO'd sim (needed for validation timeseries plots)
+  mean <- matrix(NA_real_, ncol = length(years_em), nrow = N_sims)
+  sd <- matrix(NA_real_, ncol = length(years_em), nrow = N_sims)
 
-  colnames(mean) <- paste0( "y", year_list)
-  colnames(sd) <- paste0( "y", year_list)
+  colnames(mean) <- paste0("y", years_em)
+  colnames(sd) <- paste0("y", years_em)
 
   # xxx Change to stratified sample?
   if (is.na(N_k) ) {
@@ -48,16 +48,16 @@ do_loo <- function(designX, responseF, forcingX, year_list, N_k = NA) {
     emu_mv_loo <- NA
 
     # Fit emulator to all but that one simulation
-    # 22/7/25: changed to be X and Y from emulator_build.R passed as arguments
     if (temp_input == "mean") emu_mv_loo <- try(emulandice2::make_emu( designX = designX[ -ss, ],
                                                           responseF = responseF[ -ss, paste0("y", years_em) ],
                                                           thresh = scree_thresh ) )
-    # Skip if failed
-    # xxx This was for GIS CISM while trying to understand error
-    # xxx Replaced 'next' with warning when changed to function - put back?
-    if (inherits(emu_mv_loo, "try-error")) warning("Failed to do LOO test") # next
+    # Skip simulation if failed
+    if (inherits(emu_mv_loo, "try-error")) {
+      warning("do_loo: make_emu failed for simulation ", ss)
+      return(NULL)
+    }
 
-    # Predict for this one year - so no need for correlation between timeslices
+    # Predict for all years
     # This mimics emulator_predict() function, but asks to return just mean and sd, not var
     if (temp_input == "mean") emu_one <- emu_mv_loo( designX[ ss, ], type = "sd")
     colnames(emu_one$mean) <- paste0("y", years_em)
@@ -72,16 +72,15 @@ do_loo <- function(designX, responseF, forcingX, year_list, N_k = NA) {
   emu_all <- parallel::mclapply(sim_list, loo_test)
 
   # Put each test into matrix of N_sims rows
-
-  # XXX CHANGE TO RETURN ALL FOR PLOTS
-
   for (ii in 1:length(sim_list)) {
 
-    ss <- sim_list[ii]
-    loo_ind <- which(years_em %in% validation_years, arr.ind = TRUE)
+    if (is.null(emu_all[[ii]])) next
 
-    mean[ss, ] <- emu_all[[ii]]$mean[ loo_ind ]
-    sd[ss, ] <- emu_all[[ii]]$sd[ loo_ind ]
+    ss <- sim_list[ii]
+
+    # Store full years_em trajectory (loo_test already predicts all years_em)
+    mean[ss, ] <- drop(emu_all[[ii]]$mean)
+    sd[ss, ] <- drop(emu_all[[ii]]$sd)
   }
 
   # Mean and sd are matrices
