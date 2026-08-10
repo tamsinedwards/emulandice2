@@ -4,7 +4,7 @@
 \alias{do_loo}
 \title{do_LOO: calculate leave-one-out information.}
 \usage{
-do_loo(designX, responseF, forcingX, year_list, N_k = NA)
+do_loo(designX, responseF, forcingX, N_k = NA)
 }
 \arguments{
 \item{designX}{Full dataset design}
@@ -12,8 +12,6 @@ do_loo(designX, responseF, forcingX, year_list, N_k = NA)
 \item{responseF}{Full dataset response}
 
 \item{forcingX}{Full forcing timeseries (if SVD)}
-
-\item{year_list}{List of projection years to do the LOO for.}
 
 \item{N_k}{Repeat the LOO for every N_k-th simulation (NA for all)}
 }

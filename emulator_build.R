@@ -208,7 +208,7 @@ if (read_sims_only) print("ONLY READING SIMULATIONS")
 print(paste0("Config file: ./inst/", config_filename))
 if (!read_sims_only) {
   if (validation_type == "loo") {
-    print(paste("Using LOO validation with N_k =",N_k,"(could be very slow)"))
+    print(paste("Using LOO validation with N_k =",ifelse(is.na(N_k), "all", N_k),"(could be very slow)"))
   } else {
     print(paste("Using TVT validation after training on up to",N_max_em,"simulations"))
   }
@@ -2297,7 +2297,7 @@ if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for
 
 
 # ________________----
-# TEST ------------------------------------------------------------
+# SENSITIVITY ANALYSIS ------------------------------------------------------------
 
 
 cat("______________________________________\n", file = emu_log_file, append = TRUE)
@@ -2407,7 +2407,13 @@ if (temp_input == "mean") {
   }
 }
 
+# ________________----
+# VALIDATE ---------------------------------------------------------------------
 #' # Validate
+
+# New CSV file for diagnostics
+csv_valid <- paste0(outdir, out_name, "_validation.csv")
+if (file.exists(csv_valid)) file.remove(csv_valid)
 
 # Validate: LOO ---------------------------------------------------------------------
 
@@ -2421,7 +2427,7 @@ if (validation_type == "loo") {
   cat("EMULATOR: predict LOO\n", file = emu_log_file, append = TRUE)
   cat("______________________________________\n", file = emu_log_file, append = TRUE)
 
-  cat("\nLEAVE ONE OUT VALIDATION\n", file = logfile_build, append = TRUE)
+  cat(sprintf("\nLEAVE ONE OUT VALIDATION (N_k = %s)\n",ifelse(is.na(N_k), "all", N_k)), file = logfile_build, append = TRUE)
 
   # Test every N_k-th run (can be very slow)
   # xxx Improve: stratified by output value instead of every N_k
@@ -2434,7 +2440,13 @@ if (validation_type == "loo") {
   loo_sd <- list()
   wrong <- list()
 
-  # Loop over time slices to calculate metrics and make plots
+  # Scenario labels aligned to Ytrain / do_loo rows
+  if (is.null(train_set)) {
+    loo_scenario <- as.character(ice_data$scenario)
+  } else loo_scenario <- as.character(ice_data$scenario[train_set])
+  stopifnot(length(loo_scenario) == nrow(Ytrain))
+
+  # Loop over time slices to calculate metrics and plot_valid inputs
   for ( yy in validation_years) {
 
     cat("\nYear: ",yy,"\n", file = logfile_build, append = TRUE)
@@ -2444,53 +2456,37 @@ if (validation_type == "loo") {
     # Get LOO predictions (in do_loo.R)
     loo_mean[[yind]] <- loo_valid_all$mean[ , yind]
     loo_sd[[yind]] <- loo_valid_all$sd[ , yind]
+    stopifnot(length(loo_mean[[yind]]) == length(loo_scenario))
 
     # N_k selection of runs
     N_k_index <- !is.na(loo_mean[[yind]])
-    N_k_subset <- length( loo_mean[[yind]][ N_k_index ]  )
 
     # Which ones were within predicted intervals and which ones missed?
-    wrong[[ yind ]] <- Ytrain[ , yind] > ( loo_mean[[yind]] + 2*loo_sd[[yind]] ) |
-      Ytrain[ , yind] < (loo_mean[[yind]]  - 2*loo_sd[[yind]])
+    # Needed by plot_valid (for highlighting misses)
+    # (Also calculated as miss in validation_metrics, but wrong can have NAs)
+    wrong[[yind]] <- Ytrain[, yind] > (loo_mean[[yind]] + 2 * loo_sd[[yind]]) |
+      Ytrain[, yind] < (loo_mean[[yind]] - 2 * loo_sd[[yind]])
 
-    # Fraction that missed
-    frac_right <- 1 - ( length(which(wrong[[yind]][N_k_index] == TRUE)) / N_k_subset )
+    # Calculate validation metrics for all and also for
+    # Helper function refactor by Cursor
+    emulandice2::validation_metrics(
+      simulated = as.numeric(Ytrain[, yind]),
+      emu_mean = as.numeric(loo_mean[[yind]]),
+      emu_sd   = as.numeric(loo_sd[[yind]]),
+      scenario = loo_scenario,
+      row_mask = N_k_index,
+      region = reg, year = yy, # For outputs
+      csv_file = csv_valid, logfile = logfile_build
+    )
 
-    # xxx Could save in list for plot_valid, or output summary there - duplication
-    loo_err <- loo_mean[[yind]] - Ytrain[ , yind ]
-    loo_std_err <- loo_err / loo_sd[[yind]]
+  } # years
 
-    # Just keep calculated values
-    loo_err <- loo_err[ N_k_index ]
-    loo_std_err <- loo_std_err[ N_k_index ]
-
-    euclid_dist <- sqrt( sum( (loo_std_err)^2 , na.rm = TRUE) )
-
-    # PRINT RESULTS
-    cat(paste("\nLOO VALIDATION:",yy, "\n"), file = logfile_build, append = TRUE)
-    cat(sprintf("Coverage (within %i emulator 95%% intervals): %.2f%%\n", yy,
-                frac_right*100.0), file = logfile_build, append = TRUE)
-    cat(sprintf("Standardised Euclidean distance at %s: %.1f\n", yy,
-                euclid_dist), file = logfile_build, append = TRUE)
-    cat(sprintf("\nMean of %i emulator absolute errors (cm): %.1f\n", yy,
-                mean(abs(loo_err))), file = logfile_build, append = TRUE)
-    cat(sprintf("Range of %i emulator absolute errors (cm): [%.1f, %.1f]\n", yy,
-                min(loo_err), max(loo_err)),
-        file = logfile_build, append = TRUE)
-    cat(sprintf("Mean of %i emulator standardised errors: %.1f\n", yy,
-                mean(loo_std_err)), file = logfile_build, append = TRUE)
-    cat(sprintf("Range of %i emulator standardised errors: [%.1f, %.1f]\n", yy,
-                min(loo_std_err), max(loo_std_err)),
-        file = logfile_build, append = TRUE)
-
-} # years
-
-# Plot: LOO-------
-# Plot LOO results
-pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
-     width = 9, height = 5)
-emulandice2::plot_valid(valid_type = "LOO")
-dev.off()
+  # Plot: LOO-------
+  # Plot LOO results
+  pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
+       width = 9, height = 5)
+  emulandice2::plot_valid(valid_type = "LOO")
+  dev.off()
 
 } # validation_type == "loo"
 
@@ -2509,7 +2505,8 @@ if (validation_type == "tvt") {
   cat("EMULATOR: predict left-out test data\n", file = emu_log_file, append = TRUE)
   cat("______________________________________\n", file = emu_log_file, append = TRUE)
 
-  cat("\nTRAIN AND TEST VALIDATION\n", file = logfile_build, append = TRUE)
+  cat(sprintf("\nTRAIN AND TEST VALIDATION (N = %i)\n", length(test_set)),
+      file = logfile_build, append = TRUE)
 
   # Predict for all the original design points not in the training set
   # i.e. all but train_set rows
@@ -2525,42 +2522,35 @@ if (validation_type == "tvt") {
   test_sd <- list()
   wrong <- list()
 
-  # Use final year requested for LOO validation for now
+  # Get scenarios
+  tvt_scenario <- as.character(ice_data$scenario[test_set])
+  stopifnot(length(tvt_scenario) == length(test_set))
+
+  # For each validation year
   for ( yy in validation_years) {
 
-    #  yy <- as.character(validation_years[length(validation_years)])
     yind <- paste0("y", yy)
 
     test_mean[[yind]] <- emu_test$mean[ , yind]
     test_sd[[yind]] <- emu_test$sd[ , yind]
+    stopifnot(length(test_mean[[yind]]) == length(tvt_scenario))
 
     # Misses
+    # (Also calculated as miss in validation_metrics, but wrong can have NAs)
     wrong[[ yind ]] <- test_data[ , yind] > ( test_mean[[yind]] + 2*test_sd[[yind]] ) |
       test_data[ , yind] < ( test_mean[[yind]]  - 2*test_sd[[yind]] )
-    ww <- wrong[[yind]]
 
-    # Again, no need to select this time unlike for LOO
-    frac_right <- 1 - ( length(which(wrong[[yind]] == TRUE)) / length(test_set) )
-    test_err <- test_mean[[yind]] - test_data[ , yind]
-    test_std_err <- test_err / test_sd[[yind]]
-    euclid_dist <- sqrt( sum( (test_std_err)^2 , na.rm = TRUE) )
-
-    cat(sprintf("\nTRAIN AND TEST VALIDATION (N = %i):", length(test_set)),
-        file = logfile_build, append = TRUE)
-    cat(sprintf("\nNumber within %s emulator 95%% intervals: %.2f%%\n", yy,
-                frac_right*100.0), file = logfile_build, append = TRUE)
-    cat(sprintf("Standardised Euclidean distance at %s: %.1f\n", yy,
-                euclid_dist), file = logfile_build, append = TRUE)
-    cat(sprintf("\nMean of %s emulator absolute errors (cm): %.1f\n", yy,
-                mean(abs(test_err))), file = logfile_build, append = TRUE)
-    cat(sprintf("Range of %s emulator absolute errors (cm): [%.1f, %.1f]\n", yy,
-                min(test_err), max(test_err)),
-        file = logfile_build, append = TRUE)
-    cat(sprintf("Mean of %s emulator standardised errors: %.1f\n", yy,
-                mean(test_std_err)), file = logfile_build, append = TRUE)
-    cat(sprintf("Range of %s emulator standardised errors: [%.1f, %.1f]\n", yy,
-                min(test_std_err), max(test_std_err)),
-        file = logfile_build, append = TRUE)
+    emulandice2::validation_metrics(
+      simulated = as.numeric(test_data[, yind]),
+      emu_mean = as.numeric(test_mean[[yind]]),
+      emu_sd   = as.numeric(test_sd[[yind]]),
+      scenario = tvt_scenario,
+      row_mask = NULL,
+      region = reg,
+      year = yy,
+      csv_file = csv_valid,
+      logfile = logfile_build
+    )
 
   } # validation_years loop
 

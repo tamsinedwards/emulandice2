@@ -42,7 +42,11 @@ plot_valid <- function(valid_type) {
     # Wrong index
     ww <- wrong[[ yind ]]
 
-    # Also uses frac_right
+    # Coverage fraction for this year
+    frac_right <- NA_real_
+    if (sum(N_k_index) > 0) {
+      frac_right <- 1 - mean(ww[N_k_index])
+    }
 
     # Standardised errors
     # could save as list from do_loo to save recalculating
@@ -85,9 +89,10 @@ plot_valid <- function(valid_type) {
     text( ylim_valid[1], ylim_valid[1] + 0.95*diff(range(ylim_valid)), pos = 4,
           sprintf("Coverage: %.0f%%", frac_right*100.0), col = col_text)
 
+
     # Correlation: move calculation into emulator_build.R to print? xxx
     tau <- cor.test(valid_sims[ ,yind ], valid_emu[[yind]],
-                    alternative = "t", methods = "kendall")
+                    alternative = "t", method = "kendall")
     col_text <- ifelse(tau$estimate < 0.8, "darkred", "black")
     text( ylim_valid[1], ylim_valid[1] + 0.88*diff(range(ylim_valid)), pos = 4,
           sprintf("Kendall's tau: %.2f", tau$estimate), col = col_text)
