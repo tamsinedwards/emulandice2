@@ -1,10 +1,10 @@
-#' plot_validation: plot validation figures.
+#' plot_valid_metrics: plot validation figures.
 #'
 #' @description Plot validation outputs.
 #'
 #' @export
 
-plot_valid <- function(valid_type) {
+plot_valid_metrics <- function(valid_type) {
 
   # LOO or TVT
   stopifnot(valid_type %in% c("LOO", "TVT"))
@@ -93,10 +93,9 @@ plot_valid <- function(valid_type) {
     # Correlation: move calculation into emulator_build.R to print? xxx
     tau <- cor.test(valid_sims[ ,yind ], valid_emu[[yind]],
                     alternative = "t", method = "kendall")
-    col_text <- ifelse(tau$estimate < 0.8, "darkred", "black")
+    col_text <- ifelse(tau$estimate < 0.8, "coral2", "black")
     text( ylim_valid[1], ylim_valid[1] + 0.88*diff(range(ylim_valid)), pos = 4,
           sprintf("Kendall's tau: %.2f", tau$estimate), col = col_text)
-
 
     # HISTOGRAM OF RESIDUALS
     # Range of standardised errors (can get very big!)

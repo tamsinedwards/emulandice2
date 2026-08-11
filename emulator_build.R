@@ -2431,7 +2431,7 @@ if (validation_type == "loo") {
 
   # Test every N_k-th run (can be very slow)
   # xxx Improve: stratified by output value instead of every N_k
-  if (temp_input == "mean") loo_valid_all <- emulandice2::do_loo( designX = as.matrix(Xtrain),
+  if (temp_input == "mean") emu_loo <- emulandice2::do_loo( designX = as.matrix(Xtrain),
                                                                   responseF = as.matrix(Ytrain),
                                                                   N_k = N_k)
 
@@ -2446,7 +2446,7 @@ if (validation_type == "loo") {
   } else loo_scenario <- as.character(ice_data$scenario[train_set])
   stopifnot(length(loo_scenario) == nrow(Ytrain))
 
-  # Loop over time slices to calculate metrics and plot_valid inputs
+  # Loop over time slices to calculate metrics and plot_valid_metrics inputs
   for ( yy in validation_years) {
 
     cat("\nYear: ",yy,"\n", file = logfile_build, append = TRUE)
@@ -2454,22 +2454,22 @@ if (validation_type == "loo") {
     yind <- paste0( "y", yy)
 
     # Get LOO predictions (in do_loo.R)
-    loo_mean[[yind]] <- loo_valid_all$mean[ , yind]
-    loo_sd[[yind]] <- loo_valid_all$sd[ , yind]
+    loo_mean[[yind]] <- emu_loo$mean[ , yind]
+    loo_sd[[yind]] <- emu_loo$sd[ , yind]
     stopifnot(length(loo_mean[[yind]]) == length(loo_scenario))
 
     # N_k selection of runs
     N_k_index <- !is.na(loo_mean[[yind]])
 
     # Which ones were within predicted intervals and which ones missed?
-    # Needed by plot_valid (for highlighting misses)
-    # (Also calculated as miss in validation_metrics, but wrong can have NAs)
+    # Needed by plot_valid_metrics (for highlighting misses)
+    # (Also calculated as miss in calc_valid_metrics, but wrong can have NAs)
     wrong[[yind]] <- Ytrain[, yind] > (loo_mean[[yind]] + 2 * loo_sd[[yind]]) |
       Ytrain[, yind] < (loo_mean[[yind]] - 2 * loo_sd[[yind]])
 
     # Calculate validation metrics for all and also for
     # Helper function refactor by Cursor
-    emulandice2::validation_metrics(
+    emulandice2::calc_valid_metrics(
       simulated = as.numeric(Ytrain[, yind]),
       emu_mean = as.numeric(loo_mean[[yind]]),
       emu_sd   = as.numeric(loo_sd[[yind]]),
@@ -2481,12 +2481,27 @@ if (validation_type == "loo") {
 
   } # years
 
-  # Plot: LOO-------
-  # Plot LOO results
-  pdf( file = paste0( outdir, out_name, "_LOO.pdf"),
-       width = 9, height = 5)
-  emulandice2::plot_valid(valid_type = "LOO")
-  dev.off()
+  if (plot_level > 0) {
+
+    # Plot: LOO-------
+    # Plot LOO results
+    pdf( file = paste0( outdir, out_name, "_VALID_METRICS.pdf"),
+         width = 9, height = 5)
+    emulandice2::plot_valid_metrics(valid_type = "LOO")
+    dev.off()
+
+    n_plot <- 10
+
+    # 5 batches; or all for GIS 2300 (assuming still small-ish)
+    nb <- if (i_s == "GIS" && final_year == 2300 && N_sims < 200) "all" else 5L
+    pdf(file = paste0(outdir, out_name, "_VALID_TIMESERIES.pdf"),
+        width = 10, height = 5)
+    emulandice2::plot_valid_timeseries("LOO", n_plot = n_plot, n_batches = nb)
+    dev.off()
+
+    # TODO: add VALID_SCATTER as for TVT?
+
+  }
 
 } # validation_type == "loo"
 
@@ -2536,11 +2551,11 @@ if (validation_type == "tvt") {
     stopifnot(length(test_mean[[yind]]) == length(tvt_scenario))
 
     # Misses
-    # (Also calculated as miss in validation_metrics, but wrong can have NAs)
+    # (Also calculated as miss in calc_valid_metrics, but wrong can have NAs)
     wrong[[ yind ]] <- test_data[ , yind] > ( test_mean[[yind]] + 2*test_sd[[yind]] ) |
       test_data[ , yind] < ( test_mean[[yind]]  - 2*test_sd[[yind]] )
 
-    emulandice2::validation_metrics(
+    emulandice2::calc_valid_metrics(
       simulated = as.numeric(test_data[, yind]),
       emu_mean = as.numeric(test_mean[[yind]]),
       emu_sd   = as.numeric(test_sd[[yind]]),
@@ -2558,42 +2573,26 @@ if (validation_type == "tvt") {
   # Plot TVT results
   if (plot_level > 0) {
 
-    # Example timeseries
     n_plot <- 10
-    run_cols <- hcl.colors(n_plot, palette = "Dark 3")
+    nb <- if (i_s == "GIS" && final_year == 2300 && N_sims < 200) "all" else 5L
 
-    pdf( file = paste0( outdir, out_name, "_VALIDATION_TIMESERIES.pdf"),
-         width = 10, height = 5)
-
-    plot( years_em, emu_test$mean[1,], type = "n", main = "Example simulator and mean emulator projections",
-          xlab = "Year", ylab = "Sea level contribution (cm SLE)",
-          ylim = range(emu_test$mean[1:n_plot,]) )
-    abline(h=0)
-    for ( ss in 1:n_plot) {
-      lines(years_em, emu_test$mean[ ss, ], col = run_cols[ss], lty = 5)
-      lines(years_em, test_data[ ss, ], col = run_cols[ss])
-    }
-
-    # Example timeseries errors
-    plot( years_em, emu_test$mean[1,], type = "n", main = "Example emulator errors",
-          xlab = "Year", ylab = "Emulated minus simulated (cm SLE)",
-          ylim = c(-1,1)*max(abs(emu_test$mean[1:n_plot,] - test_data[ 1:n_plot, ])) )
-    abline(h=0)
-    for ( ss in 1:n_plot) lines(years_em, emu_test$mean[ ss, ] - test_data[ ss, ], col = run_cols[ss])
+    pdf(file = paste0(outdir, out_name, "_VALID_METRICS.pdf"),
+        width = 9, height = 5)
+    emulandice2::plot_valid_metrics(valid_type = "TVT")
     dev.off()
 
-    pdf( file = paste0( outdir, out_name, "_VALIDATION_TVT.pdf"),
-         width = 9, height = 5)
-    emulandice2::plot_valid(valid_type = "TVT")
+    pdf(file = paste0(outdir, out_name, "_VALID_TIMESERIES.pdf"),
+    width = 10, height = 5)
+    emulandice2::plot_valid_timeseries("TVT", n_plot = n_plot, n_batches = nb)
     dev.off()
 
-    # Validation design: mean +/- 2 s.d.
-    pdf( file = paste0( outdir, out_name, "_VALIDATION_mean.pdf"),
-         width = 9, height = 5)
+    pdf(file = paste0(outdir, out_name, "_VALID_SCATTER.pdf"),
+        width = 9, height = 5)
     emulandice2::plot_scatter("tvt", "validation", plot_level)
     dev.off()
 
   }
+
 } # if tvt
 
 
@@ -2681,7 +2680,7 @@ if (write_sa) {
 
   # LOO validation results
   if (validation_type == "loo") {
-    to_save_sa <- c(to_save_sa, "loo_mean", "loo_sd")
+    to_save_sa <- c(to_save_sa, "loo_mean", "loo_sd", "emu_loo")
   }
 
   # Train and test validation results

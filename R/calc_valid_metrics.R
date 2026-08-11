@@ -1,4 +1,4 @@
-#' validation_metrics: summarise LOO/TVT predictions and write CSV
+#' calc_valid_metrics: summarise LOO/TVT predictions and write CSV
 #' (a refactoring by Cursor)
 #'
 #' @description
@@ -19,7 +19,7 @@
 #'   `n == 0` groups are skipped. `sd_std_err` is `NA` when `n < 2`.
 #' @export
 
-validation_metrics <- function(simulated, emu_mean, emu_sd, scenario,
+calc_valid_metrics <- function(simulated, emu_mean, emu_sd, scenario,
                                row_mask = NULL,
                                region, year,
                                csv_file, logfile = NULL) {
@@ -49,9 +49,7 @@ validation_metrics <- function(simulated, emu_mean, emu_sd, scenario,
       sd_std_err = ifelse(n > 1, sd(std), NA),
       min_abs_std_err = min(abs(std)),
       max_abs_std_err = max(abs(std)),
-      corr_tau = ifelse(n > 1L,
-                        unname(cor.test(sim, mu, alternative = "two.sided", method = "kendall")$estimate),
-                        NA_real_ ),
+      corr_tau = if (n > 1L) unname(cor.test(sim, mu, method = "kendall")$estimate) else NA_real_,
       stringsAsFactors = FALSE
     )
   }
