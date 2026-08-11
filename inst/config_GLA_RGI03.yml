@@ -1,14 +1,19 @@
 default:
   sims_only: FALSE
-  emulator_type: "statGP"
   deliverable_test: FALSE
-  validation_type: "tvt"
-  emulator_covar: "pow_exp_01"
+  plot_level: 2
+  complete_thresh_oggm: 0.90
+  complete_thresh_go: 0.85
+  do_history_match: TRUE
+  glacier_data: "GlaMBIE"
+  scale_mod_err_sel: 5.0
   temp_anom_type: "baseline"
   temp_nyrs: 10
   temp_end_years: !expr seq(2000, 2300, by = 10)
+  emulator_type: "statGP"
+  emulator_covar: "pow_exp_01"
+  scree_thresh: 0.999
+  validation_type: "tvt"
+  n_train: 1000
 lagp:
   emulator_type: "laGP"
-
-
-

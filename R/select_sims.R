@@ -175,10 +175,9 @@ select_sims <- function(select_type) {
     # Broad history matching, using slightly tailored thresholds
     # use _sel to avoid confusion with later projection calibration
 
-    # Model discrepancy scaling factor for pre-screening
-    scale_mod_err_sel <- 5.0
-
     # Total error
+    # scale_mod_err_sel is model discrepancy scaling factor for pre-screening
+    # set in YAML, read with default in emulator_build.R
     total_err_sel <- sqrt(obs_err^2 + ( scale_mod_err_sel * obs_err )^2)
 
     # Sea level change over same period
@@ -191,7 +190,6 @@ select_sims <- function(select_type) {
     # Threshold (by Pukelsheim)
     imp_thresh <- 6
 
-
     # Apply threshold
     nroy_sel <- implausibility <= imp_thresh
 
@@ -200,13 +198,13 @@ select_sims <- function(select_type) {
     ice_data <- ice_data[ nroy_sel , ]
 
     cat("\nselect_sims: history matching\n", file = logfile_build, append = TRUE)
-    cat(sprintf("select_sims: model error %i x obs error\n", scale_mod_err_sel), file = logfile_build, append = TRUE)
+    cat(sprintf("select_sims: model discrep is %.1f x obs error\n", scale_mod_err_sel), file = logfile_build, append = TRUE)
     cat(sprintf("select_sims: threshold (Pukelsheim): %.1f\n", imp_thresh), file = logfile_build, append = TRUE)
     cat(sprintf("select_sims: observed sea level change (cm SLE, %s):\n", obs_period), file = logfile_build, append = TRUE)
     cat(sprintf("select_sims: %.4f +/- %.4f cm SLE (+/- %.1f s.d total error)\n", obs_change, imp_thresh*total_err_sel, imp_thresh), file = logfile_build, append = TRUE)
     cat(sprintf("select_sims: from %.4f to %.4f cm SLE\n", obs_change - imp_thresh*total_err_sel, obs_change + imp_thresh*total_err_sel), file = logfile_build, append = TRUE)
 
-    cat( sprintf("\nAfter restricting to |I| < %i (with model discrep x %i obs_error): %i\n",
+    cat( sprintf("\nAfter restricting to |I| < %i (with model discrep %1.f x obs_error): %i\n",
                  imp_thresh, scale_mod_err_sel, dim(ice_data)[1]),
          file = logfile_build, append = TRUE )
 

@@ -78,7 +78,30 @@ OR
 
 Output files are written to outdir, which is currently hard-coded as "~/PROTECT/RESULTS/tmp"). 
 
-Plotting is turned ON by default. Changing plot_level from 2 to 1 will reduce the number of plots, and to 0 will prevent either pdf file being made.
+### Build YAML options
+
+Build settings are read from `inst/config_{ice_source}_{region}.yml` (e.g. `inst/config_GLA_RGI03.yml`). Keys omitted from a region file use the code defaults below. **`emulator_type` and `emulator_covar` are mandatory** (no code default). Full template with every key: `inst/config_GLA_RGI03.yml`.
+
+| Key | Default if omitted | Notes |
+|-----|--------------------|--------|
+| `sims_only` | `FALSE` | Read/filter/plot sims only |
+| `deliverable_test` | `FALSE` | PROTECT deliverable repro settings |
+| `validation_type` | `"tvt"` | `"tvt"` or `"loo"` |
+| `n_train` | `1000` | TVT training cap |
+| `emulator_type` | — **required** | e.g. `"statGP"`, `"laGP"` |
+| `emulator_covar` | — **required** for statGP/dgpsi | e.g. `"pow_exp_01"` |
+| `temp_anom_type` | `"baseline"` | `"baseline"` or `"relative"` |
+| `temp_nyrs` | `30` | GSAT averaging window |
+| `temp_end_years` | ice-source-specific | First value = baseline end; rest = timeslices |
+| `plot_level` | `2` | `0` none, `1` main, `2` exhaustive |
+| `do_history_match` | `TRUE` | Pre-screen ensemble vs observations |
+| `scale_mod_err_sel` | `5.0` | History-match model discrepancy × obs error | Must be >= 0
+| `scree_thresh` | `0.999` | SVD threshold; if unset, GIS ≥ 2200 uses `0.99999` |
+| `glacier_data` | `"GlaMBIE"` | GLA only (`"GlaMBIE"` / `"Hugonnet"`) |
+| `complete_thresh_oggm` | `0.90` | GLA only |
+| `complete_thresh_go` | `0.85` | GLA only |
+
+Resolved values are written to `*_build.txt` at startup. Plotting uses `plot_level` from YAML (default `2`).
 
 
 # 2. PREDICT: RUN EMULATOR IN FACTS 

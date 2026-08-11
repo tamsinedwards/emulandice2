@@ -92,8 +92,9 @@ config_file <- system.file(config_filename,
 #' # Analysis choices
 #' ## Dataset, ice source, region [ensemble]
 
-# Switch to go back to deliverable settings for testing
-deliverable_test <- config::get("deliverable_test", file = config_file)
+# Switch to go back to PROTECT deliverable settings (not tested!)
+dt <- config::get("deliverable_test", file = config_file)
+deliverable_test <- if (is.null(dt)) FALSE else isTRUE(dt)
 
 # Just read, filter and plot simulations (for testing etc)
 # Default is off
@@ -153,7 +154,30 @@ if (i_s == "GLA") {
   stopifnot(final_year %in% c(2100, 2150, 2300))
 }
 
-do_history_match <- TRUE
+dh <- config::get("do_history_match", file = config_file)
+do_history_match <- if (is.null(dh)) TRUE else isTRUE(dh)
+
+# Model discrepancy scaling for history-match pre-screen (used in select_sims)
+if (do_history_match) {
+  sm <- config::get("scale_mod_err_sel", file = config_file)
+  scale_mod_err_sel <- if (is.null(sm)) 5.0 else as.numeric(sm)
+  stopifnot(is.finite(scale_mod_err_sel), scale_mod_err_sel >= 0)
+}
+
+# SVD scree threshold for make_emu / do_loo (YAML overrides GIS bump)
+st <- config::get("scree_thresh", file = config_file)
+if (is.null(st)) {
+  scree_thresh <- 0.999
+  if (i_s == "GIS" && final_year >= 2200) scree_thresh <- 0.99999
+} else {
+  scree_thresh <- as.numeric(st)
+}
+stopifnot(is.finite(scree_thresh), scree_thresh > 0, scree_thresh <= 1)
+
+# Plot all or just subset of figures: 0 none, 1 main, 2 exhaustive
+pl <- config::get("plot_level", file = config_file)
+plot_level <- if (is.null(pl)) 2L else as.integer(pl)
+stopifnot(plot_level %in% c(0L, 1L, 2L)) # plot_level = 3 used to distinguish main.R calls
 
 # Set max ensemble size for training GPs in TVT validation - optionally set in config file
 # Uses minimum of this or 70% of dataset for train and test validation
@@ -178,8 +202,9 @@ if (i_s == "GLA") {
 # AR6 prior sample is equal to number of GSAT projections)
 N_unif <- 2000L
 
-# Do LOO validation?
-validation_type <- config::get("validation_type", file = config_file)
+# Validation type (tvt / loo)
+vt <- config::get("validation_type", file = config_file)
+validation_type <- if (is.null(vt)) "tvt" else vt
 stopifnot(validation_type %in% c("tvt", "loo"))
 
 # Subsample for LOO
@@ -195,7 +220,8 @@ if (deliverable_test) {
 
 # Glacier dataset for calibration
 if (i_s == "GLA") {
-  glacier_data <- "GlaMBIE"
+  gd <- config::get("glacier_data", file = config_file)
+  glacier_data <- if (is.null(gd)) "GlaMBIE" else gd
   stopifnot(glacier_data %in% c("Hugonnet", "GlaMBIE"))
 }
 
@@ -296,14 +322,15 @@ if (i_s == "GLA") {
   # Fraction of glaciers that must have completed (guidance from Fabien Maussion)
   # Selection is done in select_sims()
   # Only OGGM and GO have completion % information, not GloGEM
-
+  # Completion thresholds from Meg James; overridable in YAML
+  ct_oggm <- config::get("complete_thresh_oggm", file = config_file)
+  ct_go   <- config::get("complete_thresh_go", file = config_file)
+  complete_thresh <- list(
+    OGGM = if (is.null(ct_oggm)) 0.90 else ct_oggm,
+    GO   = if (is.null(ct_go))   0.85 else ct_go
+  )
   # No GO at time of PROTECT deliverable
   if (deliverable_test) complete_thresh[["OGGM"]] <- 0.80
-
-  # Completion thresholds from Meg James
-  complete_thresh <- list()
-  complete_thresh[["OGGM"]] <- 0.90
-  complete_thresh[["GO"]] <- 0.85
 
 }
 
@@ -312,9 +339,10 @@ stopifnot( length( setdiff(model_list, model_list_full )) == 0 )
 
 # Emulator choices ------------------------------------------------------------------------
 
-# Stationary (RobustGaSP) or deep Gaussian Process emulator
+# Stationary (RobustGaSP), local, or deep Gaussian Process emulator (mandatory in YAML)
 emulator_type <- config::get("emulator_type", file = config_file)
-stopifnot(emulator_type %in% c("statGP", "laGP", "deepgp", "dgpsi"))
+stopifnot(!is.null(emulator_type),
+          emulator_type %in% c("statGP", "laGP", "deepgp", "dgpsi"))
 
 N_mcmc <- NA
 if (emulator_type == "deepgp") N_mcmc <- 100L
@@ -329,9 +357,11 @@ if (emulator_type == "statGP") {
   # Could add
 
   # XXX Specify by ice sheet sector later if using
+  # Mandatory in YAML for statGP
   emulator_covar <- config::get("emulator_covar", file = config_file)
 
-  stopifnot(emulator_covar %in% c("matern_5_2", "matern_3_2",
+  stopifnot(!is.null(emulator_covar),
+            emulator_covar %in% c("matern_5_2", "matern_3_2",
                                   "pow_exp_01", "pow_exp_10",
                                   "pow_exp_19", "pow_exp_20"))
 }
@@ -346,8 +376,9 @@ if (emulator_type == "deepgp") {
 }
 
 if (emulator_type == "dgpsi") {
-  # sexp is default; alternative is matern2.5
+  # sexp is default; alternative is matern2.5 — mandatory in YAML for dgpsi
   emulator_covar <- config::get("emulator_covar", file = config_file)
+  stopifnot(!is.null(emulator_covar))
 }
 
 # Set here because of conditionals in make_emu.R
@@ -397,6 +428,16 @@ if (emulator_type == "laGP") {
   cat("laGP nugget prior: ", laGP_nugget_prior, "\n", file = logfile_build, append = TRUE)
 }
 cat(paste("\nValidation type:", validation_type), file = logfile_build, append = TRUE)
+cat(paste("\nHistory matching before emulation:", do_history_match), file = logfile_build, append = TRUE)
+if (do_history_match) cat(paste("\nModel discrepancy for h.m.:", scale_mod_err_sel), file = logfile_build, append = TRUE)
+cat(paste("\nSVD variance threshold:", scree_thresh), file = logfile_build, append = TRUE)
+if (i_s == "GLA") {
+  cat(paste("\nGlacier observations:", glacier_data), file = logfile_build, append = TRUE)
+  cat(paste("\nGlacier completion thresholds for OGGM, GO:",
+            complete_thresh[["OGGM"]], complete_thresh[["GO"]]),
+      file = logfile_build, append = TRUE)
+}
+cat(paste("\nPlot level:", plot_level), file = logfile_build, append = TRUE)
 cat("\n", file = logfile_build, append = TRUE)
 
 #' ## Glacier maximum contributions
@@ -861,11 +902,8 @@ if (emulator_type == "deepgp") {
 # Plot choices ------------------------------------------------------------
 #' ## Plot choices
 
-# Plot all or just subset of figures
-# 0 for none, 1 for main, 2 for exhaustive
-plot_level <- 2
-
-stopifnot(plot_level %in% c(0,1,2)) # using plot_level = 3 to distinguish main.R calls
+# plot_level set earlier from YAML: 2 for exhaustive (default if not set),
+# 1 for some; 0 for none
 
 # Write validation and SA RData file for nice replotting later
 write_sa <- TRUE
@@ -2199,15 +2237,13 @@ if ( read_sims_only) {
 
 print("Building emulator...")
 
-scree_thresh = 0.999 # default is usually enough
-# More needed for GIS 2300
-if (i_s == "GIS" && final_year >= 2200) scree_thresh = 0.99999
 
 # Flag for whether we are coming from main.R or emulator_build.R
 is_build <- TRUE
 
 # If change anything here, also change in do_loo()
 # Design continuous inputs are scaled
+# scree_thresh is set earlier from YAML (default 0.999; GIS 2300 increased threshold if unset)
 
 if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for GSAT
   emu_mv <- emulandice2::make_emu( designX = as.matrix(Xtrain),
@@ -2432,8 +2468,8 @@ if (validation_type == "loo") {
   # Test every N_k-th run (can be very slow)
   # xxx Improve: stratified by output value instead of every N_k
   if (temp_input == "mean") emu_loo <- emulandice2::do_loo( designX = as.matrix(Xtrain),
-                                                                  responseF = as.matrix(Ytrain),
-                                                                  N_k = N_k)
+                                                            responseF = as.matrix(Ytrain),
+                                                            N_k = N_k)
 
   # To store results
   loo_mean <- list()
@@ -2582,7 +2618,7 @@ if (validation_type == "tvt") {
     dev.off()
 
     pdf(file = paste0(outdir, out_name, "_VALID_TIMESERIES.pdf"),
-    width = 10, height = 5)
+        width = 10, height = 5)
     emulandice2::plot_valid_timeseries("TVT", n_plot = n_plot, n_batches = nb)
     dev.off()
 
