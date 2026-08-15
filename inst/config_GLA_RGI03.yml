@@ -9,7 +9,7 @@ default:
   scale_mod_err_sel: 5.0
   temp_anom_type: "baseline"
   temp_nyrs: 10
-  temp_end_years: !expr seq(2000, 2300, by = 10)
+  temp_end_years: !expr seq(2010, 2300, by = 10)
   emulator_type: "statGP"
   emulator_covar: "pow_exp_01"
   scree_thresh: 0.999

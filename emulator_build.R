@@ -565,28 +565,41 @@ stopifnot(temp_input == "mean")
 
 # // Temps ------------------------------------------------------------
 
+
+# Number of years to average over
+# e.g. setting 10 with temps_list = 2300 and temps_baseline = 2015
+# gives decadal mean 2291-2300 relative to 2015-2024
+tn <- config::get("temp_nyrs", file = config_file)
+N_temp_yrs <- ifelse(!is.null(tn), tn, 10) # Default if not specified
+
 # GSAT timeslices for ice_design
 tl <- config::get("temp_end_years", file = config_file)
 
 # First is end of baseline, so need at least two in list if specifying
 stopifnot(is.null(tl[1]) || (!is.null(tl[1]) && length(tl) > 1))
-temps_baseline <- ifelse(!is.null(tl[1]), tl[1], 2044) # Default baseline set if not specified
 
 # Not too many, to avoid linear combinations (esp bad for fixed climate GIS) or overfitting
 # Timeslices are dropped below if request shorter projections e.g. to 2150 only
 
 # Set from config file
 if (!is.null(tl[2])) {
+  temps_baseline <- tl[1]
   temps_list <- tl[2:length(tl)]
 } else {
+
+  # Default if not specified; baseline is 2000-2010 i.e. before SSPs start
+  temps_list <- seq(2010, 2300, by = N_temp_yrs)
+  temps_baseline <- temps_list[1]
+  temps_list <- temps_list[-1]
+
   # Old defaults
-  if (i_s == "AIS") temps_list <- 2300
+  #if (i_s == "AIS") temps_list <- 2300
   if (i_s == "GIS") {
-    temps_list <- 2100
+  #  temps_list <- 2100
     if (deliverable_test) temps_list <- 2100
   }
   if (i_s == "GLA") {
-    temps_list <- c(2100, 2300)
+  #  temps_list <- c(2100, 2300)
     if (deliverable_test) temps_list <- 2300
   }
 }
@@ -597,11 +610,6 @@ temp_anom_type <- config::get("temp_anom_type", file = config_file)
 temp_type <- ifelse(!is.null(temp_anom_type), temp_anom_type, "baseline")
 stopifnot( temp_type %in% c("baseline", "relative"))
 
-# Number of years to average over
-# e.g. setting 10 with temps_list = 2300 and temps_baseline = 2015
-# gives decadal mean 2291-2300 relative to 2015-2024
-tn <- config::get("temp_nyrs", file = config_file)
-N_temp_yrs <- ifelse(!is.null(tn), tn, 30) # Default if not specified
 
 cat(paste("GSAT anomaly type:", temp_type, "\n"), file = logfile_build, append = TRUE)
 cat(paste("GSAT baseline final year:", temps_baseline, "\n"), file = logfile_build, append = TRUE)
