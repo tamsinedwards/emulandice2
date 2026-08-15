@@ -53,8 +53,7 @@ check_design <- function(designX) {
 
     # Compute rank deficiency
     if (qr(testX)$rank < ncol(testX)) {
-      cat(sprintf("\nNOTE: ensemble is rank deficient: rank %i is less
-                than number of columns %i\n",
+      cat(sprintf("\nNOTE: ensemble is rank deficient: rank %i is less than number of columns %i\n",
                   qr(testX)$rank, ncol(testX)),
           file = emu_log_file, append = TRUE)
 
@@ -137,8 +136,8 @@ check_design <- function(designX) {
     for( pp in 1:length(colnames(designX_fac))) {
       cat(paste(colnames(designX_fac)[pp],test_frac[pp],"\n"), file = emu_log_file, append = TRUE)
     }
-    cat("\nMinimum fraction =", round(100.0*min(test_frac),1),"%\n", file = emu_log_file, append = TRUE)
-    cat("Threshold is", round(100.0*frac_thresh, 1),"%\n", file = emu_log_file, append = TRUE)
+    cat("\nMinimum fraction =", round(100.0*min(test_frac),2),"%\n", file = emu_log_file, append = TRUE)
+    cat("Threshold is", round(100.0*frac_thresh, 2),"%\n", file = emu_log_file, append = TRUE)
 
     # Option to stop completely if rare levels
     if ( min(test_frac) < frac_thresh) {
