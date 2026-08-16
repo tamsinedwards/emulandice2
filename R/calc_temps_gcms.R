@@ -27,7 +27,7 @@ calc_temps_gcms <- function(climate_dataset, mean_impute = FALSE) {
   # Call helper function gsat_anom_row from calc_temps_functions.R
   climate_anom <- t(apply(climate_vals, 1, gsat_anom_row,
                           end_years = temps_list,
-                          baseline_end = temps_baseline,
+                          baseline_end = temps_baseline_end,
                           n_yrs = N_temp_yrs))
   climate_anom <- matrix(climate_anom, ncol = length(temps_list),
                          dimnames = list(NULL, temps_list_names))

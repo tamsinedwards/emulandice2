@@ -567,7 +567,7 @@ stopifnot(temp_input == "mean")
 
 
 # Number of years to average over
-# e.g. setting 10 with temps_list = 2300 and temps_baseline = 2015
+# e.g. setting 10 with temps_list = 2300 and temps_baseline_end = 2010
 # gives decadal mean 2291-2300 relative to 2015-2024
 tn <- config::get("temp_nyrs", file = config_file)
 N_temp_yrs <- ifelse(!is.null(tn), tn, 10) # Default if not specified
@@ -583,13 +583,13 @@ stopifnot(is.null(tl[1]) || (!is.null(tl[1]) && length(tl) > 1))
 
 # Set from config file
 if (!is.null(tl[2])) {
-  temps_baseline <- tl[1]
+  temps_baseline_end <- tl[1]
   temps_list <- tl[2:length(tl)]
 } else {
 
-  # Default if not specified; baseline is 2000-2010 i.e. before SSPs start
+  # Default if not specified; baseline is 2001-2010 i.e. before SSPs start
   temps_list <- seq(2010, 2300, by = N_temp_yrs)
-  temps_baseline <- temps_list[1]
+  temps_baseline_end <- temps_list[1]
   temps_list <- temps_list[-1]
 
   # Old defaults
@@ -604,6 +604,9 @@ if (!is.null(tl[2])) {
   }
 }
 
+# Save first year of baseline for some checks/outputs
+temps_baseline_start <- min(emulandice2:::gsat_window_years(temps_baseline_end, N_temp_yrs))
+
 # Type of anomalies: relative to baseline, or relative to each successive timeslice?
 # Set default to baseline for now
 temp_anom_type <- config::get("temp_anom_type", file = config_file)
@@ -612,7 +615,7 @@ stopifnot( temp_type %in% c("baseline", "relative"))
 
 
 cat(paste("GSAT anomaly type:", temp_type, "\n"), file = logfile_build, append = TRUE)
-cat(paste("GSAT baseline final year:", temps_baseline, "\n"), file = logfile_build, append = TRUE)
+cat(paste("GSAT baseline:", temps_baseline_start, "-", temps_baseline_end, "\n"), file = logfile_build, append = TRUE)
 cat(paste("Initial GSAT timeslice final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
 if (max(temps_list) > final_year) {
   cat("GSAT timeslice(s) extend beyond ice model simulation: dropping\n", file = logfile_build, append = TRUE)
@@ -1631,7 +1634,7 @@ GSAT_lab <- list()
 for (tt in 1:length(temps_list_names)) {
   GSAT_lab[[temps_list_names[tt]]] <- paste0('Global mean temperature ',
                                              temps_list[tt]-N_temp_yrs+1,'-',temps_list[tt],
-                                             ' rel. to ',(temps_baseline-N_temp_yrs+1),'-',temps_baseline,' (degC)')
+                                             ' rel. to ',temps_baseline_start,'-',temps_baseline_end,' (degC)')
 }
 
 # Factor level merging ---------------------------------------------------------------
@@ -2667,7 +2670,7 @@ to_save <- c("climate_data", # CLIMATE MODEL SIMULATION DATA
              "ice_dummy_list", "ice_factor_values", # Dummy column names and values for factor inputs
              "N_temp_yrs", # GSAT mean years; used in priors
              "temp_type", "temp_input", # GSAT anomaly type; using GSAT means or SVD xxx later obsolete if not using SVD
-             "temps", "temps_baseline", "temps_list", "temps_list_names", # GSAT means and names used
+             "temps", "temps_baseline_end", "temps_list", "temps_list_names", # GSAT means and names used
              "input_cont_list", # List of all emulated continuous inputs, i.e. c(temps_list_names, ice_cont_list)
              "emulator_type",
              "emu_mv", # EMULATOR! function object

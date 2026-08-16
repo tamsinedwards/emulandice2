@@ -450,7 +450,7 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
       # Code snippet from Cursor using helper function gsat_anom_row() in calc_temps_functions.R
       design_prior_gsat <- t(apply(climate_prior, 1, gsat_anom_row,
                                    end_years = temps_list,
-                                   baseline_end = temps_baseline,
+                                   baseline_end = temps_baseline_end,
                                    n_yrs = N_temp_yrs))
       design_prior_gsat <- matrix(design_prior_gsat, ncol = length(temps_list),
                                   dimnames = list(NULL, paste0("y", temps_list)))
