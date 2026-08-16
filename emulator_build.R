@@ -1796,12 +1796,12 @@ cat("\nPlot simulator projections\n", file = logfile_build, append = TRUE)
 # Plot raw simulations
 if (plot_level > 0) {
 
-  pdf( file = paste0( outdir, out_name, "_DESIGN.pdf"),
+  pdf( file = paste0( outdir, out_name, "_DESIGN_ORIG.pdf"),
        width = 9, height = 5)
   emulandice2::plot_designs("sims", plot_level)
   dev.off()
 
-  pdf( file = paste0( outdir, out_name, "_SIMS.pdf"),
+  pdf( file = paste0( outdir, out_name, "_SIMS_ORIG.pdf"),
        width = 9, height = 5)
 
   # TODO: remove vertical line at cal_end using plot_obs argument
@@ -1951,12 +1951,12 @@ if (do_history_match) {
 # Re-plot for imputed - now same baseline as observations
 if (plot_level > 0) {
 
-  pdf( file = paste0( outdir, out_name, "_DESIGN_IMPUTED.pdf"),
+  pdf( file = paste0( outdir, out_name, "_DESIGN_FINAL.pdf"),
        width = 9, height = 5)
   emulandice2::plot_designs("sims", plot_level)
   dev.off()
 
-  pdf( file = paste0( outdir, out_name, "_SIMS_IMPUTED.pdf"),
+  pdf( file = paste0( outdir, out_name, "_SIMS_FINAL.pdf"),
        width = 9, height = 5)
   emulandice2::plot_timeseries("sims", plot_level)
   # Need to tidy and fix [Note: copied from SIM.pdf]
