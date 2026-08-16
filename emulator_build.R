@@ -1062,7 +1062,8 @@ AR6_rgb_light[["SSP534-over-recon"]] <- rgb(146, 57, 122, maxColorValue = 255, a
 #' # Load and process data
 
 #' ## Load observations
-# Load obs -------------------------------------------------------------------
+# Load data: -------------------------------------------------------------------
+## observations -------------------------------------------------------------------
 
 # Needs to be before select_sims for history matching filtering of glaciers
 obs_data <- emulandice2::load_obs()
@@ -1094,7 +1095,7 @@ cat(sprintf("%.4f +/- %.4f cm SLE (+/- 1 s.d. obs error)\n", obs_change, obs_err
 cat(sprintf("%.4f +/- %.4f cm SLE (+/- 3 s.d obs error)\n", obs_change, 3*obs_err), file = logfile_build, append = TRUE)
 
 #' ## Load climate and ice simulations
-# Load sims: climate ---------------------------------------------------------------------
+## climate sims ---------------------------------------------------------------------
 
 # GET CLIMATE SIMULATIONS
 
@@ -1123,19 +1124,20 @@ if ( i_s == "GIS" && final_year > 2100) {
 }
 
 
-# Load sims: ice ---------------------------------------------------------------------
+## ice sims ---------------------------------------------------------------------
 # GET ICE SIMULATIONS
 
 # Also converts all units to cm SLE
 ice_data <- emulandice2::load_sims(variable = "ice", source = i_s, region = reg) # ice dataset
 
+# Rename overshoot to something more clear in context: reconstructed overshoot
+if (i_s == "GIS") {
+  ice_data[ ice_data$scenario == "SSP585-o2300", "scenario" ] <- "SSP534-over-recon"
+}
 # Index of first column with name format of yXXXX
 ice_file_yr_start_col <- suppressWarnings( myind <- min(which( nchar(names(ice_data)) == 5
                                                                & substr(names(ice_data), start = 1, stop = 1) == "y"
                                                                & !is.na(as.numeric(substr(names(ice_data), start = 2, stop = 5)) ) ) ) )
-# Get full data year range: i.e. from this col to last
-#ice_file_yr_start <- as.numeric(substr(names(ice_data)[ice_file_yr_start_col], 2, 5))
-#ice_file_yr_end <- as.numeric(substr(names(ice_data)[length(names(ice_data))], 2, 5))
 
 # Check requested years are within file year range from these columns
 stopifnot(first_year >= as.numeric(substr(names(ice_data)[ ice_file_yr_start_col ], 2, 5)) &&
@@ -1160,17 +1162,8 @@ stopifnot(ice_param_list %in% ice_param_list_full)
 
 # Select sims ---------------------------------------------------------------------
 
-# Rename overshoot to something more clear in context: reconstructed overshoot
-if (i_s == "GIS") {
-  ice_data[ ice_data$scenario == "SSP585-o2300", "scenario" ] <- "SSP534-over-recon"
-}
-
 # Select ice source, region, model(s) and any other exclusions
 ice_data <- emulandice2::select_sims("main")
-
-# Calculate SLE change w.r.t. cal_start year
-# xxx commented out because using simulations with NAs in historical
-#ice_data <- emulandice2::calculate_sle_anom(ice_data)
 
 # Do second selection for glaciers using values of SLE change
 # xxx no longer works because sims are not in same units as obs
@@ -1185,6 +1178,8 @@ if (deliverable_test) {
 
 # Get corresponding climate change(s) (match by GCM + scenario)
 temps <- emulandice2::match_gcms(ice_data, temps_data, mean_impute = impute_gcms)
+
+## reconstruct fixed ---------------------------------------------------------------
 
 # For GIS post-2100, get fixed climate forcing change(s)
 # and overwrite into rows of temps with fixed_date = 2100
@@ -1341,7 +1336,7 @@ if (i_s %in% c("AIS","GIS") && do_regions) {
   region_fracs_all <- list() # histograms for each region
   region_fracs <- list() # mean or adjusted median fraction for each region
 
-  # Get GIS fractions ---------------------------------------
+  ## GIS fractions ---------------------------------------
 
   # Calculate mean fractions for regions
   if (i_s == "GIS") {
@@ -1428,7 +1423,7 @@ if (i_s %in% c("AIS","GIS") && do_regions) {
 
   }
 
-  # Get AIS fractions ---------------------------------------
+  # AIS fractions ---------------------------------------
 
   # Calculate adjusted mean fractions for regions
   if (i_s == "AIS") {
@@ -1611,7 +1606,7 @@ if (i_s %in% c("AIS","GIS") && do_regions) {
 
 } # ice sheet regions
 
-# Final checks ------
+# Matrix checks ------
 
 # Degrees of freedom check: do we have enough simulations (rows)
 # for predicting timeslices (columns)?
@@ -1641,12 +1636,13 @@ for (tt in 1:length(temps_list_names)) {
                                              ' rel. to ',temps_baseline_start,'-',temps_baseline_end,' (degC)')
 }
 
-# Factor level merging ---------------------------------------------------------------
+# Factor processing: ---------------------------------------------------------------
 #' ## Merging of similar small factor levels
 # Based on knowledge of model similarity/difference, and flagged by % of ensemble (output below)
 # As characteristics are very granular in dataset and should be grouped
 # Differences between simulations go into model term or nugget
 
+## factor level merging ---------------------------------------------------------------
 if (i_s == "AIS" ) {
 
   # Longer timescales checked first
@@ -1681,7 +1677,7 @@ if (i_s == "AIS" ) {
 }
 
 
-# One-hot encoding ---------------------------------------------------------------
+## one-hot encoding ---------------------------------------------------------------
 #' ## One-hot encoding of factors
 
 ice_factor_values <- list()
@@ -1819,7 +1815,7 @@ if (plot_level > 0) {
 
 }
 
-# Impute missing ---------------------------------------------------------------
+# Impute missing years ---------------------------------------------------------------
 
 # Save simulations as sims_data, because we will replace ice_data with imputed after this
 # Not currently used
@@ -1911,7 +1907,7 @@ ice_data[ , paste0("y", years_em)] <- ice_data_impute
 # Rebaseline by subtracting value in year cal_end
 ice_data <- emulandice2::calculate_sle_anom(ice_data, baseline=cal_start)
 
-# Pre-calibration with HM ---------------------------------------------------------------
+# History matching ---------------------------------------------------------------
 
 # History matching with observations - returns row index
 if (do_history_match) {
