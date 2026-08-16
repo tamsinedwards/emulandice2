@@ -1218,6 +1218,10 @@ ice_data <- ice_data[ sim_index, ]
 if ( length(temps_list) == 1) { temps <- temps[ sim_index ]
 } else temps <- temps[ sim_index, ]
 
+# Double-check no missing data in GSAT
+if (anyNA(temps) || !all(is.finite(as.matrix(temps)))) {
+  stop("Missing data in GSAT timeslice(s)")
+}
 
 # END OF ICE SIMULATION SELECTION
 N_sims <- dim(ice_data)[1]
