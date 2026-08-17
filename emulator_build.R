@@ -1710,7 +1710,7 @@ if (i_s %in% c("AIS","GIS") && do_regions) {
     }
 
     # Check fractions sum to 1
-    stopifnot( sum(unlist(region_fracs)) - 1.0 < 1e4 )
+    stopifnot( sum(unlist(region_fracs)) - 1.0 < 1e-4 )
 
 
   } # AIS
