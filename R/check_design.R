@@ -81,7 +81,7 @@ check_design <- function(designX) {
       is_design_OK <- is_design_OK + 1
 
       cat("\ncheck_design: ** Warning -",test_matrix,"matrix rank deficient. Consider dropping inputs ** \n", file = emu_log_file, append = TRUE)
-      warning("\ncheck_design:",test_matrix,"matrix rank deficient: consider dropping up to",ncol(testX)-qr(testX)$rank,"input(s)")
+      warning("\ncheck_design:",test_matrix,"matrix rank deficient: consider dropping up to ",ncol(testX)-qr(testX)$rank," input(s)")
 
     }
 

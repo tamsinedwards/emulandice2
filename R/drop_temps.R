@@ -25,6 +25,19 @@ drop_temps <- function(designX) {
   cat("\t\t", paste(colnames(designX)[ colnames(designX) %in% temps_list_names], collapse = "\t"), "\n", file = emu_log_file, append = TRUE)
   write.table(corr_temps, sep = "\t", quote = FALSE, col.names = FALSE, file = emu_log_file, append = TRUE)
 
+  # Warn and drop if any GSAT timeslice(s) zero-variance
+  # This is rare but can happen e.g. if only selecting Kori/PISM with a baseline before 1980 because they all use NorESM1-M
+  temp_cols <- colnames(designX)[colnames(designX) %in% temps_list_names]
+  temp_const <- temp_cols[vapply(temp_cols, function(nm) isTRUE(sd(designX[, nm], na.rm = TRUE) == 0), logical(1))]
+  if (length(temp_const)) {
+    warning("drop_temps: removing zero-variance GSAT column(s): ", paste(temp_const, collapse = ", "))
+    cat("\ndrop_temps: removing zero-variance GSAT column(s): ", paste(temp_const, collapse = ", "),"\n", file = emu_log_file, append = TRUE)
+
+    # Drop from design inside this function, and add to drop list to return
+    designX <- designX[ , ! colnames(designX) %in% temp_const, drop = FALSE ]
+    drop_temp_list <- c(drop_temp_list, temp_const)
+
+  }
   cat("\ndrop_temps: Iterating to drop highest correlation columns until all below threshold |tau| =< ",cor_thresh,"\n\n", file = emu_log_file, append = TRUE)
 
   while( is.na(n_high_corr) || (! is.na(n_high_corr) && n_high_corr > 0) ) {
@@ -71,12 +84,12 @@ drop_temps <- function(designX) {
       } else { # If more timeslices
 
         # Calculate mean correlation of first timeslice in pair with others
-        corr_mean[1] <- mean(corr_temps[ corr_pairs[ max_corr, 1], other_cols ])
+        corr_mean[1] <- mean(corr_temps[ corr_pairs[ max_corr, 1], other_cols ], na.rm = TRUE)
 
         # Do same for second timeslice of pair
         other_rows <- 1:nrow(corr_temps)
         other_rows <- other_rows[ ! other_rows %in% corr_pairs[ max_corr, ] ]
-        corr_mean[2] <- mean(corr_temps[ other_rows, corr_pairs[ max_corr, 2] ])
+        corr_mean[2] <- mean(corr_temps[ other_rows, corr_pairs[ max_corr, 2] ], na.rm = TRUE)
 
         # Worst (most correlated with other timeslices)
         to_drop <- names(corr_mean)[which.max(corr_mean)]
@@ -97,10 +110,10 @@ drop_temps <- function(designX) {
       break
     }
 
-    # Drop initial NA if some timeslices to drop
-    if ( length(drop_temp_list) > 1 && is.na(drop_temp_list[1])) drop_temp_list <- drop_temp_list[-1]
-
   } # while
+
+  # Drop initial NA if some timeslices to drop
+  if ( length(drop_temp_list) > 1 && is.na(drop_temp_list[1])) drop_temp_list <- drop_temp_list[-1]
 
   cat("\ndrop_temps: Final correlations of GSAT timeslice columns:\n\n", file = emu_log_file, append = TRUE)
   corr_temps <- cor(designX[, colnames(designX) %in% temps_list_names, drop = FALSE], method = "kendall")
