@@ -16,15 +16,14 @@ calc_temps_gcms <- function(climate_dataset, mean_impute = FALSE) {
 
   cat("\n_____________________________________\n",file = logfile_build, append = TRUE)
   cat( "calc_temps_gcms: calculating temperature change(s) for all forcings in dataset\n\n", file = logfile_build, append = TRUE )
-  if (mean_impute) cat( "Imputing missing GCMs with mean of others for SSP\n\n",
+  if (mean_impute) cat( "Imputing missing GCMs with mean of others for scenario\n\n",
                         file = logfile_build, append = TRUE )
-
 
   # Drop scenario, vals before calculating just to save indexes (re-adds after)
   climate_vals <- climate_dataset[, -c(1, 2), drop = FALSE]
 
-  # Snippet from Cursor
-  # Call helper function gsat_anom_row from calc_temps_functions.R
+  # Calculate GSAT anomalies: snippet refactor from Cursor
+  # Calls helper function gsat_anom_row from calc_temps_functions.R
   climate_anom <- t(apply(climate_vals, 1, gsat_anom_row,
                           end_years = temps_list,
                           baseline_end = temps_baseline_end,
@@ -38,20 +37,20 @@ calc_temps_gcms <- function(climate_dataset, mean_impute = FALSE) {
   # Add extra rows for ensemble mean if imputing simulations
   if (mean_impute) {
 
-    # Checking  final GSAT
+    # Checking final GSAT timeslice
     tt_last <- temps_list_names[length(temps_list_names)]
 
     # For each scenario in dataset
     for ( scen in unique(climate_dataset[ , "scenario" ])) {
 
-      # Get rows with non-missing final value for SSP
+      # Get rows with non-missing final value for scenario
       scen_ens <- climate_anom[ climate_anom$scenario == scen &
                                   ! is.na(climate_anom[, tt_last ]), ]
 
-      # If some GCMs exist for this SSP
+      # If some GCMs exist for this scenario
       if ( dim(scen_ens)[1] > 0) {
 
-        cat(paste0("\n\nFound ", tt_last, " for ",dim(scen_ens)[1],
+        cat(paste0("\n\nFound last timeslice ", tt_last, " for ",dim(scen_ens)[1],
                    " GCMs to compute ensemble_mean for ", scen, ":\n" ),
             file = logfile_build, append = TRUE)
 
@@ -81,8 +80,19 @@ calc_temps_gcms <- function(climate_dataset, mean_impute = FALSE) {
         cat(paste("ensemble_mean",  "\t", paste(scen_ens_impute, collapse = "\t"), "\n", collapse = " "),
             file = logfile_build, append = TRUE)
 
-        # Append to main dataset
-        climate_anom <- rbind( climate_anom, c(scen, "ensemble_mean", scen_ens_impute))
+        # Append as a data.frame row (not c(...)): c() would coerce all GSAT
+        # columns to character, and match_gcms is.finite() would then treat
+        # every GCM as all-NA and stop on a false "baseline missing" error.
+        ens_vals <- setNames(as.numeric(unlist(scen_ens_impute)), temps_list_names)
+        stopifnot(length(ens_vals) == length(temps_list_names))
+        row_add <- data.frame(
+          scenario = scen,
+          GCM = "ensemble_mean",
+          as.list(ens_vals),
+          check.names = FALSE,
+          stringsAsFactors = FALSE
+        )
+        climate_anom <- rbind(climate_anom, row_add)
 
       } else {
         cat(paste0("\nNo complete GSAT values found for ", scen, ": skipping"),
@@ -93,10 +103,18 @@ calc_temps_gcms <- function(climate_dataset, mean_impute = FALSE) {
 
   }
 
+  gsat_numeric <- vapply(temps_list_names, function(nm) {
+    is.numeric(climate_anom[[nm]])
+  }, logical(1))
+  stopifnot(
+    "calc_temps_gcms: GSAT columns must remain numeric" = all(gsat_numeric)
+  )
+
   cat( "\n\ncalc_temps_gcms: returning temperature change(s)\n", file = logfile_build, append = TRUE )
   cat("_____________________________________\n",file = logfile_build, append = TRUE)
 
 
+  # nrows(climate_data) x {scenario, GCM, anom}
   return(climate_anom)
 
 }

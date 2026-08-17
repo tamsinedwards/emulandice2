@@ -19,6 +19,9 @@
 
 plot_designs <- function(data_type, plot_level = 0) {
 
+  # Baseline year for GSAT plots
+  zero_year <- 2015
+
   par(cex.main = 0.7, cex.axis = 0.7, cex.lab = 0.7, mar = c(5, 4, 4, 2) + 0.1)
 
   # SIMS ------------------------------------------------------------
@@ -31,22 +34,54 @@ plot_designs <- function(data_type, plot_level = 0) {
     # GSAT
     if (plot_level >= 1) {
 
-      # Plot GSAT anomalies w.r.t. 2015 for now
-      to_plot <- climate_data[, 3:dim(climate_data)[2]] - climate_data[,"y2015"]
-      to_plot_scen <- climate_data[, "scenario" ]
+      # If no rows in climate_data, setup in case find fixed/spliced forcing rows
+      if (nrow(climate_data) == 0L) {
+        to_plot <- climate_data[, 3:ncol(climate_data), drop = FALSE]
+        to_plot_scen <- character(0)
+      } else {
+        # Plot GSAT anomalies w.r.t. one year
+        to_plot <- climate_data[, 3:ncol(climate_data)] - climate_data[,paste0("y", zero_year)]
+        # List of plotted scenarios for legend
+        to_plot_scen <- climate_data[, "scenario" ]
+      }
 
-      # Add fixed climate forcings for GIS
+      # Add fixed climate forcings for GIS (also w.r.t. zero year)
       if ( i_s == "GIS" && final_year > 2100) {
-        to_plot <- rbind( to_plot, climate_data_fixed[, 3:dim(climate_data_fixed)[2]] - climate_data_fixed[,"y2015"])
+        to_plot <- rbind( to_plot, climate_data_fixed[, 3:ncol(climate_data_fixed)] - climate_data_fixed[,paste0("y", zero_year)])
         to_plot_scen <- c(to_plot_scen, paste(climate_data_fixed[, "scenario" ], "fixed"))
       }
+
+      # Add NorESM-spliced forcings for AIS Kori+PISM (also w.r.t. zero year)
+      if (i_s == "AIS") {
+
+        # If late spliced forcings exist
+        if (exists("climate_data_spliced_late") &&
+            !is.null(climate_data_spliced_late) && nrow(climate_data_spliced_late) > 0L) {
+          # Add rows to plot
+          to_plot <- rbind(to_plot, climate_data_spliced_late[, 3:ncol(climate_data_spliced_late)] -
+                             climate_data_spliced_late[, paste0("y", zero_year)])
+          # Add '[scenario] spliced at yy' to list of plotted scenarios for legend
+          to_plot_scen <- c(to_plot_scen,
+                            paste(climate_data_spliced_late[, "scenario"], "spliced at 2015") )
+        }
+
+        # Ditto for early splice
+        if (exists("climate_data_spliced_early") &&
+            !is.null(climate_data_spliced_early) && nrow(climate_data_spliced_early) > 0L) {
+          to_plot <- rbind(to_plot, climate_data_spliced_early[, 3:ncol(climate_data_spliced_early)] -
+                             climate_data_spliced_early[, paste0("y", zero_year)])
+          to_plot_scen <- c(to_plot_scen,
+                            paste(climate_data_spliced_early[, "scenario"], "spliced at 1980"))
+        }
+      } # AIS
+
 
       plot(first_year:final_year, to_plot[1,], type = "n",
            ylim = range( to_plot, na.rm = TRUE ),
            xlim = c(first_year, final_year), xaxs = "i",
-           xlab = "Year", ylab = "Global mean temperature relative to 2015 (degC)")
+           xlab = "Year", ylab = paste("Global mean temperature relative to",zero_year,"(degC)"))
       abline(h=0, lwd=0.5)
-      for( ss in 1:dim(to_plot)[1]) {
+      for( ss in seq_len(nrow(to_plot))) {
         col <- AR6_rgb[[ to_plot_scen[ ss ]  ]]
         if (is.null(col)) col <- AR6_rgb_med[[ strsplit(to_plot_scen[ ss ], " ")[[1]][1]  ]]
         if (is.null(col)) col <- "grey"
@@ -56,10 +91,20 @@ plot_designs <- function(data_type, plot_level = 0) {
 
       for ( ff in sort(unique( to_plot_scen ) )) {
 
-        # Look up nice name
+        # Look up nice name; keep suffix for extras (GIS "fixed", AIS "spliced")
         textlab <- scen_name[[ff]]
-        if (is.null(textlab)) textlab <- paste(scen_name[[strsplit(ff, " ")[[1]][1] ]], "fixed")
-        if (is.null(scen_name[[strsplit(ff, " ")[[1]][1] ]])) textlab <- ff # Or just use raw label
+        if (is.null(textlab)) {
+          bits <- strsplit(ff, " ", fixed = TRUE)[[1]]
+          base <- bits[1]
+          nice <- scen_name[[base]]
+          if (!is.null(nice) && length(bits) > 1L) {
+            textlab <- paste(nice, paste(bits[-1], collapse = " "))
+          } else if (!is.null(nice)) {
+            textlab <- nice
+          } else {
+            textlab <- ff
+          }
+        }
 
         # Same for colour
         col <- AR6_rgb[[ ff ]]

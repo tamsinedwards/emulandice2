@@ -4,7 +4,11 @@
 \alias{impute_climate}
 \title{impute_climate: fill missing data in climate forcings}
 \usage{
-impute_climate(climate_dataset, construct_fixed = FALSE)
+impute_climate(
+  climate_dataset,
+  construct_fixed = FALSE,
+  construct_spliced = NULL
+)
 }
 \arguments{
 \item{climate_dataset}{Dataset}

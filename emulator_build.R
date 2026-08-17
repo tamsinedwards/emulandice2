@@ -595,11 +595,11 @@ if (!is.null(tl[2])) {
   # Old defaults
   #if (i_s == "AIS") temps_list <- 2300
   if (i_s == "GIS") {
-  #  temps_list <- 2100
+    #  temps_list <- 2100
     if (deliverable_test) temps_list <- 2100
   }
   if (i_s == "GLA") {
-  #  temps_list <- c(2100, 2300)
+    #  temps_list <- c(2100, 2300)
     if (deliverable_test) temps_list <- 2300
   }
 }
@@ -1114,6 +1114,7 @@ climate_data <- impute_climate(climate_csv)
 impute_gcms <- ifelse(impute_sims == "extend", TRUE, FALSE)
 
 # Calculate summary means
+# nrows(climate_data) x {scenario, GCM, anom}
 temps_data <- emulandice2::calc_temps_gcms(climate_data, mean_impute = impute_gcms)
 
 # For GIS post-2100, repeat with fixed climate forcings
@@ -1123,6 +1124,17 @@ if ( i_s == "GIS" && final_year > 2100) {
   temps_data_fixed <- emulandice2::calc_temps_gcms(climate_data_fixed)
 }
 
+# For AIS Kori and PISM, splice historical NorESM1
+# before 2015 (GCM-forced) and optionally also before 1980 (RCM-forced)
+if ( i_s == "AIS" && any(model_list %in% c("Kori", "PISM")) && temps_baseline_start < 2015L) {
+  if (temp_input == "mean") climate_data_spliced_late <- impute_climate(climate_csv, construct_spliced = 2015)
+  temps_data_spliced_late <- emulandice2::calc_temps_gcms(climate_data_spliced_late, mean_impute = impute_gcms)
+
+  if (temps_baseline_start < 1980L) {
+    if (temp_input == "mean") climate_data_spliced_early <- impute_climate(climate_csv, construct_spliced = 1980)
+    temps_data_spliced_early <- emulandice2::calc_temps_gcms(climate_data_spliced_early, mean_impute = impute_gcms)
+  }
+}
 
 ## ice sims ---------------------------------------------------------------------
 # GET ICE SIMULATIONS
@@ -1177,9 +1189,11 @@ if (deliverable_test) {
 # Match climate ---------------------------------------------------------------
 
 # Get corresponding climate change(s) (match by GCM + scenario)
+# This is currently nrows(ice_data) x {scenario, GCM, temps}
 temps <- emulandice2::match_gcms(ice_data, temps_data, mean_impute = impute_gcms)
 
-## reconstruct fixed ---------------------------------------------------------------
+
+## get fixed ---------------------------------------------------------------
 
 # For GIS post-2100, get fixed climate forcing change(s)
 # and overwrite into rows of temps with fixed_date = 2100
@@ -1195,9 +1209,44 @@ if (i_s == "GIS" && final_year > 2100) {
   temps_fixed <- emulandice2::match_gcms(ice_data, temps_data_fixed)
   temps[ fixed_ind, ] <- temps_fixed[ fixed_ind, ]
 
+  cat("Fixed forcings: wrote GSAT fixed climate post-2100 for", sum(fixed_ind), "sims\n",
+      file = logfile_build, append = TRUE)
+
+}
+
+## get spliced ---------------------------------------------------------------
+
+# For AIS, splice Kori and PISM forcings, as they use NorESM1-M before 1980/2015
+
+# GCM-forced Kori/PISM: late splice historical (cut at 2015)
+if ( i_s == "AIS" && any(model_list %in% c("Kori", "PISM")) && temps_baseline_start < 2015L) {
+
+  cat("\nNow match again after splicing NorESM1 historical to use for Kori/PISM\n",
+      file = logfile_build, append = TRUE)
+
+  if (exists("temps_data_spliced_late")) {
+    late_ind <- ice_data$model %in% c("Kori","PISM") & ice_data$forcing_type == "GCM"
+    temps_late <- match_gcms(ice_data, temps_data_spliced_late, mean_impute = impute_gcms)
+    temps[late_ind, ] <- temps_late[late_ind, ]
+    cat("\nNorESM splice: overwrote pre-2015 forcing with NorESM1-M for",
+        sum(late_ind), "GCM-forced Kori/PISM sims\n",
+        file = logfile_build, append = TRUE)
+  }
+
+  # RCM-forced: early splice (cut at 1980)
+  if (temps_baseline_start < 1980L && exists("temps_data_spliced_early")) {
+
+    early_ind <- ice_data$model %in% c("Kori","PISM") & ice_data$forcing_type == "RCM"
+    temps_early <- match_gcms(ice_data, temps_data_spliced_early, mean_impute = impute_gcms)
+    temps[early_ind, ] <- temps_early[early_ind, ]
+    cat("NorESM splice: overwrote pre-1980 forcing with NorESM1-M for",
+        sum(early_ind), "RCM-forced Kori/PISM sims\n",
+        file = logfile_build, append = TRUE)
+  }
 }
 
 # Drop scenario and GCM columns: just keep climate column(s)
+# TODO: drop = FALSE and remove row vs column checks where possible
 temps <- temps[ , -(1:2) ]
 
 # Make numeric
@@ -1208,20 +1257,24 @@ if (length(temps_list) == 1) { temps <- as.numeric(temps)
 if ( length(temps_list) == 1 ) { sim_index <- !is.na(temps)
 } else sim_index <- !is.na(temps[, length(temps_list)])
 
+# Report how many dropped (if any)
+cat("\nDropped", sum(!sim_index), "simulations due to lack of forcing (missing, or unable to impute, final timeslice(s))\n",
+    file = logfile_build, append = TRUE)
+
 # Keep only these in both ice and climate data
 ice_data <- ice_data[ sim_index, ]
 if ( length(temps_list) == 1) { temps <- temps[ sim_index ]
 } else temps <- temps[ sim_index, ]
 
-# Double-check no missing data in GSAT
+# Double-check again
 if (anyNA(temps) || !all(is.finite(as.matrix(temps)))) {
-  stop("Missing data in GSAT timeslice(s)")
+  stop("Missing data in GSAT timeslice(s): may need to drop forcings or change GSAT choices e.g. baseline")
 }
 
 # END OF ICE SIMULATION SELECTION
 N_sims <- dim(ice_data)[1]
 
-cat(paste("\nFINAL DATA SELECTION: using", N_sims, "ice simulations for",
+cat(paste("\nDATA SELECTION: using", N_sims, "ice simulations for",
           i_s, reg, "\n"), file = logfile_build, append = TRUE)
 
 cat("\nOf which:", "\n", file = logfile_build, append = TRUE)
@@ -1230,6 +1283,10 @@ for (mm in model_list) {
        file = logfile_build, append = TRUE)
 }
 
+# Check some simulations found!
+stopifnot(N_sims > 0)
+
+
 # Retrieve Greenland fixed post-2100 climate forcings
 if ( i_s == "GIS" && final_year > 2100) {
 
@@ -1237,9 +1294,11 @@ if ( i_s == "GIS" && final_year > 2100) {
   fixed_ind <- ice_data$fixed_date == 2100 & !is.na(ice_data$fixed_date)
 
   cat(paste("\nNumber of simulations forced with fixed post-2100 climate:",
-            dim(ice_data[ fixed_ind, ])[1], "\n"),
+            nrow(ice_data[ fixed_ind, ]), "\n"),
       file = logfile_build, append = TRUE)
 
+  # TODO: could rewrite following using Cursor method of selection
+  # used for spliced_late and spliced_early forcings below
   match_sims_fixed <- unique(ice_data[ fixed_ind, c("scenario", "GCM")])
 
   # Also select in climate_data for full time series forcing plot
@@ -1260,60 +1319,112 @@ if ( i_s == "GIS" && final_year > 2100) {
   # Overwrite old climate_data_fixed with selected this subset and scenario/GCM columns
   climate_data_fixed <- cbind(match_sims_fixed, tmp)
 
-  # Print
-  cat(paste("\nUsing these",dim(match_sims_fixed)[1],"forcings fixed from 2100:\n"),
-      file = logfile_build, append = TRUE)
-  ms <- match_sims_fixed[ sort(match_sims_fixed[,"scenario"], index.return = TRUE)$ix, ]
-  for( mm in 1:dim(ms)[1]) {
-    cat( unlist(ms[mm, c("scenario", "GCM")]), "\n", file = logfile_build, append = TRUE)
-  }
-
 }
 
 # Get final list of scenarios and GCMs to write to text and plot forcings (not very efficient!)
 if ( i_s == "GIS" && final_year > 2100) {
   match_sims <- unique(ice_data[ !fixed_ind, c("scenario", "GCM")])
+} else if ( i_s == "AIS" && temps_baseline_start < 2015L) {
+  splice_ind <- ice_data$model %in% c("Kori", "PISM") & (ice_data$forcing_type == "GCM" |
+                                                           (temps_baseline_start < 1980L & ice_data$forcing_type == "RCM"))
+  match_sims_spliced <- unique(ice_data[ splice_ind, c("scenario", "GCM")])
+  match_sims <- unique(ice_data[ !splice_ind, c("scenario", "GCM")])
 } else {
   match_sims <- unique(ice_data[ , c("scenario", "GCM")])
 }
 
-climate_data_test <- apply(match_sims, 1, function(x) { # as in match_gcms()
+# If any original GSAT simulations to plot (as opposed to GIS fixed or AIS spliced)
+if (nrow(match_sims) > 0L) {
+  climate_data_test <- apply(match_sims, 1, function(x) { # as in match_gcms()
 
-  # For each row in forcings list, get climate timeseries
-  climate_data[ climate_data$GCM == x[ "GCM" ]
-                & climate_data$scenario == x[ "scenario"], ]
-})
+    # For each row in forcings list, get climate timeseries
+    climate_data[ climate_data$GCM == x[ "GCM" ]
+                  & climate_data$scenario == x[ "scenario"], ]
+  })
 
-# Ugh: convert list to numeric matrix...
-tmp <- matrix(0.0, nrow = nrow(match_sims), ncol = ncol(climate_data) - 2)
+  # Ugh: convert list to numeric matrix...
+  tmp <- matrix(0.0, nrow = nrow(match_sims), ncol = ncol(climate_data) - 2)
 
-for ( cc in 1:length(climate_data_test)) {
-  if (nrow(climate_data_test[[cc]][, 3:dim(climate_data)[2]]) == 0 ) {
-    cat(paste("\nWaarning: cannot find forcing number",cc,"in CSV file:\n"),
-        file = logfile_build, append = TRUE)
+  for ( cc in 1:length(climate_data_test)) {
+    if (nrow(climate_data_test[[cc]][, 3:dim(climate_data)[2]]) == 0 ) {
+      cat(paste("\nWaarning: cannot find forcing number",cc,"in CSV file:\n"),
+          file = logfile_build, append = TRUE)
+    } else {
+      tmp[ cc, ] <- as.numeric(unlist(climate_data_test[[cc]][, 3:dim(climate_data)[2]]))
+    }
+  }
+  colnames(tmp) <- colnames(climate_data[ , 3:dim(climate_data)[2]])
+
+  # Overwrite old climate_data with selected this subset and scenario/GCM columns
+  climate_data <- cbind(match_sims, tmp)
+
+} else {
+
+  # None found so drop rows
+  # e.g. Kori/PISM-only use climate_data_spliced_*, so original climate_data will be empty
+  climate_data <- climate_data[0, , drop = FALSE]
+}
+
+# Also restrict spliced plot tables to forcings used by current ice_data
+# (refiltered later after history matching)
+if (i_s == "AIS" && exists("climate_data_spliced_late")) {
+  late_ind <- ice_data$model %in% c("Kori", "PISM") & ice_data$forcing_type == "GCM"
+  if (any(late_ind)) {
+    late_keys <- unique(ice_data[late_ind, c("scenario", "GCM"), drop = FALSE])
+    climate_data_spliced_late <- merge(late_keys, climate_data_spliced_late,
+                                       by = c("scenario", "GCM"), sort = FALSE)
   } else {
-    tmp[ cc, ] <- as.numeric(unlist(climate_data_test[[cc]][, 3:dim(climate_data)[2]]))
+    climate_data_spliced_late <- climate_data_spliced_late[0, , drop = FALSE]
   }
 }
-colnames(tmp) <- colnames(climate_data[ , 3:dim(climate_data)[2]])
 
-# Overwrite old climate_data with selected this subset and scenario/GCM columns
-climate_data <- cbind(match_sims, tmp)
+if (i_s == "AIS" && exists("climate_data_spliced_early")) {
+  early_ind <- ice_data$model %in% c("Kori", "PISM") & ice_data$forcing_type == "RCM"
+  if (any(early_ind)) {
+    early_keys <- unique(ice_data[early_ind, c("scenario", "GCM"), drop = FALSE])
+    climate_data_spliced_early <- merge(early_keys, climate_data_spliced_early,
+                                        by = c("scenario", "GCM"), sort = FALSE)
+  } else {
+    climate_data_spliced_early <- climate_data_spliced_early[0, , drop = FALSE]
+  }
+}
 
-cat(paste("\nUsing these",dim(match_sims)[1],"full forcings:\n"),
+# Output number of timeseries kept
+n_fixed <- if (exists("climate_data_fixed")) nrow(climate_data_fixed) else 0L
+n_late  <- if (exists("climate_data_spliced_late")) nrow(climate_data_spliced_late) else 0L
+n_early <- if (exists("climate_data_spliced_early")) nrow(climate_data_spliced_early) else 0L
+
+cat(paste("\nUsing these forcings\n",
+          "Original (including those imputed from ensemble mean):", nrow(climate_data), "\n",
+          "Fixed after 2100 (only for GIS):", n_fixed, "\n",
+          "Spliced with NorESM1-M before 2015 (only for AIS with Kori/PISM):", n_late, "\n",
+          "Spliced with NorESM1-M before 1980 (ditto):", n_early, "\n",
+          "TOTAL:", nrow(climate_data) + n_fixed + n_late + n_early, "\n\n"),
     file = logfile_build, append = TRUE)
+
+cat("Using these",nrow(match_sims),"original forcings:\n", file = logfile_build, append = TRUE)
 ms <- match_sims[ sort(match_sims[,"scenario"], index.return = TRUE)$ix, ]
-for( mm in 1:dim(ms)[1]) {
+for( mm in seq_len(nrow(ms)) ) {
   cat( unlist(ms[mm, c("scenario", "GCM")]), "\n", file = logfile_build, append = TRUE)
 }
 
+if (exists("match_sims_fixed")) {
+  cat(paste("\nUsing these",nrow(match_sims_fixed),"forcings fixed from 2100:\n"),
+      file = logfile_build, append = TRUE)
+  ms <- match_sims_fixed[ sort(match_sims_fixed[,"scenario"], index.return = TRUE)$ix, ]
+  for( mm in 1:dim(ms)[1]) {
+    cat( unlist(ms[mm, c("scenario", "GCM")]), "\n", file = logfile_build, append = TRUE)
+  }
+}
 
-# Cross-check number of timeseries kept
-cat(paste("\nKeeping climate timeseries (should match number of forcings above):",
-          dim(climate_data)[1], "\n"), file = logfile_build, append = TRUE)
-
-# Check some simulations found!
-stopifnot(N_sims > 0)
+if (exists("match_sims_spliced")) {
+  cat(paste("\nUsing these",nrow(match_sims_spliced),"forcings spliced before 1980 and/or 2015:\n"),
+      file = logfile_build, append = TRUE)
+  ms <- match_sims_spliced[ sort(match_sims_spliced[,"scenario"], index.return = TRUE)$ix, ]
+  for( mm in 1:dim(ms)[1]) {
+    cat( unlist(ms[mm, c("scenario", "GCM")]), "\n", file = logfile_build, append = TRUE)
+  }
+}
 
 # Ice sheet regions ------------------------------------------------------------
 
@@ -1911,17 +2022,18 @@ ice_data <- emulandice2::calculate_sle_anom(ice_data, baseline=cal_start)
 
 # History matching with observations - returns row index
 if (do_history_match) {
+
   nroy_sel <- emulandice2::select_sims("history_match")
   save.image(file=paste0(rdatadir, out_name, "_sims_impute.RData"))
 
   # Select for everything... xxx re-order code to improve?
   # Emulator data:
-  ice_data <- ice_data[ nroy_sel, ]
+  ice_data <- ice_data[ nroy_sel, , drop = FALSE]
 
-  # Plots:
+  # Temps and design:
   if ( length(temps_list) == 1) { temps <- temps[ nroy_sel ]
-  } else temps <- temps[ nroy_sel, ]
-  ice_design <- ice_design[ nroy_sel, ]
+  } else temps <- temps[ nroy_sel, , drop = FALSE ]
+  ice_design <- ice_design[ nroy_sel, , drop = FALSE]
 
   # LOO xxx but could rewrite to use nrow(ice_data) in do_LOO.R
   N_sims <- nrow(ice_data)
@@ -1930,7 +2042,7 @@ if (do_history_match) {
   # sims_data, sim_index
   # imputing things
 
-  cat(paste("\nFINAL FINAL DATA SELECTION: using", N_sims, "ice simulations for",
+  cat(paste("\nFINAL DATA SELECTION: using", N_sims, "ice simulations for",
             i_s, reg, "\n"), file = logfile_build, append = TRUE)
 
   cat("\nOf which:", "\n", file = logfile_build, append = TRUE)
@@ -1941,6 +2053,79 @@ if (do_history_match) {
 
 }
 
+# Keep original forcings for plotting only if they match to final simulations
+# Uses same !fixed / !splice rules as pre-HM, but on final ice_data (i.e. NROY if HM ran).
+if (do_history_match) {
+
+  # Index fixed vs non-fixed forcings; same for spliced
+  if (i_s == "GIS" && final_year > 2100L) {
+    fixed_ind <- ice_data$fixed_date == 2100 & !is.na(ice_data$fixed_date)
+    native_keys <- unique(ice_data[!fixed_ind, c("scenario", "GCM"), drop = FALSE])
+  } else if (i_s == "AIS" && temps_baseline_start < 2015L) {
+    splice_ind <- ice_data$model %in% c("Kori", "PISM") & (
+      ice_data$forcing_type == "GCM" |
+        (temps_baseline_start < 1980L & ice_data$forcing_type == "RCM")
+    )
+    native_keys <- unique(ice_data[!splice_ind, c("scenario", "GCM"), drop = FALSE])
+  } else {
+    native_keys <- unique(ice_data[, c("scenario", "GCM"), drop = FALSE])
+  }
+
+  # If original (non-fixed, non-spliced) forcings are associated with final dataset, keep these
+  if (nrow(native_keys) > 0L) {
+    climate_data <- merge(native_keys, climate_data,
+                          by = c("scenario", "GCM"), sort = FALSE)
+  } else {
+    climate_data <- climate_data[0, , drop = FALSE]
+  }
+}
+
+# Keep fixed forcings for plotting only if they match to final simulations
+if (i_s == "GIS" && final_year > 2100 && exists("climate_data_fixed")) {
+
+  # Final set of simulations with fixed forcings
+  fixed_ind <- ice_data$fixed_date == 2100 & !is.na(ice_data$fixed_date)
+
+  # If any simulations associated with fixed forcings, keep in climate_data_fixed
+  if (any(fixed_ind)) {
+    fix_keys <- unique(ice_data[fixed_ind, c("scenario", "GCM"), drop = FALSE])
+    climate_data_fixed <- merge(fix_keys, climate_data_fixed,
+                                by = c("scenario", "GCM"), sort = FALSE)
+  } else {
+    # Keep the object structure, but drop all rows so they are not plotted
+    climate_data_fixed <- climate_data_fixed[0, , drop = FALSE]
+  }
+}
+
+# As above, but for spliced forcings
+if (i_s == "AIS" && temps_baseline_start < 2015L) {
+
+  if (exists("climate_data_spliced_late")) {
+    late_ind <- ice_data$model %in% c("Kori","PISM") & ice_data$forcing_type == "GCM"
+    if (any(late_ind)) {
+      late_keys <- unique(ice_data[late_ind, c("scenario", "GCM"), drop = FALSE])
+      climate_data_spliced_late <- merge(late_keys, climate_data_spliced_late,
+                                         by = c("scenario", "GCM"), sort = FALSE)
+    } else {
+      climate_data_spliced_late <- climate_data_spliced_late[0, , drop = FALSE]
+    }
+  }
+  if (exists("climate_data_spliced_early")) {
+    early_ind <- ice_data$model %in% c("Kori","PISM") & ice_data$forcing_type == "RCM"
+    if (any(early_ind)) {
+      early_keys <- unique(ice_data[early_ind, c("scenario", "GCM"), drop = FALSE])
+      climate_data_spliced_early <- merge(early_keys, climate_data_spliced_early,
+                                          by = c("scenario", "GCM"), sort = FALSE)
+    } else {
+      climate_data_spliced_early <- climate_data_spliced_early[0, , drop = FALSE]
+    }
+  }
+
+}
+
+
+#' # Plot final dataset
+# Plot: final data -----------------------------------------------------------------------
 
 #save.image(file=paste0(rdatadir, out_name, "_sims_impute.RData"))
 
@@ -2687,8 +2872,14 @@ to_save <- c("climate_data", # CLIMATE MODEL SIMULATION DATA
 )
 
 # Add extra bits for particular ice sources
+# Climate forcings fixed post-2100
 if ( i_s == "GIS" && final_year > 2100) {
-  to_save <- c(to_save, "climate_data_fixed") # Climate forcings fixed post-2100
+  to_save <- c(to_save, "climate_data_fixed")
+}
+# Climate forcings spliced pre-2015
+if ( i_s == "AIS" && temps_baseline_start < 2015L) {
+  if (exists("climate_data_spliced_late")) to_save <- c(to_save, "climate_data_spliced_late")
+  if (exists("climate_data_spliced_early")) to_save <- c(to_save, "climate_data_spliced_early")
 }
 
 # Glacier region maximum contributions
