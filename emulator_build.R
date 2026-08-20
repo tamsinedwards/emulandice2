@@ -101,6 +101,11 @@ deliverable_test <- if (is.null(dt)) FALSE else isTRUE(dt)
 sims_only <- config::get("sims_only", file = config_file)
 read_sims_only <- ifelse( !is.null(sims_only), sims_only, FALSE)
 
+# Calculate ice sheet regional fractions from dataset
+# Flag is also used by write_outputs.R during prediction
+# i.e. do fractions exist so should fractional files be written
+do_regions <- TRUE
+
 # Impute missing years in simulations: either a light fill, or an extension
 # Option "none" will currently fail in make_emu SVD if missing value(s): xxx add something to skip runs?
 # Extend will only use the simulation if forcing exists (often doesn't)
@@ -1422,19 +1427,6 @@ if (exists("match_sims_spliced")) {
   }
 }
 
-# Ice sheet regions ------------------------------------------------------------
-
-do_regions <- TRUE
-
-# Calculate fixed fractions from dataset for use in predictions
-if (i_s %in% c("AIS","GIS") && do_regions) {
-
-  rf <- emulandice2::calc_region_fracs()
-  region_names <- rf$region_names
-  region_fracs <- rf$region_fracs
-
-}
-
 # Matrix checks ------
 
 # Degrees of freedom check: do we have enough simulations (rows)
@@ -1768,6 +1760,17 @@ if (do_history_match) {
     cat( paste0(mm, ": ", length( ice_data[ice_data$model == mm, 1] )), "\n",
          file = logfile_build, append = TRUE)
   }
+
+}
+
+# Ice sheet regions ------------------------------------------------------------
+
+# Fixed fractions from final selected simulations (NROY if history matching ran)
+if (i_s %in% c("AIS", "GIS") && do_regions) {
+
+  rf <- emulandice2::calc_region_fracs()
+  region_names <- rf$region_names
+  region_fracs <- rf$region_fracs
 
 }
 
