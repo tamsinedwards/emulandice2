@@ -101,7 +101,7 @@ calc_gis_region_fracs <- function(sims_index) {
   tot_adj <- sum(unlist(region_fracs))
 
   cat( paste("\nTotal:",  tot_adj, "\n\n"), file = logfile_build, append = TRUE)
-  stopifnot(abs(tot_adj) - 1.0 < 1e-5)
+  stopifnot(abs(tot_adj - 1.0) < 1e-5)
 
   list(region_names = region_names, region_fracs = region_fracs)
 
