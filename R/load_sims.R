@@ -35,19 +35,19 @@ load_sims <- function(variable, source = NA, region = NA) { # dataset
     if (variable == "ice") {
 
       if (source == "GIS") {
-        data_file <- paste0( inputs_preprocess, "/GIS/GIS_SIMULATIONS_m_SLE_2014_250826.csv" )
+        data_file <- paste0( inputs_preprocess, "/GIS/GIS_SIMULATIONS_m_SLE_2014_260819.csv" )
         if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GIS/SLE_SIMULATIONS_GIS_p9_240210.csv")
       }
 
       if (source == "AIS") {
-        data_file <- paste0( inputs_preprocess, "/AIS/AIS_SIMULATIONS_", region, "_m_SLE_2014_260327.csv")
+        data_file <- paste0( inputs_preprocess, "/AIS/AIS_SIMULATIONS_", region, "_m_SLE_2014_260819.csv")
         if (deliverable_test) data_file <- paste0( inputs_preprocess, "/AIS/SLE_SIMULATIONS_AIS_full_ZWALLY00_240306.csv")
       }
 
       if (source == "GLA") {
 
         # Regional file
-        data_file <- paste0( inputs_preprocess, "/GLA/GLA_SIMULATIONS_",region,"_mm_SLE_2014_260604.csv")
+        data_file <- paste0( inputs_preprocess, "/GLA/GLA_SIMULATIONS_",region,"_mm_SLE_2014_260819.csv")
 
         # All regions in one file when there were not many runs
         if (deliverable_test) data_file <- paste0( inputs_preprocess, "/GLA/SLE_SIMULATIONS_GLA_v2_240317.csv")
