@@ -60,17 +60,21 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
   U <- decomp$u[, 1L:r, drop=FALSE]
   Vt <- (decomp$d * t(decomp$v))[1L:r, , drop=FALSE]
 
-  pdf( file = paste0( outdir, out_name, "_SVD_SLE.pdf"),
-       width = 9, height = 5)
-  plot(1:length(scree), scree, type = "b", xlab = "Rank", ylab = "Total variance explained", pch = 20)
-  abline(h=1)
-  abline(h=thresh, lty = 3)
+  # Plot SVD
+  if (plot_level > 1) {
 
-  for (j in 1L:r) {
-    plot(years_em,Vt[ j, ], type = "l", xlab = "Time", ylab = paste("Singular value * right singular vector", j))
+    pdf( file = paste0( plotdir, out_name, "_SVD_SLE.pdf"),
+         width = 9, height = 5)
+    plot(1:length(scree), scree, type = "b", xlab = "Rank", ylab = "Total variance explained", pch = 20)
+    abline(h=1)
+    abline(h=thresh, lty = 3)
+
+    for (j in 1L:r) {
+      plot(years_em,Vt[ j, ], type = "l", xlab = "Time", ylab = paste("Singular value * right singular vector", j))
+    }
+
+    dev.off()
   }
-
-  dev.off()
 
   ## write a message
 
@@ -98,9 +102,11 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
     cv_model <- glmnet::cv.glmnet(x_vars, U[,j], alpha = 1)
 
     # Plot all lambdas - shows minimum lambda and 1 s.e. from minimum
-    pdf( file = paste0( outdir, out_name, "_lambda_CV_PC",j,".pdf"), width = 9, height = 5)
-    plot(cv_model, main = paste0("Regularisation term for PC", j))
-    dev.off()
+    if (plot_level > 1) {
+      pdf( file = paste0( plotdir, out_name, "_lambda_CV_PC",j,".pdf"), width = 9, height = 5)
+      plot(cv_model, main = paste0("Regularisation term for PC", j))
+      dev.off()
+    }
 
     # Take minimum lambda as the best penalty value
     cat(sprintf("Best lambda for regularisation = %.6f\n\n", cv_model$lambda.min),
@@ -132,16 +138,18 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
     sym_fill[ x_names %in% keep_inputs_PC ] <- beta_palette[j]
 
     # Plot all coefficients
-    pdf( file = paste0( outdir, out_name, "_beta_coef_PC",j,".pdf"),
-         width = length(x_names) + 1, height = 5)
-    par(mar = c(10, 4, 4, 2) + 0.1)
+    if (plot_level > 1) {
+      pdf( file = paste0( plotdir, out_name, "_beta_coef_PC",j,".pdf"),
+           width = length(x_names) + 1, height = 5)
+      par(mar = c(10, 4, 4, 2) + 0.1)
 
-    plot( 1:length(x_names), as.numeric(all_coef), xlab = " ", ylab = "Beta",
-          main = paste0("Beta coefficients of possible inputs for best emulator of PC", j),
-          xaxt = "n", pch = 21, cex = 1.7, col = sym_fill, bg = sym_fill)
-    axis(side = 1, at = 1:length(x_names), labels = x_names, las = 2)
-    abline(h=0, col = grey(0.5,0.8))
-    dev.off()
+      plot( 1:length(x_names), as.numeric(all_coef), xlab = " ", ylab = "Beta",
+            main = paste0("Beta coefficients of possible inputs for best emulator of PC", j),
+            xaxt = "n", pch = 21, cex = 1.7, col = sym_fill, bg = sym_fill)
+      axis(side = 1, at = 1:length(x_names), labels = x_names, las = 2)
+      abline(h=0, col = grey(0.5,0.8))
+      dev.off()
+    }
 
     # Return all beta coefficients for this PC
     all_coef
@@ -158,34 +166,36 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
   cat("\n\n", file = emu_log_file, append = TRUE)
 
   # Plot betas for all PCs (reverse order so temp at top)
-  pdf( file = paste0( outdir, out_name, "_beta_coef_ALL.pdf"),
-       height = length(x_names) + 1, width = 5)
-  par(mar = c(5, 10, 4, 2))
-  xmax <- max( abs(range(beta)) )
-  plot( as.numeric(beta[[1]]), 1:length(x_names), xlim = xmax * c(-2,2),
-        type = "n", yaxt = "n",
-        xlab = "Beta", ylab = " ", main = "Beta coefficients: all PCs")
-  axis(side = 2, at = 1:length(x_names), labels = rev(x_names), las = 2) # reversed
-  abline(v=0, col = grey(0.5,0.2))
+  if (plot_level > 1) {
+    pdf( file = paste0( plotdir, out_name, "_beta_coef_ALL.pdf"),
+         height = length(x_names) + 1, width = 5)
+    par(mar = c(5, 10, 4, 2))
+    xmax <- max( abs(range(beta)) )
+    plot( as.numeric(beta[[1]]), 1:length(x_names), xlim = xmax * c(-2,2),
+          type = "n", yaxt = "n",
+          xlab = "Beta", ylab = " ", main = "Beta coefficients: all PCs")
+    axis(side = 2, at = 1:length(x_names), labels = rev(x_names), las = 2) # reversed
+    abline(v=0, col = grey(0.5,0.2))
 
-  # For each PC
-  legy <- 1 # length(x_names) - r * 0.025*length(x_names)
+    # For each PC
+    legy <- 1 # length(x_names) - r * 0.025*length(x_names)
 
-  for (j in (r):1) {
+    for (j in (r):1) {
 
-    # Reverse to put GSAT at top
-    to_plot <- rev(as.numeric(beta[[j]]))
-    sym_fill <- rep(NA, length(x_names))
-    sym_fill[ abs( to_plot ) > coef_tol ] <- beta_palette[j]
-    points( to_plot, 1:length(x_names), pch = 21, cex = 1.7,
-            col = beta_palette[j], bg = sym_fill )
-    points( -1.2*xmax, legy, pch = 21, cex = 1.1,
-            col = beta_palette[j], bg = beta_palette[j] )
-    text( -1.2*xmax, legy, pos = 2, paste0("PC", j))
-    legy <- legy + 0.025*length(x_names)
+      # Reverse to put GSAT at top
+      to_plot <- rev(as.numeric(beta[[j]]))
+      sym_fill <- rep(NA, length(x_names))
+      sym_fill[ abs( to_plot ) > coef_tol ] <- beta_palette[j]
+      points( to_plot, 1:length(x_names), pch = 21, cex = 1.7,
+              col = beta_palette[j], bg = sym_fill )
+      points( -1.2*xmax, legy, pch = 21, cex = 1.1,
+              col = beta_palette[j], bg = beta_palette[j] )
+      text( -1.2*xmax, legy, pos = 2, paste0("PC", j))
+      legy <- legy + 0.025*length(x_names)
 
+    }
+    dev.off()
   }
-  dev.off()
 
   # Return terms with beta > tolerance
   keep_inputs_pc <- lapply(beta, function(bb) {
@@ -373,16 +383,18 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
     # Quick plot of thetas (box plot for PCs xxx use scatter?)
     if ( emulator_type == "laGP") {
 
-      pdf( file = paste0( outdir, out_name, "_lengthscales.pdf"),
-           width = 9, height = 5)
+      if (plot_level > 1) {
+        pdf( file = paste0( plotdir, out_name, "_lengthscales.pdf"),
+             width = 9, height = 5)
 
-      thats <- matrix(NA, nrow = r, ncol = ncol(designX))
-      for (j in 1:r) thats[ j, ] <- EMU[[j]]
+        thats <- matrix(NA, nrow = r, ncol = ncol(designX))
+        for (j in 1:r) thats[ j, ] <- EMU[[j]]
 
-      boxplot( thats, main = paste0("Length scales (",r," PCs)"), xlab = "Emulator input",
-               ylab = "Length scale")
+        boxplot( thats, main = paste0("Length scales (",r," PCs)"), xlab = "Emulator input",
+                 ylab = "Length scale")
 
-      dev.off()
+        dev.off()
+      }
     }
   }
 

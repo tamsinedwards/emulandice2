@@ -1,4 +1,4 @@
-#' Calculate ice sheet regional SLE fractions
+#' Calculate ice sheet regional SLE fractions and (optionally) plot histograms
 #'
 #' @description
 #' GIS: mean basin / ALL over selected rows.
@@ -52,8 +52,8 @@ calc_gis_region_fracs <- function(sims_index) {
   all <- all[ sims_index, paste0("y", years_em) ]
 
   # Open plot file for histograms
-  if (plot_level > 0) {
-    pdf( file = paste0( outdir, out_name, "_region_fractions.pdf" ))
+  if (plot_level > 1) {
+    pdf( file = paste0( plotdir, out_name, "_region_fractions.pdf" ))
     par(mfrow = c(3,2)) # 6 panels per page
   }
 
@@ -82,7 +82,7 @@ calc_gis_region_fracs <- function(sims_index) {
                   region_fracs[[ rr_name ]] ), file = logfile_build, append = TRUE)
 
     # Plot
-    if (plot_level > 0) {
+    if (plot_level > 1) {
 
       hist(region_fracs_all, xlim = c(0,1),
            breaks = seq(from = floor(min(region_fracs_all, na.rm = TRUE)),
@@ -189,8 +189,8 @@ calc_ais_region_fracs <- function(sims_index) {
 
   # Pdf later than for GIS because adjusting fractions
   if (plot_level > 0 && reg != "PEN") {
-    pdf( file = paste0( outdir, out_name, "_region_fractions.pdf" ))
-    if (reg %in% c("ALL","EAIS")) par(mfrow = c(3,2)) # 6 panels per page for 11 or 7regions
+    pdf( file = paste0( plotdir, out_name, "_region_fractions.pdf" ))
+    if (reg %in% c("ALL","EAIS")) par(mfrow = c(3,2)) # 6 panels per page for 11 or 7 regions
   }
 
   cat("\nAdjust median fractions to sum to 1:\n", file = logfile_build, append = TRUE)

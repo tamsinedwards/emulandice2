@@ -70,10 +70,13 @@ stopifnot(reg %in% c("ALL", "WAIS", "EAIS", "PEN", paste0("RGI", sprintf("%02i",
 set.seed(2024)
 
 # Directory for output files
+out_stub <- paste0(i_s,"_",reg,"_", final_year)
 rdatadir <- "./data-raw/" # RData file containing emulator
 outdir <- "./out/" # Everything else
+plotdir <- paste0("./out/",out_stub,"_build_plots/") # Plot subdir
 
 # Create directories if they do not exist (may not if running on HPC)
+# Plot dir is created later - set by plot_level
 if ( ! file.exists(rdatadir) ) dir.create(file.path(rdatadir))
 if ( ! file.exists(outdir) ) dir.create(file.path(outdir))
 
@@ -183,6 +186,7 @@ stopifnot(is.finite(scree_thresh), scree_thresh > 0, scree_thresh <= 1)
 pl <- config::get("plot_level", file = config_file)
 plot_level <- if (is.null(pl)) 2L else as.integer(pl)
 stopifnot(plot_level %in% c(0L, 1L, 2L)) # plot_level = 3 used to distinguish main.R calls
+if ( plot_level > 0 && ! file.exists(plotdir) ) dir.create(file.path(plotdir))
 
 # Set max ensemble size for training GPs in TVT validation - optionally set in config file
 # Uses minimum of this or 70% of dataset for train and test validation
@@ -401,9 +405,8 @@ if (emulator_type == "laGP") {
 
 #' ## Open output file
 
-# Create name stem for output files
-out_name <- paste0(i_s,"_",reg,"_", final_year,
-                   "_", format(Sys.time(), "%y%m%d") )
+# Date stamped name stem for output txt and log files
+out_name <- paste0(out_stub, "_", format(Sys.time(), "%y%m%d") )
 logfile_build <- paste0(outdir, out_name,"_build.txt")
 
 #______________________________________________________
@@ -1613,12 +1616,12 @@ cat("\nPlot simulator projections\n", file = logfile_build, append = TRUE)
 # Plot raw simulations
 if (plot_level > 0) {
 
-  pdf( file = paste0( outdir, out_name, "_DESIGN_ORIG.pdf"),
+  pdf( file = paste0( plotdir, out_name, "_DESIGN_ORIG.pdf"),
        width = 9, height = 5)
   emulandice2::plot_designs("sims", plot_level)
   dev.off()
 
-  pdf( file = paste0( outdir, out_name, "_SIMS_ORIG.pdf"),
+  pdf( file = paste0( plotdir, out_name, "_SIMS_ORIG.pdf"),
        width = 9, height = 5)
 
   # TODO: remove vertical line at cal_end using plot_obs argument
@@ -1667,7 +1670,7 @@ if (impute_sims != "none") {
     ice_data_impute <- emulandice2::SVDimpute( as.matrix(ice_data_proj),
                                                pmin = 1 - 1E-5)
 
-    pdf( file = paste0( outdir, out_name, "_impute.pdf"),
+    pdf( file = paste0( plotdir, out_name, "_impute.pdf"),
          width = 9, height = 5)
 
     # All data
@@ -1694,7 +1697,7 @@ if (impute_sims != "none") {
     # Zoom AIS historical xxx change ylim so can plot for any
     if (i_s == "AIS" ) {
 
-      pdf( file = paste0( outdir, out_name, "_impute_zoom.pdf"), width = 9, height = 5)
+      pdf( file = paste0( plotdir, out_name, "_impute_zoom.pdf"), width = 9, height = 5)
 
       matplot(years_em, t(ice_data_impute), type = "n", xlim = c(1970,2100),
               ylim = c(-20,50), col = grey(0.1, 0.1), lty = 1,
@@ -1734,7 +1737,7 @@ ice_data <- emulandice2::calculate_sle_anom(ice_data, baseline=cal_start)
 if (do_history_match) {
 
   nroy_sel <- emulandice2::select_sims("history_match")
-  save.image(file=paste0(rdatadir, out_name, "_sims_impute.RData"))
+  #save.image(file=paste0(rdatadir, out_name, "_sims_impute.RData"))
 
   # Select for everything... xxx re-order code to improve?
   # Emulator data:
@@ -1853,12 +1856,12 @@ if (i_s == "AIS" && temps_baseline_start < 2015L) {
 # Re-plot for imputed - now same baseline as observations
 if (plot_level > 0) {
 
-  pdf( file = paste0( outdir, out_name, "_DESIGN_FINAL.pdf"),
+  pdf( file = paste0( plotdir, out_name, "_DESIGN_FINAL.pdf"),
        width = 9, height = 5)
   emulandice2::plot_designs("sims", plot_level)
   dev.off()
 
-  pdf( file = paste0( outdir, out_name, "_SIMS_FINAL.pdf"),
+  pdf( file = paste0( plotdir, out_name, "_SIMS_FINAL.pdf"),
        width = 9, height = 5)
   emulandice2::plot_timeseries("sims", plot_level)
   # Need to tidy and fix [Note: copied from SIM.pdf]
@@ -2340,19 +2343,19 @@ if (temp_input == "mean") {
   # Plot sensitivity analysis
   if (plot_level > 0) {
 
-    pdf( file = paste0( outdir, out_name, "_MEFF.pdf"),
+    pdf( file = paste0( plotdir, out_name, "_MEFF.pdf"),
          width = 9, height = 5)
     emulandice2::plot_MEFF()
     dev.off()
 
     # SA uniform design: mean +/- 2 s.d.
-    pdf( file = paste0( outdir, out_name, "_SA_unif_mean.pdf"),
+    pdf( file = paste0( plotdir, out_name, "_SA_unif_mean.pdf"),
          width = 9, height = 5)
     emulandice2::plot_scatter("prior", "unif_temps", plot_level)
     dev.off()
 
     # SA uniform design: sample
-    pdf( file = paste0( outdir, out_name, "_SA_unif_final.pdf"),
+    pdf( file = paste0( plotdir, out_name, "_SA_unif_final.pdf"),
          width = 9, height = 5)
     emulandice2::plot_scatter("posterior", "unif_temps", plot_level)
     dev.off()
@@ -2438,7 +2441,7 @@ if (validation_type == "loo") {
 
     # Plot: LOO-------
     # Plot LOO results
-    pdf( file = paste0( outdir, out_name, "_VALID_METRICS.pdf"),
+    pdf( file = paste0( plotdir, out_name, "_VALID_METRICS.pdf"),
          width = 9, height = 5)
     emulandice2::plot_valid_metrics(valid_type = "LOO")
     dev.off()
@@ -2447,7 +2450,7 @@ if (validation_type == "loo") {
 
     # 5 batches; or all for GIS 2300 (assuming still small-ish)
     nb <- if (i_s == "GIS" && final_year == 2300 && N_sims < 200) "all" else 5L
-    pdf(file = paste0(outdir, out_name, "_VALID_TIMESERIES.pdf"),
+    pdf(file = paste0(plotdir, out_name, "_VALID_TIMESERIES.pdf"),
         width = 10, height = 5)
     emulandice2::plot_valid_timeseries("LOO", n_plot = n_plot, n_batches = nb)
     dev.off()
@@ -2529,17 +2532,17 @@ if (validation_type == "tvt") {
     n_plot <- 10
     nb <- if (i_s == "GIS" && final_year == 2300 && N_sims < 200) "all" else 5L
 
-    pdf(file = paste0(outdir, out_name, "_VALID_METRICS.pdf"),
+    pdf(file = paste0(plotdir, out_name, "_VALID_METRICS.pdf"),
         width = 9, height = 5)
     emulandice2::plot_valid_metrics(valid_type = "TVT")
     dev.off()
 
-    pdf(file = paste0(outdir, out_name, "_VALID_TIMESERIES.pdf"),
+    pdf(file = paste0(plotdir, out_name, "_VALID_TIMESERIES.pdf"),
         width = 10, height = 5)
     emulandice2::plot_valid_timeseries("TVT", n_plot = n_plot, n_batches = nb)
     dev.off()
 
-    pdf(file = paste0(outdir, out_name, "_VALID_SCATTER.pdf"),
+    pdf(file = paste0(plotdir, out_name, "_VALID_SCATTER.pdf"),
         width = 9, height = 5)
     emulandice2::plot_scatter("tvt", "validation", plot_level)
     dev.off()
