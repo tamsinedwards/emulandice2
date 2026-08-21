@@ -22,6 +22,9 @@
 # Get arguments from RScript
 args <- commandArgs(TRUE)
 
+# Optional argument: config filename
+config_filename <- NA
+
 # Defaults if no args set (used for testing and Markdown)
 if (length(args) == 0) {
 
@@ -35,6 +38,9 @@ if (length(args) == 0) {
   # Ice source and final year ----------------------------------------------------------
   #' # Choose ice source and final year
 
+  # At least 3 args; for now constrain to 4
+  stopifnot(length(args) >= 3 && length(args <= 4))
+
   # Ice source
   i_s <- args[1]
 
@@ -43,6 +49,9 @@ if (length(args) == 0) {
 
   # End year
   final_year <- as.numeric(args[3]) # if past 2100, applies model/ensemble selections later
+
+  # Configuration file (optional)
+  if (length(args) >= 4) config_filename <- args[4]
 
 }
 
@@ -86,9 +95,12 @@ inputs_preprocess <- paste0(system.file("extdata", package = "emulandice2"), "/"
 inputs_ext <- inputs_preprocess
 
 # Get configuration file for ice source region
-config_filename <- paste0("config_",i_s,"_",reg,".yml")
+# Default if not set as argument
+if (is.na(config_filename)) config_filename <- paste0("config_",i_s,"_",reg,".yml")
+print(paste0("Looking for configuration file: ./inst/", config_filename))
 config_file <- system.file(config_filename,
                            package = 'emulandice2', mustWork = TRUE)
+print(paste("Configuration file:", config_file))
 
 # Analysis choices ------------------------------------------------------------------------
 
