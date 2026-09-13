@@ -1,35 +1,73 @@
 #!/bin/bash
 #
-# Run AIS analysis
-# ./run_AIS.sh final_year [build_date]
-# where final_year argument can be 2100, 2150, 2200 or 2300
+# Run emulandice2 full analysis for AIS
 #
-# if no build_date specified, use today's date for predicting
-# i.e. only specify build_date if running predict on older build files
+# build emulator: Rscript ...
+# predict: ./emulandice_steer.sh ...
+#
+# ./run_AIS.sh -y final_year [-c config] [-d build_date] [-t build | predict]
+#
+# Must set:
+# -y final_year: 2100, 2150, 2200 or 2300
+#
+# Options:
+# -c config: YML file in ./inst -> if not set uses default name in emulator_build.R
+#            Note arg sets one YML file for all regions
+# -d build_date: YYMMDD -> if not set, uses today's date to write and/or use .RData file
+#    i.e. only specify build_date if running predict on older build files
+# -t type: build/predict -> if not set, runs both build and predict stages
 #
 #______________________________________________________
 
+# SSP list if predicting
+# ssp_list="ssp119 ssp126" "ssp245" "ssp370" "ssp534-over" "ssp585"
+ssp_list="ssp126 ssp370 ssp585"
+
+# IPCC AR6: FaIR 2LM
+gsat_file=twolayer_SSPs.h5
+
 # Specify emulandice2 and results directories
-# Predict call assumes build file is in package directory ./data-raw
-# and looks for climate file in gsat_dir
+# Config file must be in package directory ./inst
+# Predict call assumes emulator build .RData file is in package directory ./data-raw
+# and looks for climate netcdf/hcdf file in gsat_dir
 emulandice_dir=/Users/tamsinedwards/PROTECT/emulandice2
 results_dir=/Users/tamsinedwards/PROTECT/RESULTS
 gsat_dir=/Users/tamsinedwards/PROTECT/gsat
 
 #______________________________________________________
 
+echo
+echo "Running emulandice2 AIS..."
+echo
+
+usage_string="Usage: ./run_AIS.sh -y final_year [-c config] [-d build_date] [-t build | predict]"
+
+while getopts "y:c:d:t:" opt; do
+    case $opt in
+        y) final_year=$OPTARG; echo "Year: $final_year" ;;
+        c) config=$OPTARG ;;
+        d) build_date=$OPTARG ;;
+        t) run_type=$OPTARG ;;
+    esac
+done
+
 if [ $# -eq 0 ]; then
-    echo "No arguments provided: final_year [build_date]"
+    echo "No arguments provided. Must provide at least the final year."
+    echo $usage_string
     exit 1
 fi
 
-if [ $# -gt 2 ]; then
-    echo "Too many arguments: final_year [build_date]"
+if [ $# -eq 1 -o $# -eq 3 -o $# -eq 5 -o $# -eq 7 ]; then
+    echo "Wrong syntax: expected even number of arguments."
+    echo $usage_string
     exit 1
 fi
 
-# Final year is command line argument
-final_year=$1
+if [ $# -gt 8 ]; then
+    echo "Too many arguments."
+    echo $usage_string
+    exit 1
+fi
 
 if [ "$final_year" != 2100 -a "$final_year" != 2150 -a "$final_year" != 2200 -a "$final_year" != 2300 ]
 then
@@ -41,53 +79,84 @@ fi
 now=$(date +'%y%m%d')
 
 # Build date defaults to today if not given
-build_date="${2:-$now}"
+build_date="${build_date:-$now}"
 
 # Seed for prediction
 seed=2024
 
+run_type="${run_type:-"build and predict"}"
+echo "Run type:" $run_type
+
 # Dated name for directory
 outdir="$results_dir"/"$now"_AIS_ALL_"$final_year" # put all regions in one directory
+echo "Output dir:" $outdir
 
-for region in "ALL" "WAIS" "EAIS" "PEN" # Run total and 3 regions
+########################################
+# REGION LOOP
+########################################
+
+# Run total and/or 3 regions
+for region in "WAIS" "EAIS" "PEN" # "ALL"
 do
+
+  echo
+  echo "region: $region"
 
   ########################################
   # BUILD
   ########################################
 
-  echo
-  echo "run_AIS.sh: build file for region: $region"
+  if [[ "$run_type" != "predict" ]]
+  then
 
-  Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" AIS $region $final_year
+    echo
+    echo run AIS: build
+    echo
+
+    # Use default file in package if not specified
+    if [ "$config" != "" ]; then
+      echo "Build configuration file:" "./inst/"$config
+    fi
+    if [ "$config" = "" ]; then
+      echo "Build configuration file not specified: using default file in" "./inst/"
+    fi
+
+    # RUN EMULANDICE2 EMULATOR BUILD
+    Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" AIS $region $final_year $config
+
+  fi
 
   ########################################
   # PREDICT
   ########################################
 
-  echo
-  echo "run_AIS.sh: predict for region: $region"
+  if [[ "$run_type" != "build" ]]
+  then
 
-  build_file="AIS_"$region"_"$final_year"_"$build_date"_EMULATOR.RData"
+    echo
+    echo run AIS: predict
+    echo
 
-  echo "Build date:" $build_date
-  echo "Build file:" $build_file
-  echo
+    echo "FaIR GSAT file:" $gsat_file
+    echo "SSPs:" $ssp_list
 
-  # IPCC AR6: FaIR 2LM
-  gsat_file=twolayer_SSPs.h5
+    build_file="AIS_"$region"_"$final_year"_"$build_date"_EMULATOR.RData"
+    echo "Build file:" ./data-raw/"$build_file"
+    echo
 
-  echo "GSAT file:" $gsat_file
+    for ssp in $ssp_list
+     do
 
- for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp534-over" "ssp585"
-    do
+      echo
+      echo "Scenario:" $ssp
 
-    echo "Scenario:" $ssp
+      # RUN EMULANDICE2 PREDICT SSP
+      ./emulandice_steer.sh AIS $region ./data-raw/"$build_file" "$gsat_dir"/"$gsat_file" $ssp ./out/AIS_"$region"_"$final_year"_"$ssp"/ $seed AIS_"$region"_"$final_year"_"$ssp"
 
-   ./emulandice_steer.sh AIS $region ./data-raw/"$build_file" "$gsat_dir"/"$gsat_file" $ssp ./out/AIS_"$region"_"$ssp"_"$final_year"/ $seed AIS_"$region"_"$ssp"_"$final_year"
+   done
+  fi
 
- done
-done
+done # regions
 
 # Won't move if predictions exist already
 mkdir $outdir

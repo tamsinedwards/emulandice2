@@ -1,35 +1,72 @@
 #!/bin/bash
 #
-# Run GLA analysis
-# ./run_GLA.sh final_year [build_date]
-# where final_year is 2100, 2150 or 2300
+# Run emulandice2 full analysis for GLA
 #
-# if no build_date specified, use today's date for predicting
-# i.e. only specify build_date if running predict on older build files
+# build emulator: Rscript ...
+# predict: ./emulandice_steer.sh ...
 #
+# ./run_GLA.sh -y final_year [-c config] [-d build_date] [-t build | predict]
+#
+# Must set:
+# -y final_year: 2100, 2150 or 2300
+#
+# Options:
+# -c config: YML file in ./inst -> if not set uses default name in emulator_build.R
+#            Note arg sets one YML file for all regions
+# -d build_date: YYMMDD -> if not set, uses today's date to write and/or use .RData file
+#    i.e. only specify build_date if running predict on older build files
+# -t type: build/predict -> if not set, runs both build and predict stages
 #______________________________________________________
 
+# SSP list if predicting
+# ssp_list="ssp119 ssp126" "ssp245" "ssp370" "ssp534-over" "ssp585"
+ssp_list="ssp126 ssp370 ssp585"
+
+# IPCC AR6: FaIR 2LM for predictions
+gsat_file=twolayer_SSPs.h5
+
 # Specify emulandice2 and results directories
-# Predict call assumes build file is in package directory ./data-raw
-# and looks for climate file in gsat_dir
+# Config file must be in package directory ./inst
+# Predict call assumes emulator build .RData file is in package directory ./data-raw
+# and looks for climate netcdf/hcdf file in gsat_dir
 emulandice_dir=/Users/tamsinedwards/PROTECT/emulandice2
 results_dir=/Users/tamsinedwards/PROTECT/RESULTS
 gsat_dir=/Users/tamsinedwards/PROTECT/gsat
 
 #______________________________________________________
 
+echo
+echo "Running emulandice2 GLA..."
+echo
+
+usage_string="Usage: ./run_GLA.sh -y final_year [-c config] [-d build_date] [-t build | predict]"
+
+while getopts "y:c:d:t:" opt; do
+    case $opt in
+        y) final_year=$OPTARG; echo "Year: $final_year" ;;
+        c) config=$OPTARG ;;
+        d) build_date=$OPTARG ;;
+        t) run_type=$OPTARG ;;
+    esac
+done
+
 if [ $# -eq 0 ]; then
-    echo "No arguments provided: final_year [build_date]"
+    echo "No arguments provided. Must provide at least the final year."
+    echo $usage_string
     exit 1
 fi
 
-if [ $# -gt 2 ]; then
-    echo "Too many arguments: final_year [build_date]"
+if [ $# -eq 1 -o $# -eq 3 -o $# -eq 5 -o $# -eq 7 ]; then
+    echo "Wrong syntax: expected even number of arguments."
+    echo $usage_string
     exit 1
 fi
 
-# Final year is command line argument
-final_year=$1
+if [ $# -gt 8 ]; then
+    echo "Too many arguments."
+    echo $usage_string
+    exit 1
+fi
 
 if [ "$final_year" != 2100 -a "$final_year" != 2150 -a "$final_year" != 2300 ]
 then
@@ -41,53 +78,92 @@ fi
 now=$(date +'%y%m%d')
 
 # Build date defaults to today if not given
-build_date="${2:-$now}"
+build_date="${build_date:-$now}"
 
 # Seed for prediction
 seed=2024
 
+run_type="${run_type:-"build and predict"}"
+echo "Run type:" $run_type
+
 # Dated name for directory
 outdir="$results_dir"/"$now"_GLA_ALL_"$final_year" # all regions in one directory
+echo "Output dir:" $outdir
 
-for region in $(seq -f "%02g" 1 19) #  all regions
-#for region in 19 # if running one region (must zero-pad to 2 digits, e.g. 01)
-do
+########################################
+# REGION LOOP
+########################################
+
+# Run all regions:
+# for region in $(seq -f "%02g" 1 19)
+
+# Run selected regions (must zero-pad to 2 digits, e.g. 01):
+# my_list=(01 02 04 05 06 07 09)
+# my_list=(10 11 12 16 18 19)
+# my_list=(03 08 13 14 15 17)
+my_list=(01 03 19)
+# my_list=(09)
+# my_list=(03)
+# my_list=(08 13 14 15 17)
+for region in "${my_list[@]}"
+  do
+
+  echo
+  echo "region RGI: $region"
 
   ########################################
   # BUILD
   ########################################
 
-  echo
-  echo "run_GLA.sh: build file for region RGI: $region"
+  if [[ "$run_type" != "predict" ]]
+  then
 
-  Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GLA $region $final_year
+    echo
+    echo run GLA: build
+    echo
+
+    # Use default file in package if not specified
+    if [ "$config" != "" ]; then
+      echo "Build configuration file:" "./inst/"$config
+    fi
+    if [ "$config" = "" ]; then
+      echo "Build configuration file not specified: using default file in" "./inst/"
+    fi
+
+    # RUN EMULANDICE2 EMULATOR BUILD
+    Rscript --vanilla -e "library(emulandice2)" -e "source('emulator_build.R')" GLA $region $final_year $config
+
+  fi
 
   ########################################
   # PREDICT
   ########################################
 
-  echo
-  echo "run_GLA.sh: predict for region RGI: $region"
+  if [[ "$run_type" != "build" ]]
+  then
 
-  build_file="GLA_RGI"$region"_"$final_year"_"$build_date"_EMULATOR.RData"
+    echo
+    echo run GLA: predict
+    echo
 
-  echo "Build date:" $build_date
-  echo "Build file:" $build_file
-  echo
+    echo "FaIR GSAT file:" $gsat_file
+    echo "SSPs:" $ssp_list
 
-  for ssp in "ssp119" "ssp126" "ssp245" "ssp370" "ssp534-over" "ssp585"
-  do
+    build_file="GLA_RGI"$region"_"$final_year"_"$build_date"_EMULATOR.RData"
+    echo "Build file:" ./data-raw/"$build_file"
+    echo
 
-  echo "Scenario:" $ssp
+    for ssp in $ssp_list
+      do
 
-  # IPCC AR6: FaIR 2LM
-  gsat_file=twolayer_SSPs.h5
+      echo "Scenario:" $ssp
 
-  echo "GSAT file:" $gsat_file
+      # RUN EMULANDICE2 PREDICT SSP
+    ./emulandice_steer.sh GLA RGI"$region" ./data-raw/"$build_file" "$gsat_dir"/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$final_year"_"$ssp"/ $seed GLA_RGI"$region"_"$final_year"_"$ssp"
 
-  ./emulandice_steer.sh GLA RGI"$region" ./data-raw/"$build_file" "$gsat_dir"/"$gsat_file" $ssp ./out/GLA_RGI"$region"_"$ssp"_"$final_year"/ $seed GLA_RGI"$region"_"$ssp"_"$final_year"
+    done
+  fi
 
-  done
 done
 
 # Won't move if predictions exist already

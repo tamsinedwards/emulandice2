@@ -22,6 +22,9 @@
 # ssp_list="ssp119 ssp126" "ssp245" "ssp370" "ssp534-over" "ssp585"
 ssp_list="ssp126 ssp370 ssp585"
 
+# IPCC AR6: FaIR 2LM
+gsat_file=twolayer_SSPs.h5
+
 # Specify emulandice2 and results directories
 # Config file must be in package directory ./inst
 # Predict call assumes emulator build .RData file is in package directory ./data-raw
@@ -36,7 +39,7 @@ echo
 echo "Running emulandice2 GIS..."
 echo
 
-usage_string="Usage: -y final_year [-c config] [-d build_date] [-t build | predict]"
+usage_string="Usage: ./run_GIS.sh -y final_year [-c config] [-d build_date] [-t build | predict]"
 
 while getopts "y:c:d:t:" opt; do
     case $opt in
@@ -75,7 +78,7 @@ fi
 now=$(date +'%y%m%d')
 
 # Build date defaults to today if not given
-build_date="${2:-$now}"
+build_date="${build_date:-$now}"
 
 # Seed for prediction
 seed=2024
@@ -102,12 +105,11 @@ then
   echo run GIS: build
   echo
 
-  # Blank if not specified
-  #config_file="${config:-" "}"
-  if [ $config != "" ]; then
+  # Use default file in package if not specified
+  if [ "$config" != "" ]; then
     echo "Build configuration file:" "./inst/"$config
   fi
-  if [ $config = "" ]; then
+  if [ "$config" = "" ]; then
     echo "Build configuration file not specified: using default file in" "./inst/"
   fi
 
@@ -120,17 +122,14 @@ fi
 # PREDICT
 ########################################
 
-if [[ $run_type != "build" ]]
+if [[ "$run_type" != "build" ]]
 then
 
 echo
 echo run GIS: predict
 echo
 
-# IPCC AR6: FaIR 2LM
-gsat_file=twolayer_SSPs.h5
 echo "FaIR GSAT file:" $gsat_file
-
 echo "SSPs:" $ssp_list
 
 for ssp in $ssp_list
