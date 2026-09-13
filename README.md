@@ -3,7 +3,7 @@ Emulator of multi-model land ice projections: emulandice v2 for FACTS
 
 # Setup
 
-- Install R and cmake on your system;
+- Install R, cmake and netcdf on your system;
 
 - Install package dependencies, e.g., by pasting the following into the R console:
 
@@ -12,8 +12,9 @@ install.packages('mvtnorm')    # multivariate normal for emulator uncertainties
 install.packages('RcppEigen')  # needed for RobustGaSP
 install.packages("nloptr")     # needed for RobustGaSP
 install.packages('RobustGaSP') # emulator package
-install.packages('ncdf4')      # for reading and writing netcdfs
-install.packages('config')     # for using YAML configuration files
+install.packages('glmnet')     # for lasso regression to drop inert inputs (build stage)
+install.packages('config')     # for using YAML configuration files (build stage)
+install.packages('ncdf4')      # for reading and writing netcdfs (predict stage)
 ```
 
 - Clone this repository;
