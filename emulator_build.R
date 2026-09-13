@@ -116,6 +116,9 @@ deliverable_test <- if (is.null(dt)) FALSE else isTRUE(dt)
 sims_only <- config::get("sims_only", file = config_file)
 read_sims_only <- ifelse( !is.null(sims_only), sims_only, FALSE)
 
+# Over-ride for testing
+#read_sims_only <- TRUE
+
 # Calculate ice sheet regional fractions from dataset
 # Flag is also used by write_outputs.R during prediction
 # i.e. do fractions exist so should fractional files be written
@@ -1628,13 +1631,17 @@ cat("\nPlot simulator projections\n", file = logfile_build, append = TRUE)
 # Plot raw simulations
 if (plot_level > 0) {
 
-  pdf( file = paste0( plotdir, out_name, "_DESIGN_ORIG.pdf"),
-       width = 9, height = 5)
-  emulandice2::plot_designs("sims", plot_level)
-  dev.off()
+  if (plot_level >= 3) {
+    pdf( file = paste0( plotdir, out_name, "_DESIGN_ORIG.pdf"),
+         width = 9, height = 5)
+    emulandice2::plot_designs("sims", plot_level)
+    dev.off()
+  }
 
-  pdf( file = paste0( plotdir, out_name, "_SIMS_ORIG.pdf"),
-       width = 9, height = 5)
+  if (plot_level >= 3) {
+    pdf( file = paste0( plotdir, out_name, "_SIMS_ORIG.pdf"),
+         width = 9, height = 5)
+  }
 
   # TODO: remove vertical line at cal_end using plot_obs argument
   emulandice2::plot_timeseries("sims", plot_level)
@@ -1682,8 +1689,10 @@ if (impute_sims != "none") {
     ice_data_impute <- emulandice2::SVDimpute( as.matrix(ice_data_proj),
                                                pmin = 1 - 1E-5)
 
-    pdf( file = paste0( plotdir, out_name, "_impute.pdf"),
-         width = 9, height = 5)
+    if (plot_level >= 3) {
+      pdf( file = paste0( plotdir, out_name, "_impute.pdf"),
+           width = 9, height = 5)
+    }
 
     # All data
     matplot(years_em, t(ice_data_impute), type = "n",
@@ -1868,13 +1877,17 @@ if (i_s == "AIS" && temps_baseline_start < 2015L) {
 # Re-plot for imputed - now same baseline as observations
 if (plot_level > 0) {
 
-  pdf( file = paste0( plotdir, out_name, "_DESIGN_FINAL.pdf"),
-       width = 9, height = 5)
-  emulandice2::plot_designs("sims", plot_level)
-  dev.off()
+  if (plot_level >= 3) {
+    pdf( file = paste0( plotdir, out_name, "_DESIGN_FINAL.pdf"),
+         width = 9, height = 5)
+    emulandice2::plot_designs("sims", plot_level)
+    dev.off()
+  }
 
-  pdf( file = paste0( plotdir, out_name, "_SIMS_FINAL.pdf"),
-       width = 9, height = 5)
+  if (plot_level >= 3) {
+    pdf( file = paste0( plotdir, out_name, "_SIMS_FINAL.pdf"),
+         width = 9, height = 5)
+  }
   emulandice2::plot_timeseries("sims", plot_level)
   # Need to tidy and fix [Note: copied from SIM.pdf]
   emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
@@ -2367,10 +2380,12 @@ if (temp_input == "mean") {
     dev.off()
 
     # SA uniform design: sample
-    pdf( file = paste0( plotdir, out_name, "_SA_unif_final.pdf"),
-         width = 9, height = 5)
-    emulandice2::plot_scatter("posterior", "unif_temps", plot_level)
-    dev.off()
+    if (plot_level >= 3) {
+      pdf( file = paste0( plotdir, out_name, "_SA_unif_final.pdf"),
+           width = 9, height = 5)
+      emulandice2::plot_scatter("posterior", "unif_temps", plot_level)
+      dev.off()
+    }
 
   }
 }

@@ -63,11 +63,13 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
   # Plot SVD
   if (plot_level > 1) {
 
-    pdf( file = paste0( plotdir, out_name, "_SVD_SLE.pdf"),
-         width = 9, height = 5)
-    plot(1:length(scree), scree, type = "b", xlab = "Rank", ylab = "Total variance explained", pch = 20)
-    abline(h=1)
-    abline(h=thresh, lty = 3)
+    if (plot_level >= 3) {
+      pdf( file = paste0( plotdir, out_name, "_SVD_SLE.pdf"),
+           width = 9, height = 5)
+      plot(1:length(scree), scree, type = "b", xlab = "Rank", ylab = "Total variance explained", pch = 20)
+      abline(h=1)
+      abline(h=thresh, lty = 3)
+    }
 
     for (j in 1L:r) {
       plot(years_em,Vt[ j, ], type = "l", xlab = "Time", ylab = paste("Singular value * right singular vector", j))
@@ -102,7 +104,7 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
     cv_model <- glmnet::cv.glmnet(x_vars, U[,j], alpha = 1)
 
     # Plot all lambdas - shows minimum lambda and 1 s.e. from minimum
-    if (plot_level > 1) {
+    if (plot_level >= 3) {
       pdf( file = paste0( plotdir, out_name, "_lambda_CV_PC",j,".pdf"), width = 9, height = 5)
       plot(cv_model, main = paste0("Regularisation term for PC", j))
       dev.off()
@@ -138,7 +140,7 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
     sym_fill[ x_names %in% keep_inputs_PC ] <- beta_palette[j]
 
     # Plot all coefficients
-    if (plot_level > 1) {
+    if (plot_level >= 3) {
       pdf( file = paste0( plotdir, out_name, "_beta_coef_PC",j,".pdf"),
            width = length(x_names) + 1, height = 5)
       par(mar = c(10, 4, 4, 2) + 0.1)
