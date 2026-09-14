@@ -1901,13 +1901,14 @@ if (plot_level > 0) {
   if (plot_level >= 3) {
     pdf( file = paste0( plotdir, out_name, "_SIMS_FINAL.pdf"),
          width = 9, height = 5)
+    emulandice2::plot_timeseries("sims", plot_level)
+    # Need to tidy and fix [Note: copied from SIM.pdf]
+    emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
+    # Need to add sims option to plot SLE histograms
+    #emulandice2::plot_distributions("sims", plot_level) # xxx check if doing anything or covered by plot_design...
+    dev.off()
   }
-  emulandice2::plot_timeseries("sims", plot_level)
-  # Need to tidy and fix [Note: copied from SIM.pdf]
-  emulandice2::plot_scatter("sims", "none", plot_level) # shown in SA plots as black dots (not always RCPs)
-  # Need to add sims option to plot SLE histograms
-  #emulandice2::plot_distributions("sims", plot_level) # xxx check if doing anything or covered by plot_design...
-  dev.off()
+
 
 }
 
