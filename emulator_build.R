@@ -97,10 +97,8 @@ inputs_ext <- inputs_preprocess
 # Get configuration file for ice source region
 # Default if not set as argument
 if (is.na(config_filename)) config_filename <- paste0("config_",i_s,"_",reg,".yml")
-print(paste0("Looking for configuration file: ./inst/", config_filename))
 config_file <- system.file(config_filename,
                            package = 'emulandice2', mustWork = TRUE)
-print(paste("Configuration file:", config_file))
 
 # Analysis choices ------------------------------------------------------------------------
 
@@ -255,7 +253,8 @@ print("*************************************************************************
 
 print(paste(ice_name,"region",reg))
 if (read_sims_only) print("ONLY READING SIMULATIONS")
-print(paste0("Config file: ./inst/", config_filename))
+print(paste0("Configuration file:", config_file))
+
 if (!read_sims_only) {
   if (validation_type == "loo") {
     print(paste("Using LOO validation with N_k =",ifelse(is.na(N_k), "all", N_k),"(could be very slow)"))
@@ -380,7 +379,6 @@ if (emulator_type == "statGP") {
   # or pow_exp (power-exponential with alpha = 0.1, 1.0, 1.9, 2.0)
   # Could add
 
-  # XXX Specify by ice sheet sector later if using
   # Mandatory in YAML for statGP
   emulator_covar <- config::get("emulator_covar", file = config_file)
 
@@ -636,6 +634,8 @@ temp_anom_type <- config::get("temp_anom_type", file = config_file)
 temp_type <- ifelse(!is.null(temp_anom_type), temp_anom_type, "baseline")
 stopifnot( temp_type %in% c("baseline", "relative"))
 
+# Correlation threshold for GSAT timeslices
+cor_thresh <- 0.7
 
 cat(paste("GSAT anomaly type:", temp_type, "\n"), file = logfile_build, append = TRUE)
 cat(paste("GSAT baseline:", temps_baseline_start, "-", temps_baseline_end, "\n"), file = logfile_build, append = TRUE)
@@ -647,6 +647,7 @@ if (max(temps_list) > final_year) {
   cat(paste("New GSAT input timeslice(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
 }
 cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append = TRUE)
+cat(sprintf("\nGSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
 
 # xxx Can use this elsewhere! e.g. plot_design.R instead of reconstructing
 temps_list_names <- paste0("GSAT_", temps_list)
@@ -699,10 +700,10 @@ if (i_s == "AIS") {
   if ( ensemble_subset == "RCM_forced" ||
        (ensemble_subset == "all_forced" && final_year <= 2200) ) {
     ice_cont_list_model[["PISM"]] <- c(ice_cont_list_model[["PISM"]],
-                                       "overturning_PICO") } # probably already added
-  #                                       "tillwater_decay_rate",
-  #                                       "eff_fraction_overburden_pressure")
-  #  }
+                                       "overturning_PICO",  # probably already added
+                                       "tillwater_decay_rate",
+                                       "eff_fraction_overburden_pressure")
+  }
 
   # PISM different resolution between the two (8km and 16km)
   if ( ensemble_subset == "all_forced" && final_year <= 2200 ) {
@@ -773,7 +774,7 @@ if (i_s == "AIS") {
   drop_list <- NA
 
   # 2300: terms confounding with models and/or small % of ensemble
-  if (final_year > 2200) drop_list <- c("init_atmos", "init_ocean", "GIA", "shelf_collapse", "sliding_law", # factors
+  if (final_year > 2200) drop_list <- c("init_atmos", "init_ocean", "GIA", "sliding_law", "shelf_collapse", # factors
                                         "overturning_PICO" ) # continuous
 
   if ( length(drop_list) > 1 || (length(drop_list) == 1 && ! is.na(drop_list)) ) {
@@ -875,7 +876,7 @@ if (i_s == "GLA") {
 
 }
 
-cat(paste("\nContinuous inputs:", paste(ice_cont_list, collapse = " "), "\n"), file = logfile_build, append = TRUE)
+cat(paste("\nRequested",length(ice_cont_list),"continuous inputs:", paste(ice_cont_list, collapse = " "), "\n"), file = logfile_build, append = TRUE)
 
 # XXX add check that not NA or single value column
 # e.g. sliding for CISM is always Schoof
@@ -893,7 +894,7 @@ if (anyNA(ice_factor_list)) {
 }
 
 if (include_factors) {
-  cat(paste("Factors:", paste(ice_factor_list, collapse = " "), "\n"), file = logfile_build, append = TRUE)
+  cat(paste("Requested",length(ice_factor_list),"factor inputs:", paste(ice_factor_list, collapse = " "), "\n"), file = logfile_build, append = TRUE)
 }
 
 #' ## Emulator details
@@ -1690,42 +1691,17 @@ if (impute_sims != "none") {
                                                pmin = 1 - 1E-5)
 
     if (plot_level >= 3) {
+
       pdf( file = paste0( plotdir, out_name, "_impute.pdf"),
            width = 9, height = 5)
-    }
 
-    # All data
-    matplot(years_em, t(ice_data_impute), type = "n",
-            col = grey(0.1, 0.1), lty = 1, xlab = "Year", ylab = "Sea level contribution (cm SLE)",
-            main = ice_name)
+      # All data
+      matplot(years_em, t(ice_data_impute), type = "n",
+              col = grey(0.1, 0.1), lty = 1, xlab = "Year", ylab = "Sea level contribution (cm SLE)",
+              main = ice_name)
 
-    # Imputed values (where original had NA)
-    # If only imputed 1 simulation, don't transpose
-    if (sum(num_miss) == 1) {
-      matlines(years_em, ice_data_impute[ miss_sims, ],
-               type = "l", col = "red", lty = 1, lwd = 0.5)
-    } else {
-      matlines(years_em, t(ice_data_impute[ miss_sims, ]),
-               type = "l", col = "red", lty = 1, lwd = 0.5)
-    }
-
-    # Simulated values
-    matlines(years_em, t(ice_data_proj[ miss_sims, ]),
-             type = "l", col = "black", lty = 1, lwd = 0.5)
-
-    dev.off()
-
-    # Zoom AIS historical xxx change ylim so can plot for any
-    if (i_s == "AIS" ) {
-
-      pdf( file = paste0( plotdir, out_name, "_impute_zoom.pdf"), width = 9, height = 5)
-
-      matplot(years_em, t(ice_data_impute), type = "n", xlim = c(1970,2100),
-              ylim = c(-20,50), col = grey(0.1, 0.1), lty = 1,
-              xlab = "Year", ylab = "Sea level contribution (cm SLE)",  main = ice_name)
-      abline(v=2014, lwd=0.5, lty=3)
-
-      # As above
+      # Imputed values (where original had NA)
+      # If only imputed 1 simulation, don't transpose
       if (sum(num_miss) == 1) {
         matlines(years_em, ice_data_impute[ miss_sims, ],
                  type = "l", col = "red", lty = 1, lwd = 0.5)
@@ -1733,9 +1709,38 @@ if (impute_sims != "none") {
         matlines(years_em, t(ice_data_impute[ miss_sims, ]),
                  type = "l", col = "red", lty = 1, lwd = 0.5)
       }
-      matlines(years_em, t(ice_data_proj[ miss_sims, ]),type = "l", col = "black", lty = 1, lwd = 0.5)
+
+      # Simulated values
+      matlines(years_em, t(ice_data_proj[ miss_sims, ]),
+               type = "l", col = "black", lty = 1, lwd = 0.5)
 
       dev.off()
+    }
+
+    # Zoom AIS historical xxx change ylim so can plot for any
+    if (i_s == "AIS" ) {
+
+      if (plot_level >= 3) {
+        pdf( file = paste0( plotdir, out_name, "_impute_zoom.pdf"), width = 9, height = 5)
+
+        matplot(years_em, t(ice_data_impute), type = "n", xlim = c(1970,2100),
+                ylim = c(-20,50), col = grey(0.1, 0.1), lty = 1,
+                xlab = "Year", ylab = "Sea level contribution (cm SLE)",  main = ice_name)
+        abline(v=2014, lwd=0.5, lty=3)
+
+        # As above
+        if (sum(num_miss) == 1) {
+          matlines(years_em, ice_data_impute[ miss_sims, ],
+                   type = "l", col = "red", lty = 1, lwd = 0.5)
+        } else {
+          matlines(years_em, t(ice_data_impute[ miss_sims, ]),
+                   type = "l", col = "red", lty = 1, lwd = 0.5)
+        }
+        matlines(years_em, t(ice_data_proj[ miss_sims, ]),type = "l", col = "black", lty = 1, lwd = 0.5)
+
+        dev.off()
+
+      }
     }
 
     # if any were missing

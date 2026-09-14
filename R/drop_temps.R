@@ -14,10 +14,6 @@ drop_temps <- function(designX) {
   drop_temp_list <- NA
   n_high_corr <- NA
 
-  # Correlation threshold
-  cor_thresh <- 0.80
-  cat(sprintf("\nThreshold (Kendall's tau) = %.2f\n", cor_thresh), file = emu_log_file, append = TRUE)
-
   # Print correlations for all initial timeslices
   cat("\ndrop_temps: Checking correlations of GSAT timeslice columns...\n\n", file = emu_log_file, append = TRUE)
   corr_temps <- cor(designX[, colnames(designX) %in% temps_list_names, drop = FALSE], method = "kendall")

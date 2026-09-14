@@ -52,7 +52,7 @@ calc_gis_region_fracs <- function(sims_index) {
   all <- all[ sims_index, paste0("y", years_em) ]
 
   # Open plot file for histograms
-  if (plot_level > 1) {
+  if (plot_level >= 3) {
     pdf( file = paste0( plotdir, out_name, "_region_fractions.pdf" ))
     par(mfrow = c(3,2)) # 6 panels per page
   }
@@ -82,7 +82,7 @@ calc_gis_region_fracs <- function(sims_index) {
                   region_fracs[[ rr_name ]] ), file = logfile_build, append = TRUE)
 
     # Plot
-    if (plot_level > 1) {
+    if (plot_level >= 3) {
 
       hist(region_fracs_all, xlim = c(0,1),
            breaks = seq(from = floor(min(region_fracs_all, na.rm = TRUE)),
@@ -96,7 +96,7 @@ calc_gis_region_fracs <- function(sims_index) {
 
   }
 
-  if (plot_level > 0) dev.off()
+  if (plot_level >= 3) dev.off()
 
   tot_adj <- sum(unlist(region_fracs))
 
