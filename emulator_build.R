@@ -195,10 +195,11 @@ if (is.null(st)) {
 }
 stopifnot(is.finite(scree_thresh), scree_thresh > 0, scree_thresh <= 1)
 
-# Plot all or just subset of figures: 0 none, 1 main, 2 exhaustive
+# Plot all or just subset of figures: 0 none, 1 main, 2 supp, 3 extras/tests
 pl <- config::get("plot_level", file = config_file)
 plot_level <- if (is.null(pl)) 2L else as.integer(pl)
-stopifnot(plot_level %in% c(0L, 1L, 2L)) # plot_level = 3 used to distinguish main.R calls
+# plot_level = 3 was used to distinguish main.R calls but now used in build too
+stopifnot(plot_level %in% c(0L, 1L, 2L, 3L))
 if ( plot_level > 0 && ! file.exists(plotdir) ) dir.create(file.path(plotdir))
 
 # Set max ensemble size for training GPs in TVT validation - optionally set in config file
@@ -1639,19 +1640,15 @@ scenario_list <- scenario_list[ scenario_list %in% unique(ice_data[,"scenario"])
 cat("\nPlot simulator projections\n", file = logfile_build, append = TRUE)
 
 # Plot raw simulations
-if (plot_level > 0) {
+if (plot_level >= 3) {
 
-  if (plot_level >= 3) {
-    pdf( file = paste0( plotdir, out_name, "_DESIGN_ORIG.pdf"),
-         width = 9, height = 5)
-    emulandice2::plot_designs("sims", plot_level)
-    dev.off()
-  }
+  pdf( file = paste0( plotdir, out_name, "_DESIGN_ORIG.pdf"),
+       width = 9, height = 5)
+  emulandice2::plot_designs("sims", plot_level)
+  dev.off()
 
-  if (plot_level >= 3) {
-    pdf( file = paste0( plotdir, out_name, "_SIMS_ORIG.pdf"),
-         width = 9, height = 5)
-  }
+  pdf( file = paste0( plotdir, out_name, "_SIMS_ORIG.pdf"),
+       width = 9, height = 5)
 
   # TODO: remove vertical line at cal_end using plot_obs argument
   emulandice2::plot_timeseries("sims", plot_level)
