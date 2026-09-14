@@ -777,6 +777,8 @@ if (i_s == "AIS") {
   if (final_year > 2200) drop_list <- c("init_atmos", "init_ocean", "GIA", "sliding_law", "shelf_collapse", # factors
                                         "overturning_PICO" ) # continuous
 
+  if (final_year <= 2200) drop_list <- c("init_atmos", "init_ocean", "GIA", "shelf_collapse", "forcing_type") # factors
+
   if ( length(drop_list) > 1 || (length(drop_list) == 1 && ! is.na(drop_list)) ) {
     cat("Dropping these inputs:", paste(drop_list, collapse = ", "), "\n",
         file = logfile_build, append = TRUE)
@@ -799,7 +801,7 @@ if (i_s == "GIS") {
   ice_factor_list_model[["CISM"]] <- c("thermodyn", "RCM_init")
 
   # init_yrs and elev_feedback are redundant in 2300 ensemble, so only add to 2100
-  # (if redundant in that ensemble, emulator will now stop with rank deficiency complaint)
+  # Removed below for 2100 too because they reduce rank
   if (final_year <= 2100) {
     ice_factor_list_model[["CISM"]] <- c(ice_factor_list_model[["CISM"]], "init_yrs", "elev_feedback")
   }
@@ -823,6 +825,18 @@ if (i_s == "GIS") {
 
   # Add model input
   if (length(model_list) > 1) ice_factor_list <- c(ice_factor_list, "model")
+
+  drop_list <- NA
+
+  # Aliased columns
+  if (final_year <= 2100) drop_list <- c("init_yrs", "elev_feedback", "sliding", "RCM_init")
+
+  if ( length(drop_list) > 1 || (length(drop_list) == 1 && ! is.na(drop_list)) ) {
+    cat("Dropping these inputs:", paste(drop_list, collapse = ", "), "\n",
+        file = logfile_build, append = TRUE)
+    ice_cont_list <- ice_cont_list[ ! ice_cont_list %in% drop_list ]
+    ice_factor_list <- ice_factor_list[ ! ice_factor_list %in% drop_list ]
+  }
 
 }
 
@@ -1485,33 +1499,28 @@ for (tt in 1:length(temps_list_names)) {
 ## factor level merging ---------------------------------------------------------------
 if (i_s == "AIS" ) {
 
-  # Longer timescales checked first
-  if (final_year > 2150) {
+  cat(paste("\nMerging some similar and/or rare factor levels (if blank then none):\n"), file = logfile_build, append = TRUE)
 
-    cat(paste("\nMerging some similar and/or rare factor levels (if blank then none):\n"), file = logfile_build, append = TRUE)
+  if ("sliding_law" %in% ice_factor_list) {
+    cat(paste("\nsliding_law was:",paste(unique(ice_data[,"sliding_law"]), collapse = " ")), file = logfile_build, append = TRUE)
 
-    if ("sliding_law" %in% ice_factor_list) {
-      cat(paste("\nsliding_law was:",paste(unique(ice_data[,"sliding_law"]), collapse = " ")), file = logfile_build, append = TRUE)
+    # Merge all sliding laws that have effective pressure dependence
+    # (small numbers in ensemble, and similar response)
+    # Based on conversations with Bill Lipscombe and Helene Seroussi
+    ice_data[ ice_data$sliding_law == "power_law_Tsai", "sliding_law" ] <- "eff_pressure"
+    ice_data[ ice_data$sliding_law == "Zoet-Iverson", "sliding_law" ] <- "eff_pressure"
+    ice_data[ ice_data$sliding_law == "Coulomb_reg_300", "sliding_law" ] <- "eff_pressure"
+    ice_data[ ice_data$sliding_law == "Coulomb_reg_50", "sliding_law" ] <- "eff_pressure"
+    cat(paste("\nand is now:",paste(unique(ice_data[,"sliding_law"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
+  }
 
-      # Merge all sliding laws that have effective pressure dependence
-      # (small numbers in ensemble, and similar response)
-      # Based on conversations with Bill Lipscombe and Helene Seroussi
-      ice_data[ ice_data$sliding_law == "power_law_Tsai", "sliding_law" ] <- "eff_pressure"
-      ice_data[ ice_data$sliding_law == "Zoet-Iverson", "sliding_law" ] <- "eff_pressure"
-      ice_data[ ice_data$sliding_law == "Coulomb_reg_300", "sliding_law" ] <- "eff_pressure"
-      ice_data[ ice_data$sliding_law == "Coulomb_reg_50", "sliding_law" ] <- "eff_pressure"
-      cat(paste("\nand is now:",paste(unique(ice_data[,"sliding_law"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
-    }
+  if ("GIA" %in% ice_factor_list) {
 
-    if ("GIA" %in% ice_factor_list) {
-
-      # Merge 2 types of GIA in IMAUICE ensemble (still small fraction)
-      cat(paste("\nGIA was:",paste(unique(ice_data[,"GIA"]), collapse = " ")), file = logfile_build, append = TRUE)
-      ice_data[ ice_data$GIA == "3D_strong", "GIA" ] <- "3D"
-      ice_data[ ice_data$GIA == "3D_weak", "GIA" ] <- "3D"
-      cat(paste("\nand is now:",paste(unique(ice_data[,"GIA"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
-    }
-
+    # Merge 2 types of GIA in IMAUICE ensemble (still small fraction)
+    cat(paste("\nGIA was:",paste(unique(ice_data[,"GIA"]), collapse = " ")), file = logfile_build, append = TRUE)
+    ice_data[ ice_data$GIA == "3D_strong", "GIA" ] <- "3D"
+    ice_data[ ice_data$GIA == "3D_weak", "GIA" ] <- "3D"
+    cat(paste("\nand is now:",paste(unique(ice_data[,"GIA"]), collapse = " "),"\n"), file = logfile_build, append = TRUE)
   }
 
 }
