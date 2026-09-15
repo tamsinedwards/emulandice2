@@ -1,5 +1,4 @@
 default:
-  sims_only: TRUE
   emulator_type: "statGP"
-  emulator_covar: "pow_exp_01"
+  emulator_covar: "matern_3_2"
   temp_end_years: !expr seq(1970, 2300, by = 10)

@@ -1,0 +1,7 @@
+default:
+  emulator_type: "statGP"
+  emulator_covar: "pow_exp_10"
+  temp_end_years: !expr seq(1960, 2300, by = 10)
+
+
+

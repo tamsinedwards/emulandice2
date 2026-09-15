@@ -1,6 +1,4 @@
 default:
-  sims_only: TRUE
   emulator_type: "statGP"
-  emulator_covar: "pow_exp_01"
-  validation_type: "loo"
+  emulator_covar: "pow_exp_20"
   temp_end_years: !expr seq(1970, 2300, by = 10)

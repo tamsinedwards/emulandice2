@@ -1,0 +1,5 @@
+default:
+  emulator_type: "statGP"
+  emulator_covar: "matern_3_2"
+  validation_type: "loo"
+  temp_end_years: !expr seq(1970, 2300, by = 10)

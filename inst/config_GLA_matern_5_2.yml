@@ -1,0 +1,4 @@
+default:
+  emulator_type: "statGP"
+  emulator_covar: "matern_5_2"
+  temp_end_years: !expr seq(1990, 2300, by = 10)
