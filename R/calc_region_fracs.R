@@ -188,7 +188,7 @@ calc_ais_region_fracs <- function(sims_index) {
   }
 
   # Pdf later than for GIS because adjusting fractions
-  if (plot_level > 0 && reg != "PEN") {
+  if (plot_level >= 3 && reg != "PEN") {
     pdf( file = paste0( plotdir, out_name, "_region_fractions.pdf" ))
     if (reg %in% c("ALL","EAIS")) par(mfrow = c(3,2)) # 6 panels per page for 11 or 7 regions
   }
@@ -207,7 +207,7 @@ calc_ais_region_fracs <- function(sims_index) {
 
     # Plot histograms now so can show median and adjusted together
     # no need for PEN because it is not subdivided: fraction = 1.0
-    if (plot_level > 0 && reg != "PEN") {
+    if (plot_level >= 3 && reg != "PEN") {
 
       hist_xmin <- -2
       hist_xmax <- 2
@@ -235,7 +235,7 @@ calc_ais_region_fracs <- function(sims_index) {
 
   }
 
-  if (plot_level > 0 && reg != "PEN") dev.off()
+  if (plot_level >= 3 && reg != "PEN") dev.off()
 
   tot_adj <- sum(unlist(region_fracs))
 

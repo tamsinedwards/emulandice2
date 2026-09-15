@@ -61,15 +61,12 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
   Vt <- (decomp$d * t(decomp$v))[1L:r, , drop=FALSE]
 
   # Plot SVD
-  if (plot_level > 1) {
-
-    if (plot_level >= 3) {
-      pdf( file = paste0( plotdir, out_name, "_SVD_SLE.pdf"),
-           width = 9, height = 5)
-      plot(1:length(scree), scree, type = "b", xlab = "Rank", ylab = "Total variance explained", pch = 20)
-      abline(h=1)
-      abline(h=thresh, lty = 3)
-    }
+  if (plot_level >= 3) {
+    pdf( file = paste0( plotdir, out_name, "_SVD_SLE.pdf"),
+         width = 9, height = 5)
+    plot(1:length(scree), scree, type = "b", xlab = "Rank", ylab = "Total variance explained", pch = 20)
+    abline(h=1)
+    abline(h=thresh, lty = 3)
 
     for (j in 1L:r) {
       plot(years_em,Vt[ j, ], type = "l", xlab = "Time", ylab = paste("Singular value * right singular vector", j))
@@ -169,6 +166,7 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
 
   # Plot betas for all PCs (reverse order so temp at top)
   if (plot_level >= 3) {
+
     pdf( file = paste0( plotdir, out_name, "_beta_coef_ALL.pdf"),
          height = length(x_names) + 1, width = 5)
     par(mar = c(5, 10, 4, 2))
@@ -197,7 +195,7 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
 
     }
     dev.off()
-  }
+  } # plot_level
 
   # Return terms with beta > tolerance
   keep_inputs_pc <- lapply(beta, function(bb) {
