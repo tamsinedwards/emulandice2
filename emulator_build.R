@@ -956,7 +956,7 @@ if (emulator_type == "deepgp") {
 # 1 for some; 0 for none
 
 # Write validation and SA RData file for nice replotting later
-write_sa <- TRUE
+write_sa <- FALSE
 
 # Sub-sample to plot; exclude any dates not predicted by emulator
 yy_plot <- c(as.character(cal_end),"2100", "2150", "2200", "2300")
