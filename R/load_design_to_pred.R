@@ -93,41 +93,45 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
     }
   }
 
-  cat("\nIce model input ranges:\n",
+  cat("\nInitial ice model input ranges:\n",
       file = logfile_design, append = TRUE)
   for (pp in ice_cont_list ) {
     cat(sprintf( "%s: [%.1e, %.1e]", pp, prior_range[[pp]][1], prior_range[[pp]][2]),"\n",file = logfile_design, append = TRUE)
   }
 
   # Customise priors ------------------------------------------------------------------------
+  # Continuous here; factors will be harder
 
   # CUSTOMISE PRIORS FOR PROJECTIONS
   # N.B. this list doesn't include unif_temps because that design is for SA so should be wide and uniform
   if ( design_name %in% c("fixed_temp","AR6_2LM") && prior_choices == "custom" ) {
 
-    # Ice sheets: restrict to higher resolution
-    if (i_s %in% c("GIS", "AIS")) {
-
-      # Maximum = 8km
-      prior_range[["resolution"]][2] <- 8.0
-
-    }
-
-    # Greenland retreat empirical prior
+    # Greenland
     if ( i_s == "GIS" ) {
 
-      # Cut 5% tails of empirical distribution off
-      retreat_prior <- retreat_prior[ retreat_prior >= -0.9705 & retreat_prior <= 0.0070 ]
+      # Fixed value at minimum resolution
+      prior_range[["resolution"]][2] <- prior_range[["resolution"]][1]
+
+      # Retreat empirical prior
+      # 5-95% or 25-75% range of empirical distribution
+      if (final_year > 2100) {
+        retreat_prior <- retreat_prior[ retreat_prior >= -0.37 & retreat_prior <= -0.06 ]
+      } else {
+        retreat_prior <- retreat_prior[ retreat_prior >= -0.9705 & retreat_prior <= 0.0070 ]
+      }
 
       # Get min and max of sample to use for main effects design
       prior_range[["retreat"]] <- range(retreat_prior)
 
-      cat(sprintf("\nTRUNCATED RETREAT PRIOR TO 5-95%% RANGE: [%.4f, %4.f]\n",
+      cat(sprintf("\nTRUNCATED RETREAT PRIOR: [%.4f, %4.f]\n",
                   min(retreat_prior),max(retreat_prior)), file = logfile_design, append = TRUE)
     }
 
     # Antarctica heat flux
     if ( i_s == "AIS" ) {
+
+      # Maximum = 8km
+      prior_range[["resolution"]][2] <- 8.0
 
       # Halve the range
       prior_range[["heat_flux_ISMIP6_nonlocal"]][2] <-  prior_range[["heat_flux_ISMIP6_nonlocal"]][1] +
