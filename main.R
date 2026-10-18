@@ -132,8 +132,8 @@ scenario_list <- paste0("SSP",substring(facts_ssp,4)) # emulandice expects upper
 
 set.seed(seed)
 
-# Plots: 0 = none, 1 = main, 2 = nearly all, 3 = replot SIMS.pdf with model error
-plot_level <- 2 # xxx using 3 to get SIMS.pdf in results dir isn't working
+# Plots: 0 = none, 1 = main, 2 = nearly all, 4 (main only) = replot SIMS.pdf with model error
+plot_level <- 2
 
 # Write workspace to .RData for nice plotting later
 write_rdata <- TRUE # xxx probably obsolete now just saving few objects

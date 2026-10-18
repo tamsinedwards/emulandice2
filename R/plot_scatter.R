@@ -69,7 +69,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0, plot_obs = TRUE
           rect( obs_change - 3 * obs_err, sle_lim[[yy]][1],
                 obs_change + 3 * obs_err, sle_lim[[yy]][2],
                 col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-          if (plot_level > 2) {
+          if (plot_level >= 4) {
             rect( obs_change - 3 * tot_err, sle_lim[[yy]][1],
                   obs_change + 3 * tot_err, sle_lim[[yy]][2],
                   col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
@@ -173,7 +173,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0, plot_obs = TRUE
         rect( obs_change - 3 * obs_err, sle_lim[[yy]][1],
               obs_change + 3 * obs_err, sle_lim[[yy]][2],
               col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-        if (plot_level > 2) {
+        if (plot_level >= 4) {
           rect( obs_change - 3 * tot_err, sle_lim[[yy]][1],
                 obs_change + 3 * tot_err, sle_lim[[yy]][2],
                 col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
@@ -276,7 +276,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0, plot_obs = TRUE
                 rect( min(emu_gg), obs_change - 3 * obs_err,
                       max(emu_gg), obs_change + 3 * obs_err,
                       col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-                if (plot_level > 2) {
+                if (plot_level >= 4) {
                   rect( min(emu_gg), obs_change - 3 * tot_err,
                         max(emu_gg), obs_change + 3 * tot_err,
                         col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
@@ -324,7 +324,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0, plot_obs = TRUE
                     max(design_pred[[scen]][,gg]),
                     obs_change + 3 * obs_err,
                     col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-              if (plot_level > 2) {
+              if (plot_level >= 4) {
                 rect( min(design_pred[[scen]][,gg]), obs_change - 3 * tot_err,
                       max(design_pred[[scen]][,gg]), obs_change + 3 * tot_err,
                       col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
@@ -382,7 +382,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0, plot_obs = TRUE
                 rect( min(emu_pp[ , pp ]), obs_change - 3 * obs_err,
                       max(emu_pp[ , pp ]), obs_change + 3 * obs_err,
                       col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-                if (plot_level > 2) {
+                if (plot_level >= 4) {
                   rect( min(emu_pp[ , pp ]), obs_change - 3 * tot_err,
                         max(emu_pp[ , pp ]), obs_change + 3 * tot_err,
                         col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
@@ -441,7 +441,7 @@ plot_scatter <- function(data_type, design_name, plot_level = 0, plot_obs = TRUE
               rect( min(design_pred[[scen]][,pp]), obs_change - 3 * obs_err,
                     max(design_pred[[scen]][,pp]), obs_change + 3 * obs_err,
                     col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-              if (plot_level > 2) {
+              if (plot_level >= 4) {
                 rect( min(design_pred[[scen]][,pp]), obs_change - 3 * tot_err,
                       max(design_pred[[scen]][,pp]), obs_change + 3 * tot_err,
                       col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)

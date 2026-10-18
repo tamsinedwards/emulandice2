@@ -139,7 +139,7 @@ plot_timeseries <- function(data_type, plot_level = 0) {
             }
 
             # mean +- 3 x total_error
-            if (plot_level > 2) {
+            if (plot_level >= 4) {
 #              polygon( c(obs_data[,"Year"], rev(obs_data[,"Year"])),
 #                       c( obs_data[,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] + 3 * total_err,
 #                          rev(obs_data[,"SLE"] - obs_data[obs_data$Year == cal_start, "SLE"] - 3 * total_err)),

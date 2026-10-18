@@ -218,7 +218,7 @@ plot_designs <- function(data_type, plot_level = 0) {
           rect( min(plot_temps, na.rm = TRUE), obs_change - 3 * obs_err,
                 max(plot_temps, na.rm = TRUE), obs_change + 3 * obs_err,
                 col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-          if (plot_level > 2) {
+          if (plot_level >= 4) {
             rect( min(plot_temps, na.rm = TRUE), obs_change - 3 * tot_err,
                   max(plot_temps, na.rm = TRUE), obs_change + 3 * tot_err,
                   col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
@@ -294,7 +294,7 @@ plot_designs <- function(data_type, plot_level = 0) {
                 rect( min(param_plot, na.rm = TRUE), obs_change - 3 * obs_err,
                       max(param_plot, na.rm = TRUE), obs_change + 3 * obs_err,
                       col = grey(0.2,0.04), border = "black", lwd = 0.5, lty = 5)
-                if (plot_level > 2) {
+                if (plot_level >= 4) {
                   rect( min(param_plot, na.rm = TRUE), obs_change - 3 * tot_err,
                         max(param_plot, na.rm = TRUE), obs_change + 3 * tot_err,
                         col = grey(0.2,0.03), border = "black", lwd = 0.5, lty = 3)
