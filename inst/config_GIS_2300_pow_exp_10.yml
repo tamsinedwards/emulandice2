@@ -2,4 +2,4 @@ default:
   emulator_type: "statGP"
   emulator_covar: "pow_exp_10"
   validation_type: "loo"
-  temp_end_years: !expr seq(1970, 2300, by = 10)
+  temp_end_years: [1970, 2020, 2040, 2070, 2150]

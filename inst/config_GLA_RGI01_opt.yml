@@ -1,0 +1,3 @@
+default:
+  emulator_type: "statGP"
+  emulator_covar: "pow_exp_10"

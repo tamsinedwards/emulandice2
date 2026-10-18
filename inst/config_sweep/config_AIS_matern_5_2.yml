@@ -1,0 +1,7 @@
+default:
+  emulator_type: "statGP"
+  emulator_covar: "matern_5_2"
+  temp_end_years: [1960, 2020, 2040, 2050, 2300]
+
+
+
