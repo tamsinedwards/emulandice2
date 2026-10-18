@@ -607,12 +607,20 @@ stopifnot(is.null(tl[1]) || (!is.null(tl[1]) && length(tl) > 1))
 if (!is.null(tl[2])) {
   temps_baseline_end <- tl[1]
   temps_list <- tl[2:length(tl)]
+
+  # Default is to keep all GSAT temps requested in YAML file
+  # Can switch this on to use least correlated GSAT periods (as for default below)
+  drop_temps <- FALSE
+
 } else {
 
   # Default if not specified; baseline is 2001-2010 i.e. before SSPs start
   temps_list <- seq(2010, 2300, by = N_temp_yrs)
   temps_baseline_end <- temps_list[1]
   temps_list <- temps_list[-1]
+
+  # Then drop most correlated of these in the forcing dataset
+  drop_temps <- TRUE
 
   # Old defaults
   #if (i_s == "AIS") temps_list <- 2300
@@ -624,6 +632,7 @@ if (!is.null(tl[2])) {
     #  temps_list <- c(2100, 2300)
     if (deliverable_test) temps_list <- 2300
   }
+
 }
 
 # Save first year of baseline for some checks/outputs
@@ -647,8 +656,10 @@ if (max(temps_list) > final_year) {
   if (length(temps_list) == 0) temps_list <- final_year
   cat(paste("New GSAT input timeslice(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
 }
+
 cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append = TRUE)
-cat(sprintf("\nGSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
+cat(paste("\nDrop correlated GSAT timeslices:", drop_temps, "\n"), file = logfile_build, append = TRUE)
+cat(sprintf("GSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
 
 # xxx Can use this elsewhere! e.g. plot_design.R instead of reconstructing
 temps_list_names <- paste0("GSAT_", temps_list)
@@ -2063,7 +2074,7 @@ cat("______________________________________\n", file = emu_log_file, append = TR
 # Need three colons for these functions because emulator_build.R is outside package and function is not exported
 
 # If multiple GSAT timeslices in design, drop any that are too highly correlated with others
-if (length(temps_list_names) > 1) {
+if (length(temps_list_names) > 1 && drop_temps) {
 
   cat("\nDropping any highly correlated GSAT timeslices...\n",
       file = logfile_build, append = TRUE)
