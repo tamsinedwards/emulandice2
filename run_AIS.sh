@@ -20,7 +20,7 @@
 #______________________________________________________
 
 # SSP list if predicting
-# ssp_list="ssp119 ssp126" "ssp245" "ssp370" "ssp534-over" "ssp585"
+# ssp_list="ssp119 ssp126 ssp245 ssp370 ssp534-over ssp585"
 ssp_list="ssp126 ssp370 ssp585"
 
 # IPCC AR6: FaIR 2LM
@@ -163,4 +163,7 @@ done # regions
 
 # Won't move if predictions exist already
 mkdir $outdir
-mv "$emulandice_dir"/out/AIS* "$emulandice_dir"/data-raw/AIS*.RData $outdir
+mv "$emulandice_dir"/out/AIS* $outdir
+if [[ "$run_type" != "predict" ]]; then
+  mv "$emulandice_dir"/data-raw/AIS*.RData $outdir
+fi

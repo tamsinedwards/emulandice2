@@ -98,13 +98,7 @@ echo "Output dir:" $outdir
 # for region in $(seq -f "%02g" 1 19)
 
 # Run selected regions (must zero-pad to 2 digits, e.g. 01):
-# my_list=(01 02 04 05 06 07 09)
-# my_list=(10 11 12 16 18 19)
-# my_list=(03 08 13 14 15 17)
-my_list=(01 03 19)
-# my_list=(09)
-# my_list=(03)
-# my_list=(08 13 14 15 17)
+my_list=(01) #03 19)
 for region in "${my_list[@]}"
   do
 
@@ -170,4 +164,7 @@ done
 
 # Won't move if predictions exist already
 mkdir $outdir
-mv "$emulandice_dir"/out/GLA* "$emulandice_dir"/data-raw/GLA*.RData $outdir
+mv "$emulandice_dir"/out/GLA* $outdir
+if [[ "$run_type" != "predict" ]]; then
+  mv "$emulandice_dir"/data-raw/GLA*.RData $outdir
+fi

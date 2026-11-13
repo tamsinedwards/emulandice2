@@ -19,8 +19,8 @@
 #______________________________________________________
 
 # SSP list if predicting
-# ssp_list="ssp119 ssp126" "ssp245" "ssp370" "ssp534-over" "ssp585"
-ssp_list="ssp126 ssp370 ssp585"
+ssp_list="ssp119 ssp126 ssp245 ssp370 ssp534-over ssp585"
+#ssp_list="ssp126 ssp370 ssp585"
 
 # IPCC AR6: FaIR 2LM
 gsat_file=twolayer_SSPs.h5
@@ -152,6 +152,9 @@ echo "Creating" $outdir "if it does not exist"
 
 # Won't move if predictions exist already
 mkdir $outdir
-mv "$emulandice_dir"/out/GIS* "$emulandice_dir"/data-raw/GIS*RData $outdir
+mv "$emulandice_dir"/out/GIS* $outdir
+if [[ "$run_type" != "predict" ]]; then
+  mv "$emulandice_dir"/data-raw/GIS*RData $outdir
+fi
 
 echo
