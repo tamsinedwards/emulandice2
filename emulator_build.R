@@ -582,87 +582,107 @@ cat(paste("Validation years:", paste(validation_years, collapse = ",")), "\n", f
 cat("\nEMULATOR INPUTS:\n", file = logfile_build, append = TRUE)
 
 # Switch for GSAT means or SVD (only summary for now)
-temp_input <- "mean"
-stopifnot(temp_input == "mean")
-
 # // Temps ------------------------------------------------------------
 
+temp_input <- config::get("temp_input", file = config_file)
+if (is.null(temp_input)) temp_input <- "mean"
 
-# Number of years to average over
-# e.g. setting 10 with temps_list = 2300 and temps_baseline_end = 2010
-# gives decadal mean 2291-2300 relative to 2015-2024
-tn <- config::get("temp_nyrs", file = config_file)
-N_temp_yrs <- ifelse(!is.null(tn), tn, 10) # Default if not specified
+# These are only used for means, not SVD
+temp_type <- "baseline"
+do_drop_temps <- FALSE
+drop_temps_method <- NA
+N_temp_yrs <- NA_integer_
+cor_thresh <- NA_real_
 
-# GSAT timeslices for ice_design
-tl <- config::get("temp_end_years", file = config_file)
+# Use GSAT mean periods
+if (temp_input == "mean") {
 
-# First is end of baseline, so need at least two in list if specifying
-stopifnot(is.null(tl[1]) || (!is.null(tl[1]) && length(tl) > 1))
+  # Number of years to average over
+  # e.g. setting 10 with temps_list = 2300 and temps_baseline_end = 2010
+  # gives decadal mean 2291-2300 relative to 2015-2024
+  tn <- config::get("temp_nyrs", file = config_file)
+  N_temp_yrs <- ifelse(!is.null(tn), tn, 10) # Default if not specified
 
-# Not too many, to avoid linear combinations (esp bad for fixed climate GIS) or overfitting
-# Timeslices are dropped below if request shorter projections e.g. to 2150 only
+  # GSAT timeslices for ice_design
+  tl <- config::get("temp_end_years", file = config_file)
 
-# Set from config file
-if (!is.null(tl[2])) {
-  temps_baseline_end <- tl[1]
-  temps_list <- tl[2:length(tl)]
+  # First is end of baseline, so need at least two in list if specifying
+  stopifnot(is.null(tl[1]) || (!is.null(tl[1]) && length(tl) > 1))
 
-  # Default is to keep all GSAT temps requested in YAML file
-  # Can switch this on to use least correlated GSAT periods (as for default below)
-  drop_temps <- FALSE
+  # Not too many, to avoid linear combinations (esp bad for fixed climate GIS) or overfitting
+  # Timeslices are dropped below if request shorter projections e.g. to 2150 only
 
-} else {
+  # Set from config file
+  if (!is.null(tl[2])) {
+    temps_baseline_end <- tl[1]
+    temps_list <- tl[2:length(tl)]
 
-  # Default if not specified; baseline is 2001-2010 i.e. before SSPs start
-  temps_list <- seq(2010, 2300, by = N_temp_yrs)
-  temps_baseline_end <- temps_list[1]
-  temps_list <- temps_list[-1]
+    # Default is to keep all GSAT temps requested in YAML file
+    # Can switch this on to use least correlated GSAT periods (as for default below)
+    do_drop_temps <- FALSE
 
-  # Then drop most correlated of these in the forcing dataset
-  drop_temps <- TRUE
+  } else { # or defaults
 
-  # Old defaults
-  #if (i_s == "AIS") temps_list <- 2300
-  if (i_s == "GIS") {
-    #  temps_list <- 2100
-    if (deliverable_test) temps_list <- 2100
+    # Default if not specified
+    temps_list <- seq(1970, 2300, by = N_temp_yrs)
+    temps_baseline_end <- temps_list[1]
+    temps_list <- temps_list[-1]
+
+    # Then drop most correlated of these in the forcing dataset OR use PCD to choose
+    do_drop_temps <- TRUE
+    drop_temps_method <- "pcd"
+    stopifnot(drop_temps_method %in% c("corr", "pcd"))
+
+    # Old defaults
+    #if (i_s == "AIS") temps_list <- 2300
+    if (i_s == "GIS") {
+      #  temps_list <- 2100
+      if (deliverable_test) temps_list <- 2100
+    }
+    if (i_s == "GLA") {
+      #  temps_list <- c(2100, 2300)
+      if (deliverable_test) temps_list <- 2300
+    }
+
   }
-  if (i_s == "GLA") {
-    #  temps_list <- c(2100, 2300)
-    if (deliverable_test) temps_list <- 2300
+
+  # Save first year of baseline for some checks/outputs
+  temps_baseline_start <- min(emulandice2:::gsat_window_years(temps_baseline_end, N_temp_yrs))
+
+  # Type of anomalies: relative to baseline, or relative to each successive timeslice?
+  # Set default to baseline for now
+  temp_anom_type <- config::get("temp_anom_type", file = config_file)
+  temp_type <- ifelse(!is.null(temp_anom_type), temp_anom_type, "baseline")
+  stopifnot( temp_type %in% c("baseline", "relative"))
+
+  # Correlation threshold for GSAT timeslices
+  cor_thresh <- 0.7
+
+  cat(paste("GSAT anomaly type:", temp_type, "\n"), file = logfile_build, append = TRUE)
+  cat(paste("GSAT baseline:", temps_baseline_start, "-", temps_baseline_end, "\n"), file = logfile_build, append = TRUE)
+  cat(paste("Initial GSAT timeslice final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
+  if (max(temps_list) > final_year) {
+    cat("GSAT timeslice(s) extend beyond ice model simulation: dropping\n", file = logfile_build, append = TRUE)
+    temps_list <- temps_list[ temps_list <= final_year ]
+    if (length(temps_list) == 0) temps_list <- final_year
+    cat(paste("New GSAT input timeslice(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
   }
+
+  cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append = TRUE)
+  cat(paste("\nDrop correlated GSAT timeslices:", do_drop_temps, "\n"), file = logfile_build, append = TRUE)
+  if (do_drop_temps) {
+    if (drop_temps_method == "pcd") cat("Using Pivoted Cholesky Decomposition", file = logfile_build, append = TRUE)
+    if (drop_temps_method == "cor") cat(sprintf("GSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
+  }
+
+
+  # List of GSAT labels
+  temps_list_names <- paste0("GSAT_", temps_list)
+
+
 
 }
 
-# Save first year of baseline for some checks/outputs
-temps_baseline_start <- min(emulandice2:::gsat_window_years(temps_baseline_end, N_temp_yrs))
-
-# Type of anomalies: relative to baseline, or relative to each successive timeslice?
-# Set default to baseline for now
-temp_anom_type <- config::get("temp_anom_type", file = config_file)
-temp_type <- ifelse(!is.null(temp_anom_type), temp_anom_type, "baseline")
-stopifnot( temp_type %in% c("baseline", "relative"))
-
-# Correlation threshold for GSAT timeslices
-cor_thresh <- 0.7
-
-cat(paste("GSAT anomaly type:", temp_type, "\n"), file = logfile_build, append = TRUE)
-cat(paste("GSAT baseline:", temps_baseline_start, "-", temps_baseline_end, "\n"), file = logfile_build, append = TRUE)
-cat(paste("Initial GSAT timeslice final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
-if (max(temps_list) > final_year) {
-  cat("GSAT timeslice(s) extend beyond ice model simulation: dropping\n", file = logfile_build, append = TRUE)
-  temps_list <- temps_list[ temps_list <= final_year ]
-  if (length(temps_list) == 0) temps_list <- final_year
-  cat(paste("New GSAT input timeslice(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
-}
-
-cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append = TRUE)
-cat(paste("\nDrop correlated GSAT timeslices:", drop_temps, "\n"), file = logfile_build, append = TRUE)
-cat(sprintf("GSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
-
-# xxx Can use this elsewhere! e.g. plot_design.R instead of reconstructing
-temps_list_names <- paste0("GSAT_", temps_list)
 
 # // Ice model params ----------------------------------------------------------
 
@@ -2074,10 +2094,13 @@ cat("______________________________________\n", file = emu_log_file, append = TR
 # Need three colons for these functions because emulator_build.R is outside package and function is not exported
 
 # If multiple GSAT timeslices in design, drop any that are too highly correlated with others
-if (length(temps_list_names) > 1 && drop_temps) {
+if (temp_input == "mean" && length(temps_list_names) > 1 && do_drop_temps) {
 
-  cat("\nDropping any highly correlated GSAT timeslices...\n",
-      file = logfile_build, append = TRUE)
+  # Get columns to drop
+  if (drop_temps_method == "corr") cat("\nDropping any highly correlated GSAT timeslices...\n",
+                                       file = logfile_build, append = TRUE)
+  if (drop_temps_method == "pcd") cat("\nSelecting GSAT timeslices with PCD...\n",
+                                      file = logfile_build, append = TRUE)
   temps_list_names_drop <- emulandice2:::drop_temps(Xtrain)
 
   # If some were dropped
@@ -2115,7 +2138,7 @@ if (length(temps_list_names) > 1 && drop_temps) {
 # Relative temps ---------------------------------------------------------------
 
 # If relative timeslices (no need if only one)
-if (temp_type == "relative" && length(temps_list) > 1) {
+if (temp_input == "mean" && temp_type == "relative" && length(temps_list) > 1) {
 
   # Get GSAT colnames (intersect keeps temps_list order)
   gsat_cols <- intersect(temps_list_names, colnames(ice_design))
@@ -2213,91 +2236,89 @@ is_build <- TRUE
 # Design continuous inputs are scaled
 # scree_thresh is set earlier from YAML (default 0.999; GIS 2300 increased threshold if unset)
 
-if (temp_input == "mean") { # TODO: delete temp_input - legacy of trying SVD for GSAT
-  emu_mv <- emulandice2::make_emu( designX = as.matrix(Xtrain),
-                                   responseF = as.matrix(Ytrain),
-                                   thresh = scree_thresh)
 
-  # save.image(file="~/PROTECT/emulandice2/make_emu.RData")
+emu_mv <- emulandice2::make_emu( designX = as.matrix(Xtrain),
+                                 responseF = as.matrix(Ytrain),
+                                 thresh = scree_thresh)
 
-  # Get number of inputs in trend
-  emu_inputs <- emu_mv( Xtrain[ 1, ], type = "var")$inputs
+# save.image(file="~/PROTECT/emulandice2/make_emu.RData")
 
-  # Drop inert inputs not used for emulation from design, for plots etc
-  if (length(emu_inputs) < length(colnames(Xtrain))) {
+# Get number of inputs in trend
+emu_inputs <- emu_mv( Xtrain[ 1, ], type = "var")$inputs
 
-    cat("\nEmulator dropped", length(colnames(Xtrain)) - length(emu_inputs),
-        "inert inputs from design:", setdiff(colnames(Xtrain), emu_inputs), "\n",
-        file = logfile_build, append = TRUE)
+# Drop inert inputs not used for emulation from design, for plots etc
+if (length(emu_inputs) < length(colnames(Xtrain))) {
 
-    out <- emulandice2:::sync_design_inputs(keep_names = emu_inputs,
-                                            Xtrain = Xtrain,
-                                            ice_design = ice_design,
-                                            temps = temps,
-                                            temps_list = temps_list,
-                                            temps_list_names = temps_list_names,
-                                            ice_cont_list = ice_cont_list,
-                                            ice_dummy_list = ice_dummy_list,
-                                            ice_all_list = ice_all_list,
-                                            input_cont_list = input_cont_list,
-                                            inputs_centre = inputs_centre,
-                                            inputs_scale = inputs_scale,
-                                            ice_design_scaled = ice_design_scaled)
-    Xtrain <- out$Xtrain
-    ice_design <- out$ice_design
-    temps <- out$temps
-    temps_list <- out$temps_list
-    temps_list_names <- out$temps_list_names
-    ice_cont_list <- out$ice_cont_list
-    ice_dummy_list <- out$ice_dummy_list
-    ice_all_list <- out$ice_all_list
-    input_cont_list <- out$input_cont_list
-    inputs_centre <- out$inputs_centre
-    inputs_scale <- out$inputs_scale
-    ice_design_scaled <- out$ice_design_scaled
+  cat("\nEmulator dropped", length(colnames(Xtrain)) - length(emu_inputs),
+      "inert inputs from design:", setdiff(colnames(Xtrain), emu_inputs), "\n",
+      file = logfile_build, append = TRUE)
 
-    # Factor values - do separately so don't drop nominal
-    print(ice_factor_values)
-    ice_factor_values_new <- ice_factor_values
+  out <- emulandice2:::sync_design_inputs(keep_names = emu_inputs,
+                                          Xtrain = Xtrain,
+                                          ice_design = ice_design,
+                                          temps = temps,
+                                          temps_list = temps_list,
+                                          temps_list_names = temps_list_names,
+                                          ice_cont_list = ice_cont_list,
+                                          ice_dummy_list = ice_dummy_list,
+                                          ice_all_list = ice_all_list,
+                                          input_cont_list = input_cont_list,
+                                          inputs_centre = inputs_centre,
+                                          inputs_scale = inputs_scale,
+                                          ice_design_scaled = ice_design_scaled)
+  Xtrain <- out$Xtrain
+  ice_design <- out$ice_design
+  temps <- out$temps
+  temps_list <- out$temps_list
+  temps_list_names <- out$temps_list_names
+  ice_cont_list <- out$ice_cont_list
+  ice_dummy_list <- out$ice_dummy_list
+  ice_all_list <- out$ice_all_list
+  input_cont_list <- out$input_cont_list
+  inputs_centre <- out$inputs_centre
+  inputs_scale <- out$inputs_scale
+  ice_design_scaled <- out$ice_design_scaled
 
-    # Loop through factors
-    for (ff in names(ice_factor_values)) {
+  # Factor values - do separately so don't drop nominal
+  print(ice_factor_values)
+  ice_factor_values_new <- ice_factor_values
 
-      # Loop through levels of this factor, starting at 2 as first value is nominal
-      for (vv in 2:length(ice_factor_values[[ff]])) {
+  # Loop through factors
+  for (ff in names(ice_factor_values)) {
 
-        # If factor:level is not in inputs
-        factor_level <- paste(ff, ice_factor_values[[ff]][vv], sep=":")
+    # Loop through levels of this factor, starting at 2 as first value is nominal
+    for (vv in 2:length(ice_factor_values[[ff]])) {
 
-        if ( ! factor_level %in% emu_inputs ) {
-          print(paste("factor:level", factor_level, "is not in emulator inputs" ))
-          # Drop from values
-          ice_factor_values_new[[ff]] <- ice_factor_values_new[[ff]][ ice_factor_values_new[[ff]] != ice_factor_values_new[[ff]][vv] ]
-          #    print(ice_factor_values_new[[ff]])
-        }
+      # If factor:level is not in inputs
+      factor_level <- paste(ff, ice_factor_values[[ff]][vv], sep=":")
+
+      if ( ! factor_level %in% emu_inputs ) {
+        print(paste("factor:level", factor_level, "is not in emulator inputs" ))
+        # Drop from values
+        ice_factor_values_new[[ff]] <- ice_factor_values_new[[ff]][ ice_factor_values_new[[ff]] != ice_factor_values_new[[ff]][vv] ]
+        #    print(ice_factor_values_new[[ff]])
       }
+    }
 
-      # If all levels of a factor dropped, drop from factor list for designs/plots
-      # and from names of factor value list
-      # 2 for reference + any remaining xxx is this OK
-      if (length(ice_factor_values_new[[ff]]) == 2 && anyNA(ice_factor_values_new[[ff]])) {
-        print(paste("Drop", ff, "from factor list because all dummy (non-reference) levels dropped"))
-        ice_factor_list <- ice_factor_list[ ice_factor_list != ff]
-        ice_factor_values_new <- ice_factor_values_new[ names(ice_factor_values_new) != ff ]
-        stopifnot(names(ice_factor_values_new) == ice_factor_list)
-      }
-    } # factor loop
+    # If all levels of a factor dropped, drop from factor list for designs/plots
+    # and from names of factor value list
+    # 2 for reference + any remaining xxx is this OK
+    if (length(ice_factor_values_new[[ff]]) == 2 && anyNA(ice_factor_values_new[[ff]])) {
+      print(paste("Drop", ff, "from factor list because all dummy (non-reference) levels dropped"))
+      ice_factor_list <- ice_factor_list[ ice_factor_list != ff]
+      ice_factor_values_new <- ice_factor_values_new[ names(ice_factor_values_new) != ff ]
+      stopifnot(names(ice_factor_values_new) == ice_factor_list)
+    }
+  } # factor loop
 
-    ice_factor_values <- ice_factor_values_new
+  ice_factor_values <- ice_factor_values_new
 
-    cat("\nSo now we have",length(emu_inputs),"inputs as follows:\n", file = logfile_build, append = TRUE)
-    cat(paste(colnames(Xtrain), collapse = " "),"\n", file = logfile_build, append = TRUE)
+  cat("\nSo now we have",length(emu_inputs),"inputs as follows:\n", file = logfile_build, append = TRUE)
+  cat(paste(colnames(Xtrain), collapse = " "),"\n", file = logfile_build, append = TRUE)
 
-  } else {
-    cat("\nEmulator dropped no inert inputs\n", file = logfile_build, append = TRUE)
-  }
-
-} # temp_input == "mean"
+} else {
+  cat("\nEmulator dropped no inert inputs\n", file = logfile_build, append = TRUE)
+}
 
 
 # ________________----
@@ -2313,32 +2334,45 @@ cat("______________________________________\n", file = emu_log_file, append = TR
 
 if (temp_input == "mean") {
 
-  #' ## Main effects
-  # Main effects (i.e. one-at-a-time design for sensitivity analysis)
-  design_sa <- emulandice2::load_design_to_pred("main_effects", 100L)
 
-  cat(paste("\nPredict for main effects:\n"), file = logfile_build, append = TRUE)
-  cat(paste(names(design_sa), collapse = " "), "\n", file = logfile_build, append = TRUE)
+#' ## Main effects
+# Main effects (i.e. one-at-a-time design for sensitivity analysis)
+design_sa <- emulandice2::load_design_to_pred("main_effects", 100L)
 
-  # Predict: overwrite object
-  myem <- list()
-  for (input in names( design_sa )) {
+cat(paste("\nPredict for main effects:\n"), file = logfile_build, append = TRUE)
+cat(paste(names(design_sa), collapse = " "), "\n", file = logfile_build, append = TRUE)
 
-    cat(paste("\nMain effects:",input,"\n"), file = logfile_build, append = TRUE)
+# Predict: overwrite object
+myem <- list()
 
+for (input in names( design_sa )) {
+
+  cat(paste("\nMain effects:",input,"\n"), file = logfile_build, append = TRUE)
+
+  # Output MEFF ranges/levels
+  if (identical(input, "GSAT")) {
+    x_meff <- attr(design_sa[[input]], "meff_x")
+    cat(paste("Range:", min(x_meff), "-", max(x_meff), "\n"),
+        file = logfile_build, append = TRUE)
+  } else if (!is.null(attr(design_sa[[input]], "meff_factor"))) {
+    cat(paste("Levels:",
+              paste(attr(design_sa[[input]], "meff_levels"), collapse = ", "),
+              "\n"), file = logfile_build, append = TRUE)
+  } else {
     cat(paste("Range:", min(design_sa[[input]][, input]), "-",
               max(design_sa[[input]][, input]),
               "\n"), file = logfile_build, append = TRUE)
-
-    design_sa_scaled_cont <- scale(design_sa[[input]][ , input_cont_list],
-                                   center = inputs_centre,
-                                   scale = inputs_scale )
-
-    design_sa_scaled <- as.data.frame( design_sa[[input]] )
-    design_sa_scaled[ , input_cont_list ] <- design_sa_scaled_cont
-
-    if (temp_input == "mean") myem[[input]] <- emulandice2::emulator_predict( design_sa_scaled, forcing_prior = "mean")
   }
+
+  design_sa_scaled_cont <- scale(design_sa[[input]][ , input_cont_list],
+                                 center = inputs_centre,
+                                 scale = inputs_scale )
+
+  design_sa_scaled <- as.data.frame( design_sa[[input]] )
+  design_sa_scaled[ , input_cont_list ] <- design_sa_scaled_cont
+
+  myem[[input]] <- emulandice2::emulator_predict( design_sa_scaled, forcing_prior = "mean")
+}
 
   # save.image(file="~/PROTECT/emulandice2/MEFF.RData")
 
