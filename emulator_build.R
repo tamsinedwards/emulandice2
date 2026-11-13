@@ -2374,46 +2374,46 @@ for (input in names( design_sa )) {
   myem[[input]] <- emulandice2::emulator_predict( design_sa_scaled, forcing_prior = "mean")
 }
 
-  # save.image(file="~/PROTECT/emulandice2/MEFF.RData")
+# save.image(file="~/PROTECT/emulandice2/MEFF.RData")
 
-  #' ## Uniform temperature prior
+#' ## Uniform temperature prior
 
-  # Design: uniform --------------------------------------------------------------
+# Design: uniform --------------------------------------------------------------
 
-  # Design "unif_temps" makes projections using uniform priors for GSAT with same ranges as sims
-  # a better comparison than using FaIR projected distributions for each SSP
+# Design "unif_temps" makes projections using uniform priors for GSAT with same ranges as sims
+# a better comparison than using FaIR projected distributions for each SSP
 
-  cat("______________________________________\n", file = emu_log_file, append = TRUE)
-  cat("EMULATOR: predict uniform prior\n", file = emu_log_file, append = TRUE)
-  cat("______________________________________\n", file = emu_log_file, append = TRUE)
+cat("______________________________________\n", file = emu_log_file, append = TRUE)
+cat("EMULATOR: predict uniform prior\n", file = emu_log_file, append = TRUE)
+cat("______________________________________\n", file = emu_log_file, append = TRUE)
 
-  design_pred <- emulandice2::load_design_to_pred("unif_temps", N_unif)
+design_pred <- emulandice2::load_design_to_pred("unif_temps", N_unif)
 
-  cat("\nPredict for uniform temp designs:\n", file = logfile_build, append = TRUE)
+cat("\nPredict for uniform temp designs:\n", file = logfile_build, append = TRUE)
 
-  for (scen in scenario_list) {
+for (scen in scenario_list) {
 
-    cat(paste("\nScenario with uniform priors:",scen,"\n"), file = logfile_build, append = TRUE)
+  cat(paste("\nScenario with uniform priors:",scen,"\n"), file = logfile_build, append = TRUE)
 
-    design_pred_scaled_cont <- scale(design_pred[[scen]][ , input_cont_list],
-                                     center = inputs_centre,
-                                     scale = inputs_scale )
-    design_pred_scaled <- as.data.frame( design_pred[[scen]]  )
-    design_pred_scaled[ , input_cont_list] <- design_pred_scaled_cont
+  design_pred_scaled_cont <- scale(design_pred[[scen]][ , input_cont_list],
+                                   center = inputs_centre,
+                                   scale = inputs_scale )
+  design_pred_scaled <- as.data.frame( design_pred[[scen]]  )
+  design_pred_scaled[ , input_cont_list] <- design_pred_scaled_cont
 
   myem[[scen]] <- emulandice2::emulator_predict( design_pred_scaled, forcing_prior = "mean" )
 
-  }
+}
 
-  # save.image(file="~/PROTECT/emulandice2/unif_temps.RData")
+# save.image(file="~/PROTECT/emulandice2/unif_temps.RData")
 
-  # Sample emu uncertainty ----------------------------------------------------------------------
-  projections <- list()
+# Sample emu uncertainty ----------------------------------------------------------------------
+projections <- list()
 
-  # Want to see unif_temps final projections (samples with uncertainty) for validation
-  for (scen in scenario_list) {
-    projections[[scen]] <- emulandice2::emulator_uncertainty(myem[[scen]])
-  }
+# Want to see unif_temps final projections (samples with uncertainty) for validation
+for (scen in scenario_list) {
+  projections[[scen]] <- emulandice2::emulator_uncertainty(myem[[scen]])
+}
 
 } # if temp_input == mean
 

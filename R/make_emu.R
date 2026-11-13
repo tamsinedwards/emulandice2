@@ -232,15 +232,14 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
     # Drop factors (dummy variable columns)
     if ( include_factors) {
 
+      # Drop dummy variables from GP (design); they are still in the trends
+      cat("\nmake_emu build: dropping factors from GP design:\n", file = emu_log_file, append = TRUE)
+      cat(paste(c(ice_dummy_list, "\n"), collapse = " "), file = emu_log_file, append = TRUE)
 
-        # Drop dummy variables from GP (design); they are still in the trends
-        cat("\nmake_emu build: dropping factors from GP design:\n", file = emu_log_file, append = TRUE)
-        cat(paste(c(ice_dummy_list, "\n"), collapse = " "), file = emu_log_file, append = TRUE)
+      designX <- designX[ , ! colnames(designX) %in% ice_dummy_list ]
 
-        designX <- designX[ , ! colnames(designX) %in% ice_dummy_list ]
-
-        cat("\nmake_emu build: keeping only the continuous inputs in GP design:\n", file = emu_log_file, append = TRUE)
-        cat(paste(c(colnames(designX), "\n"), collapse = " "), "\n", file = emu_log_file, append = TRUE)
+      cat("\nmake_emu build: keeping only the continuous inputs in GP design:\n", file = emu_log_file, append = TRUE)
+      cat(paste(c(colnames(designX), "\n"), collapse = " "), "\n", file = emu_log_file, append = TRUE)
 
     }
   }
@@ -425,22 +424,24 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
       # if any factors present
       if ( include_factors) {
 
-          # Drop dummy variables from GP - they are still in the trends
-          cat("\nmake_emu pred: keeping only the continuous inputs in GP design:\n", file = emu_log_file, append = TRUE)
 
-          if (multi_sim) {
-            designXout <- designXout[ , ! design_names %in% ice_dummy_list ]
-            cat(paste(colnames(designXout), collapse = " "), "\n", file = emu_log_file, append = TRUE)
-          } else {
-            designXout <- designXout[ ! design_names %in% ice_dummy_list ]
-            cat(paste(names(designXout), collapse = " "), "\n", file = emu_log_file, append = TRUE) # WORKS
-            save_names <- names(designXout)
+        # Drop dummy variables from GP - they are still in the trends
+        cat("\nmake_emu pred: keeping only the continuous inputs in GP design:\n", file = emu_log_file, append = TRUE)
 
-            # Make into 1 x ncol matrix again
-            designXout <- matrix(designXout, nrow = 1)
-            colnames(designXout) <- save_names
+        if (multi_sim) {
+          designXout <- designXout[ , ! design_names %in% ice_dummy_list ]
+          cat(paste(colnames(designXout), collapse = " "), "\n", file = emu_log_file, append = TRUE)
+        } else {
+          designXout <- designXout[ ! design_names %in% ice_dummy_list ]
+          cat(paste(names(designXout), collapse = " "), "\n", file = emu_log_file, append = TRUE) # WORKS
+          save_names <- names(designXout)
 
-          }
+          # Make into 1 x ncol matrix again
+          designXout <- matrix(designXout, nrow = 1)
+          colnames(designXout) <- save_names
+
+        }
+
 
       } # if include_factors
 

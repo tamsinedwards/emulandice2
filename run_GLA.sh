@@ -125,9 +125,11 @@ for region in "${my_list[@]}"
     # Use default file in package if not specified
     if [ "$config" != "" ]; then
       echo "Build configuration file:" "./inst/"$config
+      echo
     fi
     if [ "$config" = "" ]; then
       echo "Build configuration file not specified: using default file in" "./inst/"
+      echo
     fi
 
     # RUN EMULANDICE2 EMULATOR BUILD

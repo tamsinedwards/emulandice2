@@ -116,9 +116,11 @@ do
     # Use default file in package if not specified
     if [ "$config" != "" ]; then
       echo "Build configuration file:" "./inst/"$config
+      echo
     fi
     if [ "$config" = "" ]; then
       echo "Build configuration file not specified: using default file in" "./inst/"
+      echo
     fi
 
     # RUN EMULANDICE2 EMULATOR BUILD
@@ -153,7 +155,8 @@ do
       # RUN EMULANDICE2 PREDICT SSP
       ./emulandice_steer.sh AIS $region ./data-raw/"$build_file" "$gsat_dir"/"$gsat_file" $ssp ./out/AIS_"$region"_"$final_year"_"$ssp"/ $seed AIS_"$region"_"$final_year"_"$ssp"
 
-   done
+    done
+
   fi
 
 done # regions
