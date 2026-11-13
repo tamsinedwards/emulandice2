@@ -104,8 +104,11 @@ plot_timeseries <- function(data_type, plot_level = 0) {
 
               # If find simulations for scenario(s):
               if (length(ice_data[ ice_data$scenario %in% scen_list, ]) > 0) {
+
                 apply( ice_data[ ice_data$scenario %in% scen_list, paste0("y", years_sim) ],
-                       1, function(x) lines( years_sim, x, col =  AR6_rgb[[scen]], lwd = 0.3) )
+                       1, function(x) {
+                         ok <- is.finite(x) # to skip NAs in imputed sections
+                         lines(years_sim[ok], x[ok], col = AR6_rgb[[scen]], lwd = 0.3) } )
 
                 # Legend
                 yleg <- 0.90*ymax
