@@ -581,9 +581,9 @@ cat(paste("Validation years:", paste(validation_years, collapse = ",")), "\n", f
 #_______________
 cat("\nEMULATOR INPUTS:\n", file = logfile_build, append = TRUE)
 
-# Switch for GSAT means or SVD (only summary for now)
 # // Temps ------------------------------------------------------------
 
+# Choose GSAT method (only mean periods implemented)
 temp_input <- config::get("temp_input", file = config_file)
 if (is.null(temp_input)) temp_input <- "mean"
 
@@ -672,7 +672,7 @@ if (temp_input == "mean") {
   cat(paste("\nDrop correlated GSAT timeslices:", do_drop_temps, "\n"), file = logfile_build, append = TRUE)
   if (do_drop_temps) {
     if (drop_temps_method == "pcd") cat("Using Pivoted Cholesky Decomposition", file = logfile_build, append = TRUE)
-    if (drop_temps_method == "cor") cat(sprintf("GSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
+    if (drop_temps_method == "corr") cat(sprintf("GSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
   }
 
 
@@ -1190,18 +1190,18 @@ temps_data <- emulandice2::calc_temps_gcms(climate_data, mean_impute = impute_gc
 # For GIS post-2100, repeat with fixed climate forcings
 # No need to set mean_impute, because this is already filling in [?] xxx check
 if ( i_s == "GIS" && final_year > 2100) {
-  if (temp_input == "mean") climate_data_fixed <- impute_climate(climate_csv, construct_fixed = TRUE)
+  climate_data_fixed <- impute_climate(climate_csv, construct_fixed = TRUE)
   temps_data_fixed <- emulandice2::calc_temps_gcms(climate_data_fixed)
 }
 
 # For AIS Kori and PISM, splice historical NorESM1
 # before 2015 (GCM-forced) and optionally also before 1980 (RCM-forced)
 if ( i_s == "AIS" && any(model_list %in% c("Kori", "PISM")) && temps_baseline_start < 2015L) {
-  if (temp_input == "mean") climate_data_spliced_late <- impute_climate(climate_csv, construct_spliced = 2015)
+  climate_data_spliced_late <- impute_climate(climate_csv, construct_spliced = 2015)
   temps_data_spliced_late <- emulandice2::calc_temps_gcms(climate_data_spliced_late, mean_impute = impute_gcms)
 
   if (temps_baseline_start < 1980L) {
-    if (temp_input == "mean") climate_data_spliced_early <- impute_climate(climate_csv, construct_spliced = 1980)
+    climate_data_spliced_early <- impute_climate(climate_csv, construct_spliced = 1980)
     temps_data_spliced_early <- emulandice2::calc_temps_gcms(climate_data_spliced_early, mean_impute = impute_gcms)
   }
 }
@@ -2401,7 +2401,7 @@ for (input in names( design_sa )) {
     design_pred_scaled <- as.data.frame( design_pred[[scen]]  )
     design_pred_scaled[ , input_cont_list] <- design_pred_scaled_cont
 
-    if (temp_input == "mean") myem[[scen]] <- emulandice2::emulator_predict( design_pred_scaled, forcing_prior = "mean" )
+  myem[[scen]] <- emulandice2::emulator_predict( design_pred_scaled, forcing_prior = "mean" )
 
   }
 
@@ -2471,9 +2471,9 @@ if (validation_type == "loo") {
 
   # Test every N_k-th run (can be very slow)
   # xxx Improve: stratified by output value instead of every N_k
-  if (temp_input == "mean") emu_loo <- emulandice2::do_loo( designX = as.matrix(Xtrain),
-                                                            responseF = as.matrix(Ytrain),
-                                                            N_k = N_k)
+  emu_loo <- emulandice2::do_loo( designX = as.matrix(Xtrain),
+                                  responseF = as.matrix(Ytrain),
+                                  N_k = N_k)
 
   # To store results
   loo_mean <- list()
@@ -2662,7 +2662,7 @@ to_save <- c("climate_data", # CLIMATE MODEL SIMULATION DATA
              "ice_cont_list", "ice_factor_list", "ice_all_list", # Lists of ice emulated inputs: continuous, factors, all
              "ice_dummy_list", "ice_factor_values", # Dummy column names and values for factor inputs
              "N_temp_yrs", # GSAT mean years; used in priors
-             "temp_type", "temp_input", # GSAT anomaly type; using GSAT means or SVD xxx later obsolete if not using SVD
+             "temp_type", "temp_input", # GSAT anomaly type; using GSAT means
              "temps", "temps_baseline_end", "temps_list", "temps_list_names", # GSAT means and names used
              "input_cont_list", # List of all emulated continuous inputs, i.e. c(temps_list_names, ice_cont_list)
              "emulator_type",

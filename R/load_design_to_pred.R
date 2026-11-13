@@ -20,7 +20,7 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
 
   # Prediction designs
   # Main_effects and unif_temps are used by emulator_build.R for emulator validation,
-  # fixed_temp is used for calibrating ice sheet model parameters for fixed GSAST,
+  # fixed_temp is used for calibrating ice sheet model parameters for fixed GSAT,
   # and AR6_2LM is used by main.R to predict
   stopifnot(design_name %in% c("main_effects", "unif_temps", "fixed_temp", "AR6_2LM"))
 

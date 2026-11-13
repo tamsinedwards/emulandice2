@@ -25,7 +25,7 @@ match_gcms <- function(ice_data, temps_dataset, mean_impute = FALSE) {
   for (tt in 1:length(temps_list)) {
 
     temps <- cbind(temps, NA)
-    colnames(temps)[ tt + 2 ] <- paste0("GSAT_", temps_list[tt])
+    colnames(temps)[ tt + 2 ] <- temps_list_names[tt]
 
     # Fill column by row
     temps[ , tt + 2] <- unlist(apply(ice_data, 1, function(x) {

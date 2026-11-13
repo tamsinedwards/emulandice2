@@ -48,7 +48,7 @@ do_loo <- function(designX, responseF, forcingX, N_k = NA) {
     emu_mv_loo <- NA
 
     # Fit emulator to all but that one simulation
-    if (temp_input == "mean") emu_mv_loo <- try(emulandice2::make_emu( designX = designX[ -ss, ],
+    emu_mv_loo <- try(emulandice2::make_emu( designX = designX[ -ss, ],
                                                           responseF = responseF[ -ss, paste0("y", years_em) ],
                                                           thresh = scree_thresh ) )
     # Skip simulation if failed
@@ -59,7 +59,7 @@ do_loo <- function(designX, responseF, forcingX, N_k = NA) {
 
     # Predict for all years
     # This mimics emulator_predict() function, but asks to return just mean and sd, not var
-    if (temp_input == "mean") emu_one <- emu_mv_loo( designX[ ss, ], type = "sd")
+    emu_one <- emu_mv_loo( designX[ ss, ], type = "sd")
     colnames(emu_one$mean) <- paste0("y", years_em)
     colnames(emu_one$sd) <- paste0("y", years_em)
 

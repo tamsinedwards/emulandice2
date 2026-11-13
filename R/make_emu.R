@@ -232,7 +232,6 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
     # Drop factors (dummy variable columns)
     if ( include_factors) {
 
-      if (temp_input == "mean") {
 
         # Drop dummy variables from GP (design); they are still in the trends
         cat("\nmake_emu build: dropping factors from GP design:\n", file = emu_log_file, append = TRUE)
@@ -243,7 +242,6 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
         cat("\nmake_emu build: keeping only the continuous inputs in GP design:\n", file = emu_log_file, append = TRUE)
         cat(paste(c(colnames(designX), "\n"), collapse = " "), "\n", file = emu_log_file, append = TRUE)
 
-      }
     }
   }
 
@@ -426,7 +424,6 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
 
       # if any factors present
       if ( include_factors) {
-        if (temp_input == "mean") {
 
           # Drop dummy variables from GP - they are still in the trends
           cat("\nmake_emu pred: keeping only the continuous inputs in GP design:\n", file = emu_log_file, append = TRUE)
@@ -445,7 +442,6 @@ make_emu <- function(designX, responseF, forcingX, r = NULL, thresh = 0.999) {
 
           }
 
-        } # temp_input == "mean"
       } # if include_factors
 
       # Original list of inputs before lasso drops inert

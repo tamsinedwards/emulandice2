@@ -269,7 +269,7 @@ for (scen in fixed_temp_list) {
   design_fixed_scaled <- as.data.frame( design_fixed[[scen]]  )
   design_fixed_scaled[ , input_cont_list] <- design_fixed_scaled_cont
 
-  if (temp_input == "mean") myem[[scen]] <- emulandice2::emulator_predict( design_fixed_scaled, forcing_prior = "mean" )
+  myem[[scen]] <- emulandice2::emulator_predict( design_fixed_scaled, forcing_prior = "mean" )
 
 }
 
@@ -388,7 +388,7 @@ for (scen in scenario_list) {
 
   # Projections: PRIOR MEAN
   # Returns $mean, $sd, $var
-  if (temp_input == "mean") myem[[scen]] <- emulandice2::emulator_predict( design_prior_scaled, forcing_prior = "mean")
+  myem[[scen]] <- emulandice2::emulator_predict( design_prior_scaled, forcing_prior = "mean")
 
 }
 
@@ -459,7 +459,7 @@ for (scen in scenario_list) {
 
   # Projections: POSTERIOR MEAN
   # Returns $mean, $sd, $var
-  if (temp_input == "mean") myem_post[[scen]] <- emulandice2::emulator_predict( design_pred_scaled, forcing_prior = "mean")
+  myem_post[[scen]] <- emulandice2::emulator_predict( design_pred_scaled, forcing_prior = "mean")
 
 }
 
