@@ -630,7 +630,7 @@ if (temp_input == "mean") {
 
     # Then drop most correlated of these in the forcing dataset OR use PCD to choose
     do_drop_temps <- TRUE
-    drop_temps_method <- "pcd"
+    drop_temps_method <- "corr"
     stopifnot(drop_temps_method %in% c("corr", "pcd"))
 
     # Old defaults
@@ -658,7 +658,7 @@ if (temp_input == "mean") {
   # Correlation threshold for GSAT timeslices
   cor_thresh <- 0.7
 
-  cat(paste("GSAT anomaly type:", temp_type, "\n"), file = logfile_build, append = TRUE)
+  cat(paste("GSAT anomaly type (baseline or relative):", temp_type, "\n"), file = logfile_build, append = TRUE)
   cat(paste("GSAT baseline:", temps_baseline_start, "-", temps_baseline_end, "\n"), file = logfile_build, append = TRUE)
   cat(paste("Initial GSAT timeslice final year(s):", paste(temps_list, collapse = ","), "\n"), file = logfile_build, append = TRUE)
   if (max(temps_list) > final_year) {
@@ -669,10 +669,10 @@ if (temp_input == "mean") {
   }
 
   cat(paste("GSAT period:", N_temp_yrs, "years\n"), file = logfile_build, append = TRUE)
-  cat(paste("\nDrop correlated GSAT timeslices:", do_drop_temps, "\n"), file = logfile_build, append = TRUE)
+  cat(paste("\nDrop GSAT timeslices:", do_drop_temps, "\n"), file = logfile_build, append = TRUE)
   if (do_drop_temps) {
-    if (drop_temps_method == "pcd") cat("Using Pivoted Cholesky Decomposition", file = logfile_build, append = TRUE)
-    if (drop_temps_method == "corr") cat(sprintf("GSAT correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
+    if (drop_temps_method == "pcd") cat("- using Pivoted Cholesky Decomposition", file = logfile_build, append = TRUE)
+    if (drop_temps_method == "corr") cat(sprintf("- using correlation threshold (Kendall's tau) = %.2f\n", cor_thresh), file = logfile_build, append = TRUE)
   }
 
 

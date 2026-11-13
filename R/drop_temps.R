@@ -53,10 +53,10 @@ drop_temps <- function(designX) {
   if (drop_temps_method == "pcd") {
 
     # TODO: move scree threshold to emulator_build.R or YAML
-    pcd_thresh <- 0.9999
+    pcd_thresh <- 0.999
 
     cat("\ndrop_temps: selecting GSAT timeslices(s) with PCD using threshold", 100.0*pcd_thresh,
-        "%%\n", file = emu_log_file, append = TRUE)
+        "%\n", file = emu_log_file, append = TRUE)
 
     # Temp mean columns of ensemble design
     designX_temps <- designX[, colnames(designX) %in% temps_list_names, drop = FALSE]
@@ -75,9 +75,9 @@ drop_temps <- function(designX) {
     cat("\ndrop_temps: selecting GSAT timeslices(s) with PCD using threshold", 100.0*pcd_thresh,
         "%%\n", file = emu_log_file, append = TRUE)
 
-    cat("drop_temps: using ", pcd$label[1],
+    cat("drop_temps: using", length(pcd_keep),
                 "GSAT periods explaining",100.0*pcd$scree[length(pcd_keep)],
-              "%% of variance\n", file = emu_log_file, append = TRUE)
+              "% of variance\n", file = emu_log_file, append = TRUE)
 
     cat(paste(pcd$label[ pcd_keep ], collapse = " "), "\n", file = emu_log_file, append = TRUE)
     cat(paste(pcd$scree[ pcd_keep ], collapse = " "), "\n", file = emu_log_file, append = TRUE)
