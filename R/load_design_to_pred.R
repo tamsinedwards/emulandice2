@@ -112,6 +112,10 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
       # Fixed value at minimum resolution
       prior_range[["resolution"]][2] <- prior_range[["resolution"]][1]
 
+      cat(sprintf("\nUsing resolution range: [%.4f, %4.f] km\n",
+                  min(prior_range[["resolution"]]), max(prior_range[["resolution"]])),
+          file = logfile_design, append = TRUE)
+
       # Retreat empirical prior
       # 5-95% or 25-75% range of empirical distribution
       if (final_year > 2100) {
@@ -365,47 +369,58 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
 
       }
 
-      # Rest of this is duplicated from unif_temp code
+      # Rest of this is duplicated from unif_temp code, except ensemble design prior
 
       # Create holder for all ice model input columns, including dummy variables
       design_prior_param <- matrix(nrow = N_samp, ncol = length(ice_all_list))
       colnames(design_prior_param) <- ice_all_list
 
-      # Continuous parameters: sample independently
-      for (pp in ice_cont_list) {
+      # Only sample from ensemble design
+      if (prior_choices == "ensemble") {
 
-        if (i_s == "GIS" && pp == "retreat") {
-          # Empirical
-          samp <- sample( unlist(retreat_prior), N_samp, replace = TRUE )
-        } else {
-          # Uniform
-          samp <- runif( N_samp, min = as.numeric(prior_range[[pp]][1]),
-                         max = as.numeric(prior_range[[pp]][2]) )
+        # Sample from full ensemble design, with replacement
+        ensemble_shuffle <- sample(seq_len(nrow(ice_design)), N_samp, replace = TRUE)
+        design_prior_param <- ice_design[ensemble_shuffle, ice_all_list, drop = FALSE]
+
+      } else {
+
+        # Continuous parameters: sample independently
+        for (pp in ice_cont_list) {
+
+          if (i_s == "GIS" && pp == "retreat") {
+            # Empirical
+            samp <- sample( unlist(retreat_prior), N_samp, replace = TRUE )
+          } else {
+            # Uniform
+            samp <- runif( N_samp, min = as.numeric(prior_range[[pp]][1]),
+                           max = as.numeric(prior_range[[pp]][2]) )
+          }
+
+          # Store column
+          design_prior_param[, pp] <- samp
+
+        } # cont
+
+        # Loop over factors (i.e. not dummy variables, because dept columns)
+        for (pp in ice_factor_list) {
+
+          if (is.na(pp)) next
+
+          # Number of dummy variables = number of factor levels - 1 for collinearity
+          nd <- length( ice_factor_values[[pp]] ) - 1
+
+          # Sample from [1, 0, ...] for each row (trailing are more zeroes)
+          prior_factor <- t(replicate( N_samp, sample( c(1,rep(0,nd)), nd, replace = FALSE )  ))
+
+          # Reconstruct dummy variable column names (factor:level)
+          # and check in dummy variable name list
+          colnames_dv <- paste(pp, ice_factor_values[[pp]][-1], sep = ":")
+          stopifnot( length( setdiff(colnames_dv, ice_dummy_list )) == 0 )
+
+          # Store
+          design_prior_param[ , colnames_dv ] <- prior_factor
+
         }
-
-        # Store column
-        design_prior_param[, pp] <- samp
-
-      } # cont
-
-      # Loop over factors (i.e. not dummy variables, because dept columns)
-      for (pp in ice_factor_list) {
-
-        if (is.na(pp)) next
-
-        # Number of dummy variables = number of factor levels - 1 for collinearity
-        nd <- length( ice_factor_values[[pp]] ) - 1
-
-        # Sample from [1, 0, ...] for each row (trailing are more zeroes)
-        prior_factor <- t(replicate( N_samp, sample( c(1,rep(0,nd)), nd, replace = FALSE )  ))
-
-        # Reconstruct dummy variable column names (factor:level)
-        # and check in dummy variable name list
-        colnames_dv <- paste(pp, ice_factor_values[[pp]][-1], sep = ":")
-        stopifnot( length( setdiff(colnames_dv, ice_dummy_list )) == 0 )
-
-        # Store
-        design_prior_param[ , colnames_dv ] <- prior_factor
 
       }
 
@@ -479,41 +494,52 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
       design_prior_param <- matrix(nrow = N_temp, ncol = length(ice_all_list))
       colnames(design_prior_param) <- ice_all_list
 
-      # Continuous parameters
-      for (pp in ice_cont_list) {
+      # Sample priors from ensemble design (e.g. for testing)
+      if (prior_choices == "ensemble") {
 
-        if (i_s == "GIS" && pp == "retreat") {
-          # Empirical
-          samp <- sample( unlist(retreat_prior), N_temp, replace = TRUE )
-        } else {
-          # Uniform
-          samp <- runif( N_temp, min = as.numeric(prior_range[[pp]][1]),
-                         max = as.numeric(prior_range[[pp]][2]) )
+        # Sample from full ensemble design, with replacement
+        ensemble_shuffle <- sample(seq_len(nrow(ice_design)), N_temp, replace = TRUE)
+        design_prior_param <- ice_design[ensemble_shuffle, ice_all_list, drop = FALSE]
+
+      } else {
+
+        # Continuous parameters
+        for (pp in ice_cont_list) {
+
+          if (i_s == "GIS" && pp == "retreat") {
+            # Empirical
+            samp <- sample( unlist(retreat_prior), N_temp, replace = TRUE )
+          } else {
+            # Uniform
+            samp <- runif( N_temp, min = as.numeric(prior_range[[pp]][1]),
+                           max = as.numeric(prior_range[[pp]][2]) )
+          }
+
+          # Store column
+          design_prior_param[, pp] <- samp
+
         }
 
-        # Store column
-        design_prior_param[, pp] <- samp
+        # Loop over factors (i.e. not dummy variables, because dept columns)
+        for (pp in ice_factor_list) {
 
-      }
+          if (is.na(pp)) next
 
-      # Loop over factors (i.e. not dummy variables, because dept columns)
-      for (pp in ice_factor_list) {
+          # Number of dummy variables = number of factor levels - 1 for collinearity
+          nd <- length( ice_factor_values[[pp]] ) - 1
 
-        if (is.na(pp)) next
+          # Sample from [1, 0, ...] for each row (trailing are more zeroes)
+          prior_factor <- t(replicate( N_temp, sample( c(1,rep(0,nd)), nd, replace = FALSE )  ))
 
-        # Number of dummy variables = number of factor levels - 1 for collinearity
-        nd <- length( ice_factor_values[[pp]] ) - 1
+          # Reconstruct dummy variable column names (factor:level)
+          # and check in dummy variable name list
+          colnames_dv <- paste(pp, ice_factor_values[[pp]][-1], sep = ":")
+          stopifnot( length( setdiff(colnames_dv, ice_dummy_list )) == 0 )
 
-        # Sample from [1, 0, ...] for each row (trailing are more zeroes)
-        prior_factor <- t(replicate( N_temp, sample( c(1,rep(0,nd)), nd, replace = FALSE )  ))
+          # Store
+          design_prior_param[ , colnames_dv ] <- prior_factor
 
-        # Reconstruct dummy variable column names (factor:level)
-        # and check in dummy variable name list
-        colnames_dv <- paste(pp, ice_factor_values[[pp]][-1], sep = ":")
-        stopifnot( length( setdiff(colnames_dv, ice_dummy_list )) == 0 )
-
-        # Store
-        design_prior_param[ , colnames_dv ] <- prior_factor
+        }
 
       }
 

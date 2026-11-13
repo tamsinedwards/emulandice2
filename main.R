@@ -176,9 +176,9 @@ q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
 # Uniform is currently uniform for all except GIS retreat
 # Custom currently restricts ranges of ice sheet resolution, AIS ISMIP6 heat fluxes,
 # and GLA temp_bias and precip_corr_factor
-if (i_s %in% c("GIS", "AIS")) { prior_choices <- "custom"
-} else prior_choices <- "uniform"
-stopifnot(prior_choices %in% c("uniform", "custom"))
+# Ensemble samples from original design, for testing
+prior_choices <- "ensemble"
+stopifnot(prior_choices %in% c("uniform", "custom", "ensemble"))
 cat("Prior choices:", prior_choices,"\n",  file = logfile_results, append = TRUE)
 
 #' # Set model discrepancy
@@ -355,9 +355,25 @@ cat("Design: posteriors (only ice model inputs are calibrated, not climate)\n", 
 # Posterior design: sample ice model input posteriors
 # i.e. from large priors using weights from Bayesian calibration
 # Exclude GSAT column(s) when doing this
-design_inputs_post <- apply(design_fixed[["mean_temp"]][ , -c(1:length(temps_list))], 2, function(x) {
-  sample(x, N_temp, replace = TRUE, prob = proj_weights[["mean_temp"]])
-})
+
+if (prior_choices == "ensemble") {
+
+  # Ensemble design - sample whole rows for joint ice model input combinations
+  # Pick index resamples whole ice rows by calibration weight
+  # then keep just ice cols here and splice with GSAT after
+  pick <- sample(seq_len(nrow(design_fixed[["mean_temp"]])), N_temp,
+                 replace = TRUE, prob = proj_weights[["mean_temp"]])
+  design_inputs_post <- design_fixed[["mean_temp"]][ pick, -c(1:length(temps_list)), drop = FALSE]
+
+
+} else {
+
+  # Sample ice model inputs independently otherwise
+  design_inputs_post <- apply(design_fixed[["mean_temp"]][ , -c(1:length(temps_list))], 2, function(x) {
+    sample(x, N_temp, replace = TRUE, prob = proj_weights[["mean_temp"]])
+  })
+
+}
 
 # Add GSAT prior column(s)
 design_pred <- list()
