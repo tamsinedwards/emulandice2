@@ -72,8 +72,6 @@ load_design_to_pred <- function(design_name, N_samp = NA) {
       retreat_prior <- sample( retreat_prior_dens$x, 10000, replace = TRUE,
                                prob = retreat_prior_dens$y )
 
-      #prior_min["retreat"] <- min(retreat_prior)
-      #prior_max["retreat"] <- max(retreat_prior)
       prior_range[["retreat"]] <- range(retreat_prior)
 
       cat(sprintf("Empirical retreat prior range: [%.4f, %4.f]\n", min(retreat_prior), max(retreat_prior)), file = logfile_design, append = TRUE)

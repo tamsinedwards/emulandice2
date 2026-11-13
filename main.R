@@ -176,7 +176,7 @@ q_list <- c( 0.50, 0.05, 0.95, 0.17, 0.83, 0.25, 0.75 )
 # Uniform is currently uniform for all except GIS retreat
 # Custom currently restricts ranges of ice sheet resolution, AIS ISMIP6 heat fluxes,
 # and GLA temp_bias and precip_corr_factor
-# Ensemble samples from original design, for testing
+# Ensemble samples from original ice design, for testing, but using FaIR GSATs
 prior_choices <- "ensemble"
 stopifnot(prior_choices %in% c("uniform", "custom", "ensemble"))
 cat("Prior choices:", prior_choices,"\n",  file = logfile_results, append = TRUE)
@@ -185,8 +185,8 @@ cat("Prior choices:", prior_choices,"\n",  file = logfile_results, append = TRUE
 # Model error -----------------------------------------------------------------------
 
 # Model discrepancy - a multiple of obs error
-if (i_s == "GLA") { scale_mod_err = 6
-} else scale_mod_err = 3
+if (i_s == "GLA") { scale_mod_err = 5
+} else scale_mod_err = 5
 stopifnot( scale_mod_err > 1 )
 model_err <- scale_mod_err * obs_data[,"SLE_sd"]
 
